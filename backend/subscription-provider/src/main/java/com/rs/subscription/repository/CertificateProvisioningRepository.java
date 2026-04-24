@@ -1,8 +1,6 @@
 package com.rs.subscription.repository;
 
 import com.rs.subscription.entity.CertificateProvisioningRecord;
-import com.rs.subscription.entity.CertificateProvisioningRecord.ProvisioningStatus;
-import com.rs.subscription.entity.Subscription;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +13,7 @@ import java.util.Optional;
 
 public interface CertificateProvisioningRepository extends JpaRepository<CertificateProvisioningRecord, Long> {
     Optional<CertificateProvisioningRecord> findBySubscriptionSubscriptionIdAndUserId(Long subscriptionId, String userId);
-    List<CertificateProvisioningRecord> findByStatus(ProvisioningStatus status);
+    List<CertificateProvisioningRecord> findByStatus(String status);
 
     @Query("SELECT c FROM CertificateProvisioningRecord c WHERE c.status = 'FAILED' AND c.retryCount < :maxRetries")
     List<CertificateProvisioningRecord> findRetryEligible(@Param("maxRetries") int maxRetries);
@@ -25,14 +23,14 @@ public interface CertificateProvisioningRepository extends JpaRepository<Certifi
     Optional<CertificateProvisioningRecord> findByCertificateId(String certificateId);
 
     @Query(value = "SELECT c FROM CertificateProvisioningRecord c " +
-                   "JOIN FETCH c.subscription s JOIN FETCH s.plan p " +
+                   "JOIN FETCH c.subscription s JOIN FETCH s.planTemplate p " +
                    "WHERE (:status IS NULL OR c.status = :status) " +
                    "AND (:userId IS NULL OR c.userId LIKE %:userId%)",
            countQuery = "SELECT COUNT(c) FROM CertificateProvisioningRecord c " +
                         "WHERE (:status IS NULL OR c.status = :status) " +
                         "AND (:userId IS NULL OR c.userId LIKE %:userId%)")
     Page<CertificateProvisioningRecord> findAllWithFilters(
-        @Param("status") ProvisioningStatus status,
+        @Param("status") String status,
         @Param("userId") String userId,
         Pageable pageable);
 
@@ -41,5 +39,5 @@ public interface CertificateProvisioningRepository extends JpaRepository<Certifi
     int incrementUsageCount(@Param("certificateId") String certificateId);
 
     @Query("SELECT COUNT(c) FROM CertificateProvisioningRecord c WHERE c.subscription.subscriberType = :type AND c.createdAt >= :since")
-    long countBySubscriberTypeAndCreatedAtAfter(@Param("type") Subscription.SubscriberType type, @Param("since") LocalDateTime since);
+    long countBySubscriberTypeAndCreatedAtAfter(@Param("type") String type, @Param("since") LocalDateTime since);
 }

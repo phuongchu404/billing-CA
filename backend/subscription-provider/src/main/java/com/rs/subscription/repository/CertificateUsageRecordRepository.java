@@ -42,7 +42,12 @@ public interface CertificateUsageRecordRepository extends JpaRepository<Certific
                 AND c.certificateId IS NOT NULL
           )
         """)
-    long countBySubscriberTypeAndUsedAtAfter(@Param("type") Subscription.SubscriberType type, @Param("since") LocalDateTime since);
+    long countBySubscriberTypeAndUsedAtAfter(@Param("type") String type, @Param("since") LocalDateTime since);
+
+    List<CertificateUsageRecord> findBySubscriptionGroupGroupIdAndUsedAtGreaterThanEqualAndUsedAtLessThanOrderByUsedAtAsc(
+            Long groupId,
+            LocalDateTime from,
+            LocalDateTime to);
 
     @Modifying
     @Query(value = """

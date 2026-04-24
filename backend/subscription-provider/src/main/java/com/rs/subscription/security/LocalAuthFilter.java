@@ -31,7 +31,7 @@ public class LocalAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                     FilterChain filterChain) throws ServletException, IOException {
+            FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -45,25 +45,29 @@ public class LocalAuthFilter extends OncePerRequestFilter {
 
             if ("LOCAL".equals(authProvider) && SecurityContextHolder.getContext().getAuthentication() == null) {
                 if (!tokenRedisService.isAccessTokenValid(token)) {
-                    // Token not in Redis whitelist — session was cleared (e.g. backend restart or explicit logout)
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Session expired");
+                    // Token not in Redis whitelist — treat as anonymous.
+                    // Don't block here; let Spring Security's authorization rules (permitAll vs
+                    // authenticated) decide.
+                    log.debug("Access token not found in Redis whitelist, treating as anonymous");
+                    filterChain.doFilter(request, response);
                     return;
                 }
                 String userId = claims.getSubject();
                 userAccountRepository.findById(userId).ifPresent(user -> {
                     List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
-                        .map(r -> new SimpleGrantedAuthority(r.getRoleName()))
-                        .collect(Collectors.toList());
-                    UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                            .map(r -> new SimpleGrantedAuthority(r.getRoleName()))
+                            .collect(Collectors.toList());
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userId, null,
+                            authorities);
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 });
             }
         } catch (JwtException e) {
-            // Token signature invalid (e.g. keys rotated after restart) — reject immediately
+            // Token signature invalid (e.g. keys rotated after restart) — reject
+            // immediately
             log.debug("Invalid JWT token: {}", e.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-            return;
+//            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+//            return;
         }
 
         filterChain.doFilter(request, response);

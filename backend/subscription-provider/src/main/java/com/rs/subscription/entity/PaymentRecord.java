@@ -19,8 +19,16 @@ public class PaymentRecord {
     private Long paymentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_id", nullable = false)
+    @JoinColumn(name = "subscription_id")
     private Subscription subscription;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_plan_assignment_id")
+    private GroupPlanAssignment groupPlanAssignment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "settlement_statement_id")
+    private SettlementStatement settlementStatement;
 
     @Column(unique = true, nullable = false, length = 200)
     private String externalReference;
@@ -31,9 +39,11 @@ public class PaymentRecord {
     @Column(nullable = false, columnDefinition = "CHAR(3)")
     private String currency;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PaymentStatus paymentStatus;
+    @Column(nullable = false, length = 30)
+    private String paymentStatus;
+
+    @Column(nullable = false, length = 30)
+    private String paymentScope;
 
     @Column(nullable = false, length = 100)
     private String paymentMethod;
@@ -44,5 +54,4 @@ public class PaymentRecord {
     @Column(columnDefinition = "JSON")
     private String rawPayload;
 
-    public enum PaymentStatus { SUCCESS, FAILED, REFUNDED }
 }

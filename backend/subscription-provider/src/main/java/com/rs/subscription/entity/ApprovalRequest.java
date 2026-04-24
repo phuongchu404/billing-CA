@@ -17,16 +17,20 @@ public class ApprovalRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "VARCHAR(50)")
-    private RequestType requestType;
+    private String requestType;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "VARCHAR(20)")
-    private ApprovalStatus status;
+    private String status;
 
     @Column(nullable = false, length = 100)
     private String requestedBy;
+
+    @Column(nullable = false, length = 50)
+    private String entityType;
+
+    @Column(nullable = false, length = 150)
+    private String entityId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String requestPayload;
@@ -49,23 +53,10 @@ public class ApprovalRequest {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public enum RequestType {
-        CREATE_PLAN,
-        ASSIGN_GROUP_PLAN,
-        CANCEL_SUBSCRIPTION,
-        SUSPEND_SUBSCRIPTION
-    }
-
-    public enum ApprovalStatus {
-        PENDING,
-        APPROVED,
-        DENIED
-    }
-
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
-        if (status == null) status = ApprovalStatus.PENDING;
+        if (status == null) status = "PENDING";
     }
 
     @PreUpdate

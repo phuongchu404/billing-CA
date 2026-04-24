@@ -20,7 +20,6 @@
 		<module>thirdparty-api</module>
 		<module>subscription-provider</module>
 		<module>plan-mng-web</module>
-		<module>subscription-api</module>
 	</modules>
 
 	<properties>

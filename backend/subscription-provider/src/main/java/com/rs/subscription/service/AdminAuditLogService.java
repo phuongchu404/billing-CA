@@ -1,10 +1,10 @@
 package com.rs.subscription.service;
 
+import com.rs.subscription.aop.TrackAdminAudit;
 import com.rs.subscription.dto.PagedResponse;
 import com.rs.subscription.dto.response.AdminAuditLogResponse;
 import com.rs.subscription.entity.AdminAuditLog;
 import com.rs.subscription.repository.AdminAuditLogRepository;
-import com.rs.subscription.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,36 +20,35 @@ import java.util.stream.Collectors;
 public class AdminAuditLogService {
 
     private final AdminAuditLogRepository adminAuditLogRepository;
-    private final UserAccountRepository userAccountRepository;
 
     /**
      * Record an admin action. actorId is the userId (UUID) from the JWT principal;
      * this method resolves it to username for readability.
      */
+    @TrackAdminAudit(
+        actor = "#p0",
+        action = "#p1",
+        entityType = "#p2",
+        entityId = "#p3",
+        details = "#p4",
+        resolveActorFromUserId = true
+    )
     public void log(String actorId, String action, String entityType, String entityId, String details) {
-        String actorName = userAccountRepository.findById(actorId)
-                .map(u -> u.getUsername())
-                .orElse(actorId);
-        persist(actorName, action, entityType, entityId, details);
+        log.debug("AdminAudit queued: actorId={} action={} {}#{}", actorId, action, entityType, entityId);
     }
 
     /**
      * Record an action when the username is already known (avoids an extra DB lookup).
      */
+    @TrackAdminAudit(
+        actor = "#p0",
+        action = "#p1",
+        entityType = "#p2",
+        entityId = "#p3",
+        details = "#p4"
+    )
     public void logDirect(String actorUsername, String action, String entityType, String entityId, String details) {
-        persist(actorUsername, action, entityType, entityId, details);
-    }
-
-    private void persist(String actorName, String action, String entityType, String entityId, String details) {
-        AdminAuditLog entry = AdminAuditLog.builder()
-                .actor(actorName)
-                .action(action)
-                .entityType(entityType)
-                .entityId(entityId)
-                .details(details)
-                .build();
-        adminAuditLogRepository.save(entry);
-        log.debug("AdminAudit: actor={} action={} {}#{}", actorName, action, entityType, entityId);
+        log.debug("AdminAudit queued: actor={} action={} {}#{}", actorUsername, action, entityType, entityId);
     }
 
     public PagedResponse<AdminAuditLogResponse> getAdminAuditLogs(

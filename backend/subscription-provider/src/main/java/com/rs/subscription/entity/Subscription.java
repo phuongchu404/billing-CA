@@ -18,9 +18,8 @@ public class Subscription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long subscriptionId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private SubscriberType subscriberType;
+    @Column(nullable = false, length = 20)
+    private String subscriberType;
 
     @Column(length = 100)
     private String userId;
@@ -30,12 +29,29 @@ public class Subscription {
     private Group group;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "plan_id", nullable = false)
-    private Plan plan;
+    @JoinColumn(name = "plan_template_id", nullable = false)
+    private PlanTemplate planTemplate;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private SubscriptionStatus status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pricing_rule_id")
+    private PlanPricingRule pricingRule;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_plan_assignment_id")
+    private GroupPlanAssignment groupPlanAssignment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "retail_plan_schedule_id")
+    private RetailPlanSchedule retailPlanSchedule;
+
+    @Column(nullable = false, length = 30)
+    private String sourceType;
+
+    @Column
+    private Long sourceId;
+
+    @Column(nullable = false, length = 30)
+    private String status;
 
     private LocalDate startDate;
     private LocalDate endDate;
@@ -62,6 +78,7 @@ public class Subscription {
     void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
         if (signingQuotaUsed == null) signingQuotaUsed = 0;
+        if (sourceType == null) sourceType = "MANUAL";
     }
 
     @PreUpdate
@@ -69,7 +86,4 @@ public class Subscription {
         updatedAt = LocalDateTime.now();
     }
 
-    public enum SubscriberType { INDIVIDUAL, GROUP }
-
-    public enum SubscriptionStatus { PENDING, ACTIVE, EXPIRED, CANCELLED, SUSPENDED }
 }

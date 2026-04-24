@@ -14,7 +14,7 @@ import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.PermissionRepository;
 import com.rs.subscription.repository.RolePermissionRepository;
 import com.rs.subscription.repository.RoleRepository;
-import com.rs.subscription.repository.UserAccountRepository;
+import com.rs.subscription.repository.UserRoleRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class RoleService {
 
     private final RoleRepository roleRepository;
-    private final UserAccountRepository userAccountRepository;
+    private final UserRoleRepository userRoleRepository;
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final EntityManager entityManager;
@@ -68,8 +68,7 @@ public class RoleService {
         if (Boolean.TRUE.equals(role.getIsSystemRole())) {
             throw new SmsException(ErrorCodes.CANNOT_MODIFY_SYSTEM_ROLE, "System roles cannot be deleted", 400);
         }
-        boolean inUse = userAccountRepository.findAll().stream()
-            .anyMatch(u -> u.getRoles().stream().anyMatch(r -> r.getRoleId().equals(roleId)));
+        boolean inUse = userRoleRepository.existsByRoleRoleId(roleId);
         if (inUse) {
             throw new SmsException(ErrorCodes.ROLE_IN_USE, "Role is assigned to one or more users", 409);
         }

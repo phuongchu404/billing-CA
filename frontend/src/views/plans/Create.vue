@@ -224,11 +224,17 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { createGroup, createGroupAssignment } from '@/api/groups'
+import { createPlanTemplate } from '@/api/planTemplates'
+import type { UpsertGroupRequest, CreateGroupPlanAssignmentRequest } from '@/types/group'
+import type { CreatePlanTemplateRequest, PlanPricingRuleRequest } from '@/types/planTemplate'
 
 const router = useRouter()
 
 interface ConfigRow {
   subject: string
+  subjectType: 'INDIVIDUAL' | 'ORGANIZATION' | 'INDIVIDUAL_OF_ORG'
   duration: number
   condition: 'signing' | 'certificate'
   minValue: number
@@ -238,8 +244,8 @@ interface ConfigRow {
 
 const form = reactive({
   groupName: '',
-  picEmails: ['abc123@gmail.com', 'abc321@gmail.com', 'abc456@gmail.com'] as string[],
-  contactEmails: ['abc123@gmail.com', 'abc321@gmail.com', 'abc456@gmail.com'] as string[],
+  picEmails: [] as string[],
+  contactEmails: [] as string[],
   refContractNo: '',
   planName: '',
   applyDateRange: null as [string, string] | null,
@@ -250,11 +256,12 @@ const contactEmailInput = ref('')
 const picInputRef = ref<HTMLInputElement>()
 const contactInputRef = ref<HTMLInputElement>()
 const showGuide = ref(true)
+const submitting = ref(false)
 
 const configRows = reactive<ConfigRow[]>([
-  { subject: 'Cá nhân', duration: 1, condition: 'signing', minValue: 1, maxValue: 10, fee: 100 },
-  { subject: 'Tổ chức', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 100000 },
-  { subject: 'Cá nhân thuộc tổ chức', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: 'Cá nhân', subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0 },
+  { subject: 'Tổ chức', subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: 'Cá nhân thuộc tổ chức', subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
 ])
 
 function addEmail(type: 'pic' | 'contact') {
@@ -272,15 +279,101 @@ function handleChooseTemplate() {
   // TODO: open template picker dialog
 }
 
-function handleSubmit() {
-  // TODO: validate and submit
-  router.push('/plans')
+async function handleSubmit() {
+  if (!form.groupName.trim()) {
+    ElMessage.warning('Vui lòng nhập tên đại lý')
+    return
+  }
+  if (!form.planName.trim()) {
+    ElMessage.warning('Vui lòng nhập tên gói cước')
+    return
+  }
+
+  submitting.value = true
+  try {
+    // Bước 1: Tạo group
+    const groupReq: UpsertGroupRequest = {
+      groupName: form.groupName,
+      picEmails: form.picEmails,
+      contactEmails: form.contactEmails,
+      refContractNo: form.refContractNo || undefined,
+    }
+    const groupRes = await createGroup(groupReq)
+    if (!groupRes.success || !groupRes.data) {
+      ElMessage.error(groupRes.message || 'Không thể tạo đại lý')
+      return
+    }
+    const newGroupId = groupRes.data.groupId
+
+    // Bước 2: Tạo plan template
+    const pricingRules: PlanPricingRuleRequest[] = configRows.map((row, i) => ({
+      subjectType: row.subjectType,
+      certificateValidityValue: row.duration,
+      certificateValidityUnit: 'MONTH',
+      pricingMetric: row.condition === 'signing' ? 'SIGNING_COUNT' : 'CERTIFICATE_COUNT',
+      rangeMin: row.minValue,
+      rangeMax: row.maxValue,
+      unitPrice: row.fee,
+      currency: 'VND',
+      quotaTotal: null,
+      sortOrder: i + 1,
+      isActive: true,
+    }))
+
+    // Tạo planCode tự động từ groupCode + timestamp
+    const planCode = `PLN_${newGroupId}_${Date.now()}`
+    const templateReq: CreatePlanTemplateRequest = {
+      planCode,
+      planName: form.planName,
+      customerSegment: 'GROUP',
+      templateScope: 'PARTNER_PRIVATE',
+      status: form.applyDateRange ? 'DRAFT' : 'AVAILABLE',
+      effectiveFrom: form.applyDateRange ? form.applyDateRange[0] : null,
+      effectiveTo: form.applyDateRange ? form.applyDateRange[1] : null,
+      isVisible: true,
+      allowBulkSigning: false,
+      allowApiAccess: false,
+      createdBy: 'system',
+      pricingRules,
+    }
+    const templateRes = await createPlanTemplate(templateReq)
+    if (!templateRes.success || !templateRes.data) {
+      ElMessage.warning(`Đại lý đã tạo (ID: ${newGroupId}) nhưng không thể tạo gói cước: ${templateRes.message}`)
+      router.push('/plans/' + newGroupId)
+      return
+    }
+
+    const newTemplateId = templateRes.data.planTemplateId
+
+    // Bước 3: Gán gói cước cho đại lý (Assignment)
+    const assignReq: CreateGroupPlanAssignmentRequest = {
+      planTemplateId: newTemplateId,
+      requestedBy: 'system', // Có thể lấy từ auth context nếu có
+      applyFrom: form.applyDateRange ? form.applyDateRange[0] : null,
+      applyTo: form.applyDateRange ? form.applyDateRange[1] : null,
+    }
+    const assignRes = await createGroupAssignment(newGroupId, assignReq)
+    if (!assignRes.success) {
+      ElMessage.warning(`Lỗi khi gán gói cước cho đại lý: ${assignRes.message}`)
+      router.push('/plans/' + newGroupId)
+      return
+    }
+
+    ElMessage.success('Tạo đại lý và gán gói cước thành công!')
+    router.push('/plans/' + newGroupId)
+  } catch (e) {
+    ElMessage.error('Lỗi kết nối server')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleCancel() {
   router.push('/plans')
 }
 </script>
+
+
 
 <style scoped>
 .page-header { margin-bottom: 12px; }

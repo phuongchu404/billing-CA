@@ -4,7 +4,7 @@ import com.rs.subscription.dto.request.LoginRequest;
 import com.rs.subscription.dto.response.LoginResponse;
 import com.rs.subscription.entity.RefreshToken;
 import com.rs.subscription.entity.UserAccount;
-import com.rs.subscription.entity.UserAccount.UserStatus;
+import com.rs.subscription.enums.AuthEnums;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.RefreshTokenRepository;
@@ -52,9 +52,9 @@ public class AuthService {
         UserAccount user = userAccountRepository.findByUsername(req.getUsername())
             .orElseThrow(() -> new SmsException(ErrorCodes.UNAUTHORIZED, "Invalid username or password", 401));
 
-        if (user.getStatus() == UserStatus.LOCKED) {
+        if (AuthEnums.UserStatus.LOCKED.name().equals(user.getStatus())) {
             if (user.getLockedUntil() != null && LocalDateTime.now().isAfter(user.getLockedUntil())) {
-                user.setStatus(UserStatus.ACTIVE);
+                user.setStatus(AuthEnums.UserStatus.ACTIVE.name());
                 user.setFailedLoginAttempts(0);
                 user.setLockedUntil(null);
             } else {
@@ -63,14 +63,14 @@ public class AuthService {
             }
         }
 
-        if (user.getStatus() == UserStatus.INACTIVE) {
+        if (AuthEnums.UserStatus.INACTIVE.name().equals(user.getStatus())) {
             throw new SmsException(ErrorCodes.ACCOUNT_INACTIVE, "Account has been deactivated", 403);
         }
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
             if (user.getFailedLoginAttempts() >= lockoutThreshold) {
-                user.setStatus(UserStatus.LOCKED);
+                user.setStatus(AuthEnums.UserStatus.LOCKED.name());
                 user.setLockedUntil(LocalDateTime.now().plusMinutes(lockoutDurationMinutes));
                 log.warn("Account locked: {}", user.getUsername());
             }
@@ -88,7 +88,7 @@ public class AuthService {
         RefreshToken rt = RefreshToken.builder()
             .token(refreshTokenValue)
             .user(user)
-            .status(RefreshToken.TokenStatus.ACTIVE)
+            .status(AuthEnums.TokenStatus.ACTIVE.name())
             .expiresAt(LocalDateTime.now().plusSeconds(refreshTokenTtl))
             .ipAddress(ipAddress)
             .userAgent(userAgent)
@@ -113,11 +113,11 @@ public class AuthService {
         RefreshToken rt = refreshTokenRepository.findByToken(tokenValue)
             .orElseThrow(() -> new SmsException(ErrorCodes.INVALID_REFRESH_TOKEN, "Invalid refresh token", 401));
 
-        if (rt.getStatus() != RefreshToken.TokenStatus.ACTIVE) {
+        if (!AuthEnums.TokenStatus.ACTIVE.name().equals(rt.getStatus())) {
             throw new SmsException(ErrorCodes.INVALID_REFRESH_TOKEN, "Refresh token revoked or expired", 401);
         }
         if (LocalDateTime.now().isAfter(rt.getExpiresAt())) {
-            rt.setStatus(RefreshToken.TokenStatus.EXPIRED);
+            rt.setStatus(AuthEnums.TokenStatus.EXPIRED.name());
             refreshTokenRepository.save(rt);
             throw new SmsException(ErrorCodes.INVALID_REFRESH_TOKEN, "Refresh token has expired", 401);
         }
@@ -149,7 +149,7 @@ public class AuthService {
         refreshTokenRepository.findByToken(tokenValue).ifPresent(rt -> {
             adminAuditLogService.logDirect(rt.getUser().getUsername(), "LOGOUT", "USER",
                     rt.getUser().getUserId(), "User logged out");
-            rt.setStatus(RefreshToken.TokenStatus.REVOKED);
+            rt.setStatus(AuthEnums.TokenStatus.REVOKED.name());
             rt.setRevokedAt(LocalDateTime.now());
             refreshTokenRepository.save(rt);
         });

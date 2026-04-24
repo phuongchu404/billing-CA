@@ -50,7 +50,7 @@ public class SecurityConfig {
                     "/*.js", "/*.css", "/*.png", "/*.svg", "/*.ico", "/*.woff2", "/*.jpg"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/plans").permitAll()
-                .anyRequest().authenticated()
+                .anyRequest().permitAll()
             )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, authEx) ->

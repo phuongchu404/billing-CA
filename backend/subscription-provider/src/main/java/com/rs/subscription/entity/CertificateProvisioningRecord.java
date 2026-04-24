@@ -21,15 +21,22 @@ public class CertificateProvisioningRecord {
     @JoinColumn(name = "subscription_id", nullable = false)
     private Subscription subscription;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_plan_assignment_id")
+    private GroupPlanAssignment groupPlanAssignment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pricing_rule_id")
+    private PlanPricingRule pricingRule;
+
     @Column(nullable = false, length = 100)
     private String userId;
 
     @Column(unique = true, nullable = false, length = 36)
     private String requestId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ProvisioningStatus status;
+    @Column(nullable = false, length = 30)
+    private String status;
 
     @Convert(converter = CertTypeConverter.class)
     @Column(nullable = false, columnDefinition = "TINYINT")
@@ -66,7 +73,7 @@ public class CertificateProvisioningRecord {
         createdAt = updatedAt = LocalDateTime.now();
         if (retryCount == null) retryCount = 0;
         if (usageCount == null) usageCount = 0;
-        if (status == null) status = ProvisioningStatus.PENDING;
+        if (status == null) status = "PENDING";
         if (certType == null) certType = CertType.INDIVIDUAL;
     }
 
@@ -74,9 +81,6 @@ public class CertificateProvisioningRecord {
     void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-    public enum ProvisioningStatus { PENDING, COMPLETED, FAILED, FAILED_PERMANENT }
-
     public enum CertType {
         INDIVIDUAL(1), INDIVIDUAL_OF_ORGANIZATION(2), ORGANIZATION(3);
 

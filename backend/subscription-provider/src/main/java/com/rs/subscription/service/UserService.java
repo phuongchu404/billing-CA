@@ -8,7 +8,7 @@ import com.rs.subscription.dto.response.RoleResponse;
 import com.rs.subscription.dto.response.UserResponse;
 import com.rs.subscription.entity.Role;
 import com.rs.subscription.entity.UserAccount;
-import com.rs.subscription.entity.UserAccount.UserStatus;
+import com.rs.subscription.enums.AuthEnums;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.RefreshTokenRepository;
@@ -61,12 +61,12 @@ public class UserService {
             .email(req.getEmail())
             .fullName(req.getFullName())
             .passwordHash(passwordEncoder.encode(req.getPassword()))
-            .authProvider(UserAccount.AuthProvider.LOCAL)
-            .status(UserStatus.ACTIVE)
+            .authProvider(AuthEnums.AuthProvider.LOCAL.name())
+            .status(AuthEnums.UserStatus.ACTIVE.name())
             .failedLoginAttempts(0)
             .createdBy(createdBy)
-            .roles(roles)
             .build();
+        user.setRoles(roles);
 
         return toResponse(userAccountRepository.save(user));
     }
@@ -76,7 +76,10 @@ public class UserService {
         if (query != null && !query.isBlank()) {
             result = userAccountRepository.search(query, PageRequest.of(page, size));
         } else if (status != null && !status.isBlank()) {
-            result = userAccountRepository.findByStatus(UserStatus.valueOf(status.toUpperCase()), PageRequest.of(page, size));
+            result = userAccountRepository.findByStatus(
+                AuthEnums.normalize(status, AuthEnums.UserStatus.class, "status"),
+                PageRequest.of(page, size)
+            );
         } else {
             result = userAccountRepository.findAll(PageRequest.of(page, size));
         }
@@ -130,21 +133,21 @@ public class UserService {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Cannot disable your own account", 400);
         }
         UserAccount user = findById(userId);
-        user.setStatus(UserStatus.INACTIVE);
+        user.setStatus(AuthEnums.UserStatus.INACTIVE.name());
         userAccountRepository.save(user);
     }
 
     @Transactional
     public void reactivateUser(String userId) {
         UserAccount user = findById(userId);
-        user.setStatus(UserStatus.ACTIVE);
+        user.setStatus(AuthEnums.UserStatus.ACTIVE.name());
         userAccountRepository.save(user);
     }
 
     @Transactional
     public void unlockUser(String userId) {
         UserAccount user = findById(userId);
-        user.setStatus(UserStatus.ACTIVE);
+        user.setStatus(AuthEnums.UserStatus.ACTIVE.name());
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
         userAccountRepository.save(user);
@@ -203,8 +206,8 @@ public class UserService {
         r.setUsername(u.getUsername());
         r.setEmail(u.getEmail());
         r.setFullName(u.getFullName());
-        r.setAuthProvider(u.getAuthProvider().name());
-        r.setStatus(u.getStatus().name());
+        r.setAuthProvider(u.getAuthProvider());
+        r.setStatus(u.getStatus());
         r.setLastLoginAt(u.getLastLoginAt());
         r.setCreatedAt(u.getCreatedAt());
         r.setRoles(u.getRoles().stream().map(role -> {

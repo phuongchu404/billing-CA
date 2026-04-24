@@ -33,6 +33,9 @@ public class SubscriptionAuditLog {
     @Column(columnDefinition = "TEXT")
     private String reason;
 
+    @Column(length = 50)
+    private String sourceType;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

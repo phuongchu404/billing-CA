@@ -1,0 +1,45 @@
+package com.rs.subscription.controller;
+
+import com.rs.subscription.dto.ApiResponse;
+import com.rs.subscription.dto.request.CreatePlanTemplateRequest;
+import com.rs.subscription.dto.response.PlanTemplateResponse;
+import com.rs.subscription.service.PlanTemplateService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/plan-templates")
+@RequiredArgsConstructor
+public class PlanTemplateController {
+
+    private final PlanTemplateService planTemplateService;
+
+    @GetMapping
+    public ApiResponse<List<PlanTemplateResponse>> list() {
+        return ApiResponse.success(planTemplateService.listAll(), "Fetched plan templates");
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<PlanTemplateResponse> get(@PathVariable Long id) {
+        return ApiResponse.success(planTemplateService.getById(id), "Fetched plan template");
+    }
+
+    @PostMapping
+    public ApiResponse<PlanTemplateResponse> create(@Valid @RequestBody CreatePlanTemplateRequest request) {
+        return ApiResponse.success(planTemplateService.create(request), "Created plan template");
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<PlanTemplateResponse> update(@PathVariable Long id, @Valid @RequestBody CreatePlanTemplateRequest request) {
+        return ApiResponse.success(planTemplateService.update(id, request), "Updated plan template");
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        planTemplateService.delete(id);
+        return ApiResponse.success("Deleted plan template");
+    }
+}

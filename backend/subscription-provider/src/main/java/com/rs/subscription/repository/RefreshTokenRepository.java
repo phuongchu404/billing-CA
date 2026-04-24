@@ -1,7 +1,6 @@
 package com.rs.subscription.repository;
 
 import com.rs.subscription.entity.RefreshToken;
-import com.rs.subscription.entity.RefreshToken.TokenStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,7 +17,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Query("UPDATE RefreshToken rt SET rt.status = 'EXPIRED' WHERE rt.expiresAt < current_timestamp AND rt.status = 'ACTIVE'")
     int expireOldTokens();
 
-    List<RefreshToken> findByUserUserIdAndStatus(String userId, TokenStatus status);
+    List<RefreshToken> findByUserUserIdAndStatus(String userId, String status);
 
     @Modifying
     @Transactional

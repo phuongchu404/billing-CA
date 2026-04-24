@@ -190,9 +190,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { getGroup } from '@/api/groups'
+import { listPlanTemplates, getPlanTemplate, createPlanTemplate } from '@/api/planTemplates'
+import type { GroupDetail } from '@/types/group'
+import type { PlanTemplate, CreatePlanTemplateRequest, PlanPricingRuleRequest } from '@/types/planTemplate'
 
 const route = useRoute()
 const router = useRouter()
@@ -201,6 +206,7 @@ const agencyId = Number(route.params.id)
 
 interface ConfigRow {
   subject: string
+  subjectType: 'INDIVIDUAL' | 'ORGANIZATION' | 'INDIVIDUAL_OF_ORG'
   duration: number
   condition: 'signing' | 'certificate'
   minValue: number
@@ -208,13 +214,18 @@ interface ConfigRow {
   fee: number
 }
 
-// Dữ liệu đại lý hiển thị read-only — thay bằng API call theo agencyId thực tế
-const agency = reactive({
-  groupCode: 'TCB_01',
-  groupName: 'Techcombank',
-  picEmails: ['quangbt-hn@mk.com.vn', 'baclt-hn@mk.com.vn', 'anhnt-hn@mk.com.vn'],
-  contactEmails: ['quangbt-hn@mk.com.vn', 'baclt-hn@mk.com.vn', 'anhnt-hn@mk.com.vn'],
-  refContractNo: 'HĐ/ĐL/AG001_202603_0001, HĐ/ĐL/AG015_202604_0002',
+// Dữ liệu đại lý (read-only) — load từ API
+const agency = reactive<GroupDetail>({
+  groupId: 0,
+  groupCode: '',
+  groupName: '',
+  status: 'ACTIVE',
+  picEmails: [],
+  contactEmails: [],
+  refContractNo: null,
+  createdBy: null,
+  createdAt: null,
+  updatedAt: null,
 })
 
 const form = reactive({
@@ -223,38 +234,136 @@ const form = reactive({
 })
 
 const configRows = reactive<ConfigRow[]>([
-  { subject: 'Cá nhân', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0 },
-  { subject: 'Tổ chức', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
-  { subject: 'Cá nhân thuộc tổ chức', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: 'Cá nhân', subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0 },
+  { subject: 'Tổ chức', subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: 'Cá nhân thuộc tổ chức', subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
 ])
 
 const showGuide = ref(true)
+const submitting = ref(false)
+const loadingAgency = ref(false)
 
 // --- Template dialog ---
 const templateVisible = ref(false)
-const selectedTemplate = ref<string | null>(null)
+const selectedTemplate = ref<number | null>(null)
+const templateOptions = ref<{ label: string; value: number }[]>([])
 
-const templateOptions = [
-  { label: 'Chữ ký số 2026', value: 'plan_1' },
-  { label: 'Chữ ký số 2026 tháng 5_2', value: 'plan_2' },
-  { label: 'Chữ ký số 2026 tháng 5', value: 'plan_3' },
-  { label: 'Chữ ký số 2026 tháng 3', value: 'plan_4' },
-]
+async function loadAgency() {
+  if (!agencyId) return
+  loadingAgency.value = true
+  try {
+    const res = await getGroup(agencyId)
+    if (res.success && res.data) {
+      Object.assign(agency, res.data)
+    } else {
+      ElMessage.error(res.message || 'Không tìm thấy đại lý')
+    }
+  } catch {
+    ElMessage.error('Lỗi kết nối server')
+  } finally {
+    loadingAgency.value = false
+  }
+}
 
-function confirmTemplate() {
-  // TODO: fetch config of selectedTemplate and fill configRows
+async function loadTemplateOptions() {
+  try {
+    const res = await listPlanTemplates()
+    if (res.success && res.data) {
+      templateOptions.value = res.data
+        .filter(t => t.status === 'AVAILABLE' || t.status === 'DRAFT')
+        .map(t => ({ label: t.planName, value: t.planTemplateId }))
+    }
+  } catch {
+    // silently ignore
+  }
+}
+
+async function confirmTemplate() {
+  if (!selectedTemplate.value) return
+  try {
+    const res = await getPlanTemplate(selectedTemplate.value)
+    if (res.success && res.data) {
+      const tmpl: PlanTemplate = res.data
+      // Copy pricing rules vào configRows
+      tmpl.pricingRules.forEach((rule, i) => {
+        if (i < configRows.length) {
+          configRows[i].duration = rule.certificateValidityValue
+          configRows[i].condition = rule.pricingMetric === 'SIGNING_COUNT' ? 'signing' : 'certificate'
+          configRows[i].minValue = rule.rangeMin
+          configRows[i].maxValue = rule.rangeMax
+          configRows[i].fee = Number(rule.unitPrice)
+        }
+      })
+    }
+  } catch {
+    ElMessage.error('Không thể tải template')
+  }
   templateVisible.value = false
 }
 
-function handleSubmit() {
-  // TODO: validate and call API
-  router.push('/plans/' + agencyId)
+async function handleSubmit() {
+  if (!form.planName.trim()) {
+    ElMessage.warning('Vui lòng nhập tên gói cước')
+    return
+  }
+
+  submitting.value = true
+  try {
+    const pricingRules: PlanPricingRuleRequest[] = configRows.map((row, i) => ({
+      subjectType: row.subjectType,
+      certificateValidityValue: row.duration,
+      certificateValidityUnit: 'MONTH',
+      pricingMetric: row.condition === 'signing' ? 'SIGNING_COUNT' : 'CERTIFICATE_COUNT',
+      rangeMin: row.minValue,
+      rangeMax: row.maxValue,
+      unitPrice: row.fee,
+      currency: 'VND',
+      quotaTotal: null,
+      sortOrder: i + 1,
+      isActive: true,
+    }))
+
+    const planCode = `PLN_${agencyId}_${Date.now()}`
+    const req: CreatePlanTemplateRequest = {
+      planCode,
+      planName: form.planName,
+      customerSegment: 'GROUP',
+      templateScope: 'PARTNER_PRIVATE',
+      status: form.applyDateRange ? 'DRAFT' : 'AVAILABLE',
+      effectiveFrom: form.applyDateRange ? form.applyDateRange[0] : null,
+      effectiveTo: form.applyDateRange ? form.applyDateRange[1] : null,
+      isVisible: true,
+      allowBulkSigning: false,
+      allowApiAccess: false,
+      createdBy: 'system',
+      pricingRules,
+    }
+
+    const res = await createPlanTemplate(req)
+    if (res.success) {
+      ElMessage.success('Tạo gói cước thành công!')
+      router.push('/plans/' + agencyId)
+    } else {
+      ElMessage.error(res.message || 'Không thể tạo gói cước')
+    }
+  } catch {
+    ElMessage.error('Lỗi kết nối server')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleCancel() {
   router.push('/plans/' + agencyId)
 }
+
+onMounted(() => {
+  loadAgency()
+  loadTemplateOptions()
+})
 </script>
+
+
 
 <style scoped>
 .page-header { margin-bottom: 12px; }

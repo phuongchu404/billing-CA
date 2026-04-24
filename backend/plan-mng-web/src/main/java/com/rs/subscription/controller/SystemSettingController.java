@@ -4,7 +4,6 @@ import com.rs.subscription.dto.ApiResponse;
 import com.rs.subscription.dto.request.TestEmailRequest;
 import com.rs.subscription.dto.response.SystemSettingResponse;
 import com.rs.subscription.service.MailService;
-import com.rs.subscription.service.NotificationService;
 import com.rs.subscription.service.SystemSettingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,7 +24,6 @@ public class SystemSettingController {
 
     private final SystemSettingService settingService;
     private final MailService mailService;
-    private final NotificationService notificationService;
 
     @GetMapping("/{category}")
     @Operation(summary = "Get settings for a category (EMAIL, NOTIFICATION)")
@@ -46,12 +44,5 @@ public class SystemSettingController {
     public ApiResponse<String> testEmail(@Valid @RequestBody TestEmailRequest req) {
         mailService.sendTestEmail(req.getRecipient());
         return ApiResponse.success("Sent", "Test email sent to " + req.getRecipient());
-    }
-
-    @PostMapping("/notification/trigger")
-    @Operation(summary = "Manually trigger the expiry notification job")
-    public ApiResponse<String> triggerNotifications() {
-        notificationService.sendExpiryNotifications();
-        return ApiResponse.success("Done", "Notification job completed");
     }
 }

@@ -2,6 +2,7 @@ package com.rs.subscription.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.rs.subscription.enums.AuthEnums;
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,9 +25,8 @@ public class RefreshToken {
     @JoinColumn(name = "user_id", nullable = false)
     private UserAccount user;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TokenStatus status;
+    @Column(nullable = false, length = 30)
+    private String status;
 
     @Column(nullable = false)
     private LocalDateTime expiresAt;
@@ -45,8 +45,6 @@ public class RefreshToken {
     @PrePersist
     void onCreate() {
         issuedAt = LocalDateTime.now();
-        if (status == null) status = TokenStatus.ACTIVE;
+        if (status == null) status = AuthEnums.TokenStatus.ACTIVE.name();
     }
-
-    public enum TokenStatus { ACTIVE, REVOKED, EXPIRED }
 }

@@ -1,205 +1,260 @@
 package com.rs.subscription.service;
 
-import com.rs.subscription.dto.request.AddGroupMemberRequest;
-import com.rs.subscription.dto.request.CreateGroupRequest;
-import com.rs.subscription.dto.response.GroupMemberResponse;
-import com.rs.subscription.dto.response.GroupResponse;
-import com.rs.subscription.dto.response.SubscriptionResponse;
+import com.rs.subscription.dto.request.UpsertGroupRequest;
+import com.rs.subscription.dto.response.GroupDetailResponse;
+import com.rs.subscription.dto.response.GroupListItemResponse;
+import com.rs.subscription.dto.response.PlanHistoryResponse;
 import com.rs.subscription.entity.Group;
-import com.rs.subscription.entity.GroupMember;
-import com.rs.subscription.entity.Plan;
-import com.rs.subscription.entity.Subscription;
+import com.rs.subscription.entity.GroupContact;
+import com.rs.subscription.entity.GroupPlanAssignment;
+import com.rs.subscription.entity.PlanPricingRule;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
-import com.rs.subscription.repository.GroupMemberRepository;
+import com.rs.subscription.repository.GroupContactRepository;
+import com.rs.subscription.repository.GroupPlanAssignmentRepository;
 import com.rs.subscription.repository.GroupRepository;
-import com.rs.subscription.repository.SubscriptionRepository;
-import java.time.LocalDate;
+import com.rs.subscription.repository.UsageAggregateRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class GroupService {
 
     private final GroupRepository groupRepository;
-    private final GroupMemberRepository groupMemberRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final SubscriptionService subscriptionService;
-    private final PasswordEncoder passwordEncoder;
+    private final GroupContactRepository groupContactRepository;
+    private final GroupPlanAssignmentRepository assignmentRepository;
+    private final UsageAggregateRepository usageAggregateRepository;
 
-    public List<GroupResponse> listGroups() {
-        return groupRepository.findAll().stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
+    // ----------------------------------------------------------------
+    // LIST ALL
+    // ----------------------------------------------------------------
+    public List<GroupListItemResponse> listAll() {
+        return groupRepository.findAll().stream().map(this::toListItem).toList();
     }
 
+    // ----------------------------------------------------------------
+    // GET BY ID
+    // ----------------------------------------------------------------
+    public GroupDetailResponse getById(Long id) {
+        return toDetail(findEntity(id));
+    }
+
+    // ----------------------------------------------------------------
+    // CREATE
+    // ----------------------------------------------------------------
     @Transactional
-    public GroupResponse createGroup(CreateGroupRequest req, String createdBy) {
-        if (groupRepository.existsByGroupCode(req.getGroupCode())) {
-            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Partner code already exists: " + req.getGroupCode(), 400);
-        }
-        if (groupRepository.existsByUsername(req.getUsername())) {
-            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Username already taken: " + req.getUsername(), 400);
-        }
-        if (req.getPassword() == null || req.getPassword().isBlank()) {
-            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Password is required when creating a partner", 400);
-        }
+    public GroupDetailResponse create(UpsertGroupRequest request) {
+        // Tạo group với code tự sinh
+        String groupCode = generateGroupCode();
         Group group = Group.builder()
-            .groupCode(req.getGroupCode())
-            .groupName(req.getGroupName())
-            .username(req.getUsername())
-            .password(passwordEncoder.encode(req.getPassword()))
-            .contactEmail(req.getContactEmail())
-            .contactPhone(req.getContactPhone())
-            .refContractNo(req.getRefContractNo())
-            .picEmails(req.getPicEmails())
-            .status(Group.GroupStatus.ACTIVE)
-            .createdBy(createdBy)
+            .groupCode(groupCode)
+            .groupName(request.getGroupName())
+            .username("grp_" + groupCode.toLowerCase().replace("-", "_"))
+            .password("pending_reset") // sẽ đặt lại qua reset password flow
+            .refContractNo(request.getRefContractNo())
+            .createdBy("system")
+            .status("ACTIVE")
             .build();
-        return toResponse(groupRepository.save(group));
+        Group saved = groupRepository.save(group);
+        saveContacts(saved, request);
+        // Reload với contacts
+        return toDetail(findEntity(saved.getGroupId()));
     }
 
-    public GroupResponse getGroupById(Long groupId) {
-        return toResponse(findById(groupId));
-    }
-
+    // ----------------------------------------------------------------
+    // UPDATE
+    // ----------------------------------------------------------------
     @Transactional
-    public GroupResponse updateGroup(Long groupId, CreateGroupRequest req) {
-        Group group = findById(groupId);
-        if (groupRepository.existsByUsernameAndGroupIdNot(req.getUsername(), groupId)) {
-            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Username already taken: " + req.getUsername(), 400);
-        }
-        group.setGroupName(req.getGroupName());
-        group.setUsername(req.getUsername());
-        group.setContactEmail(req.getContactEmail());
-        group.setContactPhone(req.getContactPhone());
-        group.setRefContractNo(req.getRefContractNo());
-        group.setPicEmails(req.getPicEmails());
-        if (req.getPassword() != null && !req.getPassword().isBlank()) {
-            group.setPassword(passwordEncoder.encode(req.getPassword()));
-        }
-        return toResponse(groupRepository.save(group));
+    public GroupDetailResponse update(Long id, UpsertGroupRequest request) {
+        Group group = findEntity(id);
+        group.setGroupName(request.getGroupName());
+        group.setRefContractNo(request.getRefContractNo());
+        groupRepository.save(group);
+        // Replace contacts
+        groupContactRepository.deleteByGroupGroupId(id);
+        saveContacts(group, request);
+        return toDetail(findEntity(id));
     }
 
+    // ----------------------------------------------------------------
+    // SUSPEND / ACTIVATE
+    // ----------------------------------------------------------------
     @Transactional
-    public void deactivateGroup(Long groupId) {
-        Group group = findById(groupId);
-        group.setStatus(Group.GroupStatus.INACTIVE);
+    public void suspend(Long id) {
+        Group group = findEntity(id);
+        if ("INACTIVE".equals(group.getStatus())) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Group is already inactive", 400);
+        }
+        group.setStatus("INACTIVE");
         groupRepository.save(group);
     }
 
     @Transactional
-    public void activateGroup(Long groupId) {
-        Group group = findById(groupId);
-        group.setStatus(Group.GroupStatus.ACTIVE);
+    public void activate(Long id) {
+        Group group = findEntity(id);
+        if ("ACTIVE".equals(group.getStatus())) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Group is already active", 400);
+        }
+        group.setStatus("ACTIVE");
         groupRepository.save(group);
     }
 
-    public List<GroupMemberResponse> getMembers(Long groupId) {
-        findById(groupId);
-        return groupMemberRepository.findByGroupGroupId(groupId).stream()
-            .map(this::toMemberResponse)
-            .collect(Collectors.toList());
+    // ----------------------------------------------------------------
+    // PLAN HISTORY
+    // ----------------------------------------------------------------
+    public List<PlanHistoryResponse> getPlanHistory(Long groupId) {
+        findEntity(groupId); // ensure group exists
+        return assignmentRepository.findHistoryByGroupId(groupId)
+            .stream().map(this::toPlanHistory).toList();
     }
 
-    @Transactional
-    public GroupMemberResponse addMember(Long groupId, AddGroupMemberRequest req, String addedBy) {
-        Group group = findById(groupId);
-        if (groupMemberRepository.existsByGroupGroupIdAndUserId(groupId, req.getUserId())) {
-            throw new SmsException(ErrorCodes.MEMBER_ALREADY_IN_GROUP,
-                "User is already a member of this group", 409);
-        }
+    // ----------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------
+    public Group findEntity(Long id) {
+        return groupRepository.findById(id)
+            .orElseThrow(() -> new SmsException(ErrorCodes.GROUP_NOT_FOUND, "Group not found: " + id, 404));
+    }
 
-        LocalDate memberStart = null;
-        LocalDate memberEnd = null;
-
-        Subscription activeSub = subscriptionRepository.findByGroupIdAndStatus(
-            groupId, Subscription.SubscriptionStatus.ACTIVE).stream().findFirst().orElse(null);
-
-        if (activeSub != null) {
-            // Enforce max-member cap defined on the plan
-            Integer maxMembers = activeSub.getPlan().getMaxMembers();
-            if (maxMembers != null) {
-                long currentCount = groupMemberRepository.countByGroupGroupId(groupId);
-                if (currentCount >= maxMembers) {
-                    throw new SmsException(ErrorCodes.QUOTA_EXHAUSTED,
-                        "Group has reached its maximum member limit of " + maxMembers, 422);
+    private void saveContacts(Group group, UpsertGroupRequest request) {
+        List<GroupContact> contacts = new ArrayList<>();
+        if (request.getPicEmails() != null) {
+            for (String email : request.getPicEmails()) {
+                if (email != null && !email.isBlank()) {
+                    contacts.add(GroupContact.builder()
+                        .group(group).contactType("PIC").email(email.trim())
+                        .isPrimary(contacts.stream().noneMatch(c -> "PIC".equals(c.getContactType())))
+                        .receiveUsageAlert(true).isActive(true).build());
                 }
             }
-
-            // For INDIVIDUAL_START plans, calculate the member's own validity window
-            if (activeSub.getPlan().getGroupMemberValidityMode() == Plan.GroupMemberValidityMode.INDIVIDUAL_START) {
-                memberStart = LocalDate.now();
-                memberEnd = memberStart.plusDays(activeSub.getPlan().getValidityDays());
+        }
+        if (request.getContactEmails() != null) {
+            for (String email : request.getContactEmails()) {
+                if (email != null && !email.isBlank()) {
+                    contacts.add(GroupContact.builder()
+                        .group(group).contactType("CONTRACT").email(email.trim())
+                        .isPrimary(contacts.stream().noneMatch(c -> "CONTRACT".equals(c.getContactType())))
+                        .receiveUsageAlert(true).isActive(true).build());
+                }
             }
         }
-
-        GroupMember member = GroupMember.builder()
-            .group(group)
-            .userId(req.getUserId())
-            .role(req.getRole() != null ? req.getRole() : GroupMember.MemberRole.MEMBER)
-            .addedBy(addedBy)
-            .memberStartDate(memberStart)
-            .memberEndDate(memberEnd)
-            .build();
-        return toMemberResponse(groupMemberRepository.save(member));
+        groupContactRepository.saveAll(contacts);
     }
 
-    @Transactional
-    public void removeMember(Long groupId, String userId) {
-        if (!groupMemberRepository.existsByGroupGroupIdAndUserId(groupId, userId)) {
-            throw new SmsException(ErrorCodes.MEMBER_NOT_IN_GROUP, "User is not a member of this group", 404);
+    private String generateGroupCode() {
+        long count = groupRepository.count() + 1;
+        return String.format("GRP-%06d", count);
+    }
+
+    private GroupListItemResponse toListItem(Group group) {
+        GroupListItemResponse res = new GroupListItemResponse();
+        res.setGroupId(group.getGroupId());
+        res.setGroupCode(group.getGroupCode());
+        res.setGroupName(group.getGroupName());
+        res.setStatus(group.getStatus());
+        res.setUpdatedAt(group.getUpdatedAt());
+
+        Optional<GroupPlanAssignment> activeOpt = assignmentRepository
+            .findFirstByGroupGroupIdAndAssignmentStatusOrderByActivatedAtDesc(group.getGroupId(), "ACTIVE");
+
+        if (activeOpt.isPresent()) {
+            GroupPlanAssignment active = activeOpt.get();
+            res.setCurrentPlan(active.getPlanTemplate().getPlanName());
+            res.setApplyUntil(active.getApplyTo());
+
+            List<Long> ids = List.of(active.getGroupPlanAssignmentId());
+            Object[] usage = usageAggregateRepository.sumUsageByAssignmentIds(ids);
+            if (usage != null && usage.length >= 2) {
+                int cts = toInt(usage[0]);
+                int signing = toInt(usage[1]);
+                res.setCtsCreated(cts);
+                res.setSigningUsed(signing);
+                Integer certQuota = getCertQuota(active);
+                res.setCtsCreatedPct(certQuota != null && certQuota > 0
+                    ? (cts * 100 / certQuota) + "%" : "Không giới hạn");
+                Integer signQuota = getSigningQuota(active);
+                res.setSigningUsedPct(signQuota != null && signQuota > 0
+                    ? (signing * 100 / signQuota) + "%" : "Không giới hạn");
+            }
         }
-        groupMemberRepository.deleteByGroupGroupIdAndUserId(groupId, userId);
+        return res;
     }
 
-    public SubscriptionResponse getGroupActiveSubscription(Long groupId) {
-        findById(groupId);
-        Subscription sub = subscriptionRepository.findByGroupIdAndStatus(groupId, Subscription.SubscriptionStatus.ACTIVE)
-            .stream().findFirst()
-            .orElseThrow(() -> new SmsException(ErrorCodes.SUBSCRIPTION_NOT_FOUND,
-                "No active subscription for group: " + groupId, 404));
-        return subscriptionService.getSubscriptionById(sub.getSubscriptionId());
+    private GroupDetailResponse toDetail(Group group) {
+        GroupDetailResponse res = new GroupDetailResponse();
+        res.setGroupId(group.getGroupId());
+        res.setGroupCode(group.getGroupCode());
+        res.setGroupName(group.getGroupName());
+        res.setStatus(group.getStatus());
+        res.setRefContractNo(group.getRefContractNo());
+        res.setCreatedBy(group.getCreatedBy());
+        res.setCreatedAt(group.getCreatedAt());
+        res.setUpdatedAt(group.getUpdatedAt());
+
+        List<GroupContact> contacts = groupContactRepository
+            .findByGroupGroupIdOrderByIsPrimaryDescGroupContactIdAsc(group.getGroupId());
+
+        res.setPicEmails(contacts.stream()
+            .filter(c -> "PIC".equals(c.getContactType()) && Boolean.TRUE.equals(c.getIsActive()))
+            .map(GroupContact::getEmail).toList());
+
+        res.setContactEmails(contacts.stream()
+            .filter(c -> ("CONTRACT".equals(c.getContactType()) || "BILLING".equals(c.getContactType()))
+                && Boolean.TRUE.equals(c.getIsActive()))
+            .map(GroupContact::getEmail).toList());
+
+        return res;
     }
 
-    public Group findById(Long groupId) {
-        return groupRepository.findById(groupId)
-            .orElseThrow(() -> new SmsException(ErrorCodes.GROUP_NOT_FOUND, "Group not found: " + groupId, 404));
+    private PlanHistoryResponse toPlanHistory(GroupPlanAssignment a) {
+        PlanHistoryResponse res = new PlanHistoryResponse();
+        res.setApplyFrom(a.getApplyFrom());
+        res.setApplyTo(a.getApplyTo());
+        res.setPlanName(a.getPlanTemplate().getPlanName());
+
+        List<Long> ids = List.of(a.getGroupPlanAssignmentId());
+        Object[] usage = usageAggregateRepository.sumUsageByAssignmentIds(ids);
+        int cts = 0, signing = 0;
+        if (usage != null && usage.length >= 2) {
+            cts = toInt(usage[0]);
+            signing = toInt(usage[1]);
+        }
+        res.setCtsCreated(cts);
+        res.setSigningUsed(signing);
+        Integer certQuota = getCertQuota(a);
+        res.setCtsCreatedPct(certQuota != null && certQuota > 0 ? (cts * 100 / certQuota) + "%" : "Không giới hạn");
+        Integer signQuota = getSigningQuota(a);
+        res.setSigningUsedPct(signQuota != null && signQuota > 0 ? (signing * 100 / signQuota) + "%" : "Không giới hạn");
+        return res;
     }
 
-    private GroupResponse toResponse(Group g) {
-        GroupResponse r = new GroupResponse();
-        r.setGroupId(g.getGroupId());
-        r.setGroupCode(g.getGroupCode());
-        r.setGroupName(g.getGroupName());
-        r.setUsername(g.getUsername());
-        r.setContactEmail(g.getContactEmail());
-        r.setContactPhone(g.getContactPhone());
-        r.setRefContractNo(g.getRefContractNo());
-        r.setPicEmails(g.getPicEmails());
-        r.setStatus(g.getStatus().name());
-        r.setCreatedBy(g.getCreatedBy());
-        r.setCreatedAt(g.getCreatedAt());
-        r.setMemberCount(groupMemberRepository.countByGroupGroupId(g.getGroupId()));
-        return r;
+    /** Tổng quota chứng thư từ pricing rules (quotaTotal field) */
+    private Integer getCertQuota(GroupPlanAssignment a) {
+        int total = a.getPlanTemplate().getPricingRules().stream()
+            .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getQuotaTotal() != null)
+            .mapToInt(PlanPricingRule::getQuotaTotal).sum();
+        return total > 0 ? total : null;
     }
 
-    private GroupMemberResponse toMemberResponse(GroupMember m) {
-        GroupMemberResponse r = new GroupMemberResponse();
-        r.setId(m.getId());
-        r.setGroupId(m.getGroup().getGroupId());
-        r.setUserId(m.getUserId());
-        r.setRole(m.getRole().name());
-        r.setJoinedAt(m.getJoinedAt());
-        r.setAddedBy(m.getAddedBy());
-        r.setMemberStartDate(m.getMemberStartDate());
-        r.setMemberEndDate(m.getMemberEndDate());
-        return r;
+    /** Quota lượt ký: dùng rangeMax của rule SIGNING_COUNT */
+    private Integer getSigningQuota(GroupPlanAssignment a) {
+        int total = a.getPlanTemplate().getPricingRules().stream()
+            .filter(r -> Boolean.TRUE.equals(r.getIsActive())
+                && "SIGNING_COUNT".equals(r.getPricingMetric())
+                && r.getRangeMax() != null)
+            .mapToInt(PlanPricingRule::getRangeMax).sum();
+        return total > 0 ? total : null;
+    }
+
+    private int toInt(Object val) {
+        if (val == null) return 0;
+        if (val instanceof Number) return ((Number) val).intValue();
+        return 0;
     }
 }

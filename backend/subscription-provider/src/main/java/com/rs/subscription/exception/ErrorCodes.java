@@ -18,6 +18,11 @@ public final class ErrorCodes {
     public static final String APPROVAL_ALREADY_REVIEWED = "2014";
     public static final String APPROVAL_EXECUTION_FAILED = "2015";
     public static final String CERTIFICATE_NOT_FOUND = "2016";
+    public static final String GROUP_CONTACT_NOT_FOUND = "2017";
+    public static final String PRICING_RULE_NOT_FOUND = "2018";
+    public static final String ASSIGNMENT_NOT_FOUND = "2019";
+    public static final String SCHEDULE_NOT_FOUND = "2020";
+    public static final String SETTLEMENT_NOT_FOUND = "2021";
     public static final String UNAUTHORIZED = "3001";
     public static final String FORBIDDEN = "3002";
     public static final String GROUP_ACCESS_DENIED = "3003";

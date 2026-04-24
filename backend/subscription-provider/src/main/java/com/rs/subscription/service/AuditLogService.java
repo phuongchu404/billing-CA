@@ -1,5 +1,6 @@
 package com.rs.subscription.service;
 
+import com.rs.subscription.aop.TrackSubscriptionAudit;
 import com.rs.subscription.dto.PagedResponse;
 import com.rs.subscription.dto.response.AuditLogResponse;
 import com.rs.subscription.entity.Subscription;
@@ -23,18 +24,16 @@ public class AuditLogService {
     private final SubscriptionAuditLogRepository auditLogRepository;
     private final UserAccountRepository userAccountRepository;
 
+    @TrackSubscriptionAudit(
+        subscriptionId = "#p0.subscriptionId",
+        actor = "#p1",
+        reason = "#p4",
+        resolveActorFromUserId = true
+    )
     public void log(Subscription subscription, String actor, String oldStatus, String newStatus, String reason) {
         String actorName = userAccountRepository.findById(actor)
                 .map(u -> u.getUsername())
                 .orElse(actor);
-        SubscriptionAuditLog entry = SubscriptionAuditLog.builder()
-            .subscription(subscription)
-            .actor(actorName)
-            .oldStatus(oldStatus)
-            .newStatus(newStatus)
-            .reason(reason)
-            .build();
-        auditLogRepository.save(entry);
         log.info("Audit: subscription={} actor={} {} -> {}", subscription.getSubscriptionId(), actorName, oldStatus, newStatus);
     }
 
