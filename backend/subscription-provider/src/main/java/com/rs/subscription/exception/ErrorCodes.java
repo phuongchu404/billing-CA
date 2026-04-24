@@ -1,0 +1,43 @@
+package com.rs.subscription.exception;
+
+public final class ErrorCodes {
+    public static final String SUCCESS = "0000";
+    public static final String VALIDATION_FAILED = "2001";
+    public static final String SUBSCRIPTION_NOT_FOUND = "2002";
+    public static final String PLAN_NOT_FOUND = "2003";
+    public static final String GROUP_NOT_FOUND = "2004";
+    public static final String QUOTA_EXHAUSTED = "2005";
+    public static final String SUBSCRIPTION_INACTIVE = "2006";
+    public static final String DUPLICATE_ACTIVE_SUBSCRIPTION = "2007";
+    public static final String PLAN_NOT_ASSIGNABLE = "2008";
+    public static final String MEMBER_ALREADY_IN_GROUP = "2009";
+    public static final String MEMBER_NOT_IN_GROUP = "2010";
+    public static final String PLAN_IN_USE = "2011";
+    public static final String INVALID_STATUS_TRANSITION = "2012";
+    public static final String APPROVAL_NOT_FOUND = "2013";
+    public static final String APPROVAL_ALREADY_REVIEWED = "2014";
+    public static final String APPROVAL_EXECUTION_FAILED = "2015";
+    public static final String CERTIFICATE_NOT_FOUND = "2016";
+    public static final String UNAUTHORIZED = "3001";
+    public static final String FORBIDDEN = "3002";
+    public static final String GROUP_ACCESS_DENIED = "3003";
+    public static final String NO_ACTIVE_GROUP_SUBSCRIPTION = "3004";
+    public static final String ACCOUNT_LOCKED = "3005";
+    public static final String ACCOUNT_INACTIVE = "3006";
+    public static final String INVALID_REFRESH_TOKEN = "3007";
+    public static final String PASSWORD_POLICY_VIOLATION = "3008";
+    public static final String PASSWORD_REUSE_VIOLATION = "3009";
+    public static final String INVALID_RESET_TOKEN = "3010";
+    public static final String USERNAME_ALREADY_EXISTS = "3011";
+    public static final String EMAIL_ALREADY_EXISTS = "3012";
+    public static final String CANNOT_MODIFY_SYSTEM_ROLE = "3013";
+    public static final String ROLE_IN_USE = "3014";
+    public static final String INVALID_WEBHOOK_SIGNATURE = "4001";
+    public static final String DUPLICATE_PAYMENT_REFERENCE = "4002";
+    public static final String PAYMENT_SUBSCRIPTION_MISMATCH = "4003";
+    public static final String RS_CORE_INVALID_REQUEST = "5001";
+    public static final String RS_CORE_UNAVAILABLE = "5002";
+    public static final String RS_CORE_PROVISIONING_FAILED_PERMANENT = "5003";
+    public static final String INTERNAL_ERROR = "9999";
+    private ErrorCodes() {}
+}

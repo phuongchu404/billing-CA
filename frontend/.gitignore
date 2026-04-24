@@ -1,0 +1,20 @@
+node_modules/
+dist/
+*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Auto-generated type declarations
+src/auto-imports.d.ts
+src/components.d.ts

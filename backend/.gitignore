@@ -1,0 +1,9 @@
+# Project exclude paths
+/target/
+/thirdparty-api/target/
+/subscription-provider/target/
+/plan-mng-web/target/
+/subscription-api/target/
+
+# RSA key files — do not commit private keys
+**/keys/*.pem
