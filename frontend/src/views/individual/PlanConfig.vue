@@ -24,7 +24,7 @@
       </div>
 
       <div class="info-bar">
-        <el-button type="primary" :icon="Plus" @click="handleAddNew"
+        <el-button type="primary" :icon="Plus" :disabled="!can('plan:create')" @click="handleAddNew"
           >Thêm Mới</el-button
         >
         <span class="last-updated">Lần cập nhật cuối: {{ lastUpdated }}</span>
@@ -176,6 +176,7 @@
                 size="small"
                 type="primary"
                 plain
+                :disabled="!can('plan:update')"
                 @click.stop="openRequestApply(row)"
               >
                 Y/c áp dụng
@@ -186,6 +187,7 @@
                 type="success"
                 plain
                 :icon="Check"
+                :disabled="!can('plan:update')"
                 @click.stop="openApprove(row)"
               >
                 Duyệt
@@ -194,6 +196,7 @@
                 v-if="row.status === 'APPROVED' || row.status === 'APPLYING'"
                 size="small"
                 type="primary"
+                :disabled="!can('plan:update')"
                 @click.stop="openStopApply(row)"
               >
                 Dừng áp dụng
@@ -340,6 +343,9 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { Plus, Refresh, Timer, Check } from "@element-plus/icons-vue";
+import { usePermission } from "@/composables/usePermission";
+
+const { can } = usePermission();
 import { ElMessage } from "element-plus";
 import {
   getIndividualPlanConfigSummary,

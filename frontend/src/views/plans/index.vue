@@ -9,7 +9,7 @@
         <span
           >SL đại lý đang hoạt động: <b>{{ activeCount }}</b></span
         >
-        <el-button type="primary" :icon="Plus" @click="handleAddNew"
+        <el-button type="primary" :icon="Plus" :disabled="!can('group:create')" @click="handleAddNew"
           >Thêm Mới</el-button
         >
         <el-button :icon="Download" @click="handleExport"
@@ -231,6 +231,9 @@ import {
   Document,
 } from "@element-plus/icons-vue";
 import { listGroups } from "@/api/groups";
+import { usePermission } from "@/composables/usePermission";
+
+const { can } = usePermission();
 import type { GroupListItem } from "@/types/group";
 import { ElMessage } from "element-plus";
 

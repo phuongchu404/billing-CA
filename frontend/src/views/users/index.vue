@@ -11,7 +11,7 @@
     <el-card shadow="never" v-loading="loading">
       <!-- Toolbar -->
       <div class="toolbar">
-        <el-button type="primary" :icon="Plus" @click="openCreate"
+        <el-button type="primary" :icon="Plus" :disabled="!can('user:create')" @click="openCreate"
           >+ {{ t("users.newUser") }}</el-button
         >
       </div>
@@ -199,12 +199,14 @@
                   <el-button
                     size="small"
                     :icon="EditPen"
+                    :disabled="!can('user:update')"
                     @click="openEdit(user)"
                     >Chỉnh sửa</el-button
                   >
                   <el-button
                     size="small"
                     :icon="Key"
+                    :disabled="!can('user:update')"
                     @click="openResetPwd(user)"
                     >Đặt lại mật khẩu</el-button
                   >
@@ -213,6 +215,7 @@
                     :icon="Delete"
                     type="warning"
                     plain
+                    :disabled="!can('user:update')"
                     @click="openDelete(user)"
                     >Xoá tài khoản</el-button
                   >
@@ -460,6 +463,9 @@ import {
   CaretBottom,
   Delete,
 } from "@element-plus/icons-vue";
+import { usePermission } from "@/composables/usePermission";
+
+const { can } = usePermission();
 import { ElMessage, ElIcon } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
