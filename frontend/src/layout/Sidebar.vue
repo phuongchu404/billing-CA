@@ -1,145 +1,120 @@
 <template>
   <nav class="sidebar-nav">
-    <template v-for="(item, idx) in menuItems" :key="idx + (appStore.sidebarCollapsed ? '-c' : '-e')">
-      <!-- Divider -->
-      <div v-if="item.divider" class="nav-divider" />
-
-      <!-- Group (expanded sidebar) -->
-      <div
-          v-else-if="item.group && !appStore.sidebarCollapsed"
-          class="nav-group"
-          :class="{ open: openGroups.has(item.group) }"
+    <template v-for="item in menuItems" :key="item.tag">
+      <el-tooltip
+        v-if="item.leaf && appStore.sidebarCollapsed"
+        :content="t(item.labelKey)"
+        placement="right"
       >
-        <div class="nav-group-header" @click="toggleGroup(item.group)">
-          <!-- ✅ FIX: wrap with el-icon -->
-          <el-icon class="header-icon">
-            <component :is="item.icon" :key="item.group + '-icon'" />
-          </el-icon>
-
-          <span class="nav-label">{{ t(item.labelKey) }}</span>
-          <el-icon class="chevron"><ArrowRight /></el-icon>
-        </div>
-
-        <div v-if="openGroups.has(item.group)" class="nav-group-children">
-          <router-link
-              v-for="child in item.children"
-              :key="child.path"
-              :to="child.path"
-              class="nav-item nav-child"
-              :class="{ active: isActive(child.path) }"
-          >
-            <el-icon class="nav-icon">
-              <component :is="child.icon" :key="child.path + '-icon'" />
-            </el-icon>
-            <span class="nav-label">{{ t(child.labelKey) }}</span>
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Group (collapsed sidebar) -->
-      <template v-else-if="item.group && appStore.sidebarCollapsed">
         <router-link
-            v-for="child in item.children"
-            :key="child.path"
-            :to="child.path"
-            class="nav-item"
-            :class="{ active: isActive(child.path) }"
-        >
-          <el-icon class="nav-icon">
-            <component :is="child.icon" :key="child.path + '-icon'" />
-          </el-icon>
-        </router-link>
-      </template>
-
-      <!-- Regular item -->
-      <router-link
-          v-else
-          :to="item.path"
+          :to="item.path || '/'"
           class="nav-item"
           :class="{ active: isActive(item.path) }"
+        >
+          <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
+        </router-link>
+      </el-tooltip>
+
+      <router-link
+        v-else-if="item.leaf"
+        :to="item.path || '/'"
+        class="nav-item"
+        :class="{ active: isActive(item.path) }"
       >
-        <el-icon class="nav-icon">
-          <component :is="item.icon" :key="(item.path || item.group) + '-icon'" />
-        </el-icon>
-        <span v-if="!appStore.sidebarCollapsed" class="nav-label">
-          {{ t(item.labelKey) }}
-        </span>
+        <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
+        <span class="nav-label">{{ t(item.labelKey) }}</span>
       </router-link>
+
+      <template v-else>
+        <el-tooltip
+          v-if="appStore.sidebarCollapsed"
+          :content="t(item.labelKey)"
+          placement="right"
+        >
+          <button class="nav-item nav-button" :class="{ active: isGroupActive(item) }" @click="toggleGroup(item.tag)">
+            <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
+          </button>
+        </el-tooltip>
+
+        <div v-else class="nav-group" :class="{ open: openGroups.has(item.tag), active: isGroupActive(item) }">
+          <button class="nav-group-header" @click="toggleGroup(item.tag)">
+            <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
+            <span class="nav-label">{{ t(item.labelKey) }}</span>
+            <el-icon class="chevron"><ArrowRight /></el-icon>
+          </button>
+          <div v-show="openGroups.has(item.tag)" class="nav-group-children">
+            <router-link
+              v-for="child in item.children"
+              :key="child.tag"
+              :to="child.path || '/'"
+              class="nav-item nav-child"
+              :class="{ active: isActive(child.path) }"
+            >
+              <el-icon class="nav-icon"><component :is="child.icon" /></el-icon>
+              <span class="nav-label">{{ t(child.labelKey) }}</span>
+            </router-link>
+          </div>
+        </div>
+      </template>
     </template>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore, useAppStore } from '@/store'
 import { useI18n } from 'vue-i18n'
-import {
-  Odometer, Ticket, DocumentChecked, UserFilled,
-  User, Lock, TrendCharts, ArrowRight, Setting, Platform, List, Bell, Tools, Avatar, Key, House
-} from '@element-plus/icons-vue'
+import { ArrowRight } from '@element-plus/icons-vue'
+import { getNavData } from '@/common/nav'
+import type { MenuItem } from '@/common/menutype'
+import { useAppStore, useAuthStore } from '@/store'
 
 const route = useRoute()
-const authStore = useAuthStore()
 const appStore = useAppStore()
+const authStore = useAuthStore()
 const { t } = useI18n()
 
-const activeMenu = computed(() => '/' + route.path.split('/')[1])
-function isActive(path: string) { return activeMenu.value === path }
-
-// Groups that are expanded
 const openGroups = ref<Set<string>>(new Set())
+const activeRoot = computed(() => '/' + route.path.split('/')[1])
 
-function toggleGroup(group: string) {
-  const s = new Set(openGroups.value)
-  s.has(group) ? s.delete(group) : s.add(group)
-  openGroups.value = s
+const menuItems = computed(() => filterMenus(getNavData()))
+
+function filterMenus(items: MenuItem[]): MenuItem[] {
+  return items.flatMap((item) => {
+    if (item.hidden) return []
+    if (item.leaf) return item.isWhiteList || authStore.hasPermission(item.permissionKey) ? [item] : []
+
+    const children = filterMenus(item.children ?? [])
+    if (!children.length) return []
+    return [{ ...item, children }]
+  })
 }
 
-// Auto-open group if a child route is active
-watch(activeMenu, (active) => {
-  const s = new Set(openGroups.value)
-  if (['/individual-plan-config', '/individual-usage-tracking'].includes(active)) s.add('individual')
-  if (['/roles', '/users'].includes(active)) s.add('permissions')
-  openGroups.value = s
-}, { immediate: true })
+function isActive(path?: string) {
+  return !!path && activeRoot.value === path
+}
 
-const ALL_ITEMS = [
-  { path: '/dashboard', icon: House,     labelKey: 'menu.home',      permission: 'dashboard:view' },
-  { path: '/reports',   icon: Odometer,  labelKey: 'menu.dashboard', permission: 'report:view' },
-  {
-    group: 'individual',
-    icon: Avatar,
-    labelKey: 'menu.regularCustomer',
-    children: [
-      { path: '/individual-plan-config',     icon: Setting,     labelKey: 'menu.individualPlanConfig',    permission: 'plan:view' },
-      { path: '/individual-usage-tracking',  icon: TrendCharts, labelKey: 'menu.individualUsageTracking', permission: 'subscription:view' },
-    ],
-  },
-  { path: '/plans',      icon: UserFilled, labelKey: 'menu.agencyCustomer', permission: 'plan:view' },
-  {
-    group: 'permissions',
-    icon: Lock,
-    labelKey: 'menu.permissionMgmt',
-    children: [
-      { path: '/roles', icon: Lock, labelKey: 'menu.roleManagement',    permission: 'role:view' },
-      { path: '/users', icon: User, labelKey: 'menu.accountManagement', permission: 'user:view' },
-    ],
-  },
-  { path: '/audit-logs', icon: List, labelKey: 'menu.logsManagement', permission: 'audit-log:view' },
-]
+function isGroupActive(item: MenuItem) {
+  return !!item.children?.some(child => isActive(child.path))
+}
 
-const menuItems = computed<Record<string, any>[]>(() => {
-  return (ALL_ITEMS as Record<string, any>[]).flatMap(item => {
-    if (item.children) {
-      const visibleChildren = item.children.filter((c: any) => authStore.hasPermission(c.permission))
-      if (visibleChildren.length === 0) return []
-      return [{ ...item, children: visibleChildren }]
+function toggleGroup(tag: string) {
+  const next = new Set(openGroups.value)
+  next.has(tag) ? next.delete(tag) : next.add(tag)
+  openGroups.value = next
+}
+
+watch(
+  [activeRoot, menuItems],
+  () => {
+    const next = new Set(openGroups.value)
+    for (const item of menuItems.value) {
+      if (!item.leaf && isGroupActive(item)) next.add(item.tag)
     }
-    if (item.permission && !authStore.hasPermission(item.permission)) return []
-    return [item]
-  })
-})
+    openGroups.value = next
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
@@ -147,94 +122,94 @@ const menuItems = computed<Record<string, any>[]>(() => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
-.nav-item {
+.nav-item,
+.nav-group-header {
+  width: 100%;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 9px 12px;
+  border: 0;
   border-radius: 6px;
-  text-decoration: none;
-  color: rgba(47, 43, 61, 0.9);
+  background: transparent;
+  color: #2f2b3d;
+  cursor: pointer;
+  font: inherit;
   font-size: 14px;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  text-align: left;
+  text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.nav-item:hover {
-  background: rgba(27, 96, 203, 0.08);
-  color: #1B60CB;
-}
-.nav-item.active {
-  background: linear-gradient(to right, #68B4EC, #1557B9);
-  color: #fff;
-}
-.nav-item.active .nav-icon { color: #fff; }
 
-.nav-child {
-  padding-left: 40px;
+.nav-button {
+  justify-content: center;
+  padding: 9px;
+}
+
+.nav-item:hover,
+.nav-group-header:hover {
+  background: #eef5ff;
+  color: #1b60cb;
+}
+
+.nav-item.active,
+.nav-group.active > .nav-group-header {
+  background: #1b60cb;
+  color: #fff;
 }
 
 .nav-icon {
+  width: 18px;
+  height: 18px;
   font-size: 18px;
   flex-shrink: 0;
   color: inherit;
 }
-.nav-label { flex: 1; }
 
-/* Group parent */
-.nav-group {
-  border-radius: 6px;
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.nav-group-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: rgba(47, 43, 61, 0.9);
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-
-/* Group header icon */
-.header-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-.nav-group-header:hover { background: rgba(27, 96, 203, 0.08); }
-.nav-group-header:hover,
-.nav-group.open > .nav-group-header { color: #1B60CB; }
-.nav-group-header:hover .header-icon,
-.nav-group.open > .nav-group-header .header-icon { color: #1B60CB; }
-
-.chevron {
-  font-size: 12px;
-  transition: transform 0.2s;
-  color: inherit;
-}
-.nav-group.open .chevron { transform: rotate(90deg); }
 
 .nav-group-children {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 2px 0;
+  padding: 4px 0 2px;
 }
 
-.nav-divider {
-  height: 1px;
-  background: rgba(47, 43, 61, 0.1);
-  margin: 6px 4px;
+.nav-child {
+  min-height: 36px;
+  padding-left: 36px;
+  font-size: 13px;
+}
+
+.nav-child.active {
+  background: #e7f0ff;
+  color: #1b60cb;
+  font-weight: 600;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.nav-group.open .chevron {
+  transform: rotate(90deg);
 }
 </style>

@@ -6,6 +6,7 @@ import com.rs.subscription.dto.response.UsageAggregateResponse;
 import com.rs.subscription.service.UsageAggregateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class UsageAggregateController {
     private final UsageAggregateService usageAggregateService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('report:view')")
     public ApiResponse<List<UsageAggregateResponse>> list(
         @RequestParam(required = false) String aggregateScope,
         @RequestParam(required = false) Long scopeId
@@ -29,6 +31,7 @@ public class UsageAggregateController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('report:view')")
     public ApiResponse<UsageAggregateResponse> upsert(@Valid @RequestBody UpsertUsageAggregateRequest request) {
         return ApiResponse.success(usageAggregateService.upsert(request), "Upserted usage aggregate");
     }

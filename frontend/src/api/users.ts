@@ -7,7 +7,7 @@ export const listUsers = (params: { status?: string; query?: string; page?: numb
 export const getUser = (userId: string) =>
   request.get<any, ApiResponse<UserAccount>>(`/api/v1/admin/users/${userId}`)
 
-export const createUser = (data: { username: string; email: string; fullName: string; password: string; roleIds?: number[] }) =>
+export const createUser = (data: { username: string; email: string; fullName: string; password: string; confirmPassword: string; roleIds?: number[] }) =>
   request.post<any, ApiResponse<UserAccount>>('/api/v1/admin/users', data)
 
 export const updateUser = (userId: string, data: { email?: string; fullName?: string }) =>

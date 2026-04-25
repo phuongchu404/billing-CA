@@ -1,8 +1,11 @@
 import request from '@/utils/request'
-import type { ApiResponse, Role, RolePermissionMatrix } from '@/types'
+import type { ApiResponse, Role, RolePermissionMatrix, PermissionModule } from '@/types'
 
 export const listRoles = () =>
   request.get<any, ApiResponse<Role[]>>('/api/v1/admin/roles')
+
+export const listPermissions = () =>
+  request.get<any, ApiResponse<PermissionModule[]>>('/api/v1/admin/roles/permissions')
 
 export const createRole = (data: { roleName: string; displayName: string; description?: string }) =>
   request.post<any, ApiResponse<Role>>('/api/v1/admin/roles', data)

@@ -168,6 +168,12 @@ export interface LoginResponse {
   tokenType: string
   expiresIn: number
   refreshToken: string
+  userId?: string
+  username?: string
+  email?: string
+  fullName?: string
+  roles?: string[]
+  permissions?: string[]
 }
 
 export interface CertificateRecord {

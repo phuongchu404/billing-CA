@@ -408,16 +408,16 @@ function statusLabel(status: PlanStatus): string {
 
 function statusTagType(
   status: PlanStatus,
-): "" | "success" | "warning" | "info" | "danger" {
+): undefined | "success" | "warning" | "info" | "danger" {
   const map: Record<
     PlanStatus,
-    "" | "success" | "warning" | "info" | "danger"
+    undefined | "success" | "warning" | "info" | "danger"
   > = {
     AVAILABLE: "info",
     UNAVAILABLE: "info",
     PENDING: "warning",
     APPROVED: "success",
-    APPLYING: "",
+    APPLYING: undefined,
   };
   return map[status] ?? "info";
 }

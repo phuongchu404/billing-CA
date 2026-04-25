@@ -6,6 +6,7 @@ import com.rs.subscription.dto.response.PlanTemplateResponse;
 import com.rs.subscription.service.PlanTemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,16 +29,19 @@ public class PlanTemplateController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('plan:create')")
     public ApiResponse<PlanTemplateResponse> create(@Valid @RequestBody CreatePlanTemplateRequest request) {
         return ApiResponse.success(planTemplateService.create(request), "Created plan template");
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('plan:update')")
     public ApiResponse<PlanTemplateResponse> update(@PathVariable Long id, @Valid @RequestBody CreatePlanTemplateRequest request) {
         return ApiResponse.success(planTemplateService.update(id, request), "Updated plan template");
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('plan:delete')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         planTemplateService.delete(id);
         return ApiResponse.success("Deleted plan template");

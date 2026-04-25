@@ -8,6 +8,7 @@ import com.rs.subscription.dto.response.CommercialFlowResponse;
 import com.rs.subscription.service.CommercialOrchestrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,6 +19,7 @@ public class CommercialOrchestrationController {
     private final CommercialOrchestrationService commercialOrchestrationService;
 
     @PostMapping("/group-assignments/{assignmentId}/execute")
+    @PreAuthorize("hasAuthority('group:update')")
     public ApiResponse<CommercialFlowResponse> executeGroupAssignmentFlow(
         @PathVariable Long assignmentId,
         @Valid @RequestBody ExecuteGroupAssignmentFlowRequest request
@@ -29,6 +31,7 @@ public class CommercialOrchestrationController {
     }
 
     @PostMapping("/retail-plan-schedules/{scheduleId}/execute")
+    @PreAuthorize("hasAuthority('plan:update')")
     public ApiResponse<CommercialFlowResponse> executeRetailPlanFlow(
         @PathVariable Long scheduleId,
         @Valid @RequestBody ExecuteRetailPlanFlowRequest request
@@ -40,6 +43,7 @@ public class CommercialOrchestrationController {
     }
 
     @PostMapping("/groups/{groupId}/settlement")
+    @PreAuthorize("hasAuthority('group:update')")
     public ApiResponse<CommercialFlowResponse> generateSettlement(
         @PathVariable Long groupId,
         @Valid @RequestBody GenerateSettlementFlowRequest request

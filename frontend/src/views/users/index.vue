@@ -314,6 +314,22 @@
             placeholder="Nhập email nhận mã xác thực"
           />
         </el-form-item>
+        <el-form-item label="Mật khẩu:" prop="password">
+          <el-input
+            v-model="createForm.password"
+            type="password"
+            show-password
+            placeholder="Nhập mật khẩu"
+          />
+        </el-form-item>
+        <el-form-item label="Nhập lại MK:" prop="confirmPassword">
+          <el-input
+            v-model="createForm.confirmPassword"
+            type="password"
+            show-password
+            placeholder="Nhập lại mật khẩu"
+          />
+        </el-form-item>
         <el-form-item label="Vai trò:" prop="roleName">
           <el-select
             v-model="createForm.roleName"
@@ -621,6 +637,7 @@ const createForm = reactive({
   fullName: "",
   email: "",
   password: "",
+  confirmPassword: "",
   roleName: "",
 });
 const createRules = computed(() => ({
@@ -628,6 +645,15 @@ const createRules = computed(() => ({
   fullName: [{ required: true, message: t("common.required") }],
   email: [{ required: true, message: t("common.required") }],
   password: [{ required: true, message: t("common.required") }],
+  confirmPassword: [
+    { required: true, message: t("common.required") },
+    {
+      validator: (_: any, value: string, callback: Function) => {
+        if (value !== createForm.password) callback(new Error("Mật khẩu nhập lại không khớp"));
+        else callback();
+      },
+    },
+  ],
   roleName: [{ required: true, message: t("common.required") }],
 }));
 
@@ -637,6 +663,7 @@ function openCreate() {
     fullName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     roleName: "",
   });
   createVisible.value = true;
@@ -652,6 +679,7 @@ async function handleCreate() {
       email: createForm.email,
       fullName: createForm.fullName,
       password: createForm.password,
+      confirmPassword: createForm.confirmPassword,
       roleIds: roleMatch ? [roleMatch.roleId] : [],
     });
     ElMessage.success(t("users.createdMsg"));

@@ -8,12 +8,14 @@ import com.rs.subscription.enums.AuthEnums;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.RefreshTokenRepository;
-import com.rs.subscription.repository.RolePermissionRepository;
 import com.rs.subscription.repository.UserAccountRepository;
 import com.rs.subscription.security.JwtService;
+import com.rs.subscription.security.service.CustomUserDetails;
+import com.rs.subscription.security.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,10 +31,9 @@ public class AuthService {
 
     private final UserAccountRepository userAccountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final RolePermissionRepository rolePermissionRepository;
     private final JwtService jwtService;
+    private final CustomUserDetailsService customUserDetailsService;
     private final PasswordEncoder passwordEncoder;
-    private final TokenRedisService tokenRedisService;
     private final AdminAuditLogService adminAuditLogService;
 
     @Value("${sms.auth.jwt.refresh-token-ttl:604800}")
@@ -82,7 +83,8 @@ public class AuthService {
         user.setLastLoginAt(LocalDateTime.now());
         userAccountRepository.save(user);
 
-        String accessToken = jwtService.generateAccessToken(user, resolvePermissions(user));
+        CustomUserDetails userDetails = loadSecurityUser(user);
+        String accessToken = jwtService.generateAccessToken(user, resolvePermissions(userDetails));
         String refreshTokenValue = jwtService.generateRefreshToken();
 
         RefreshToken rt = RefreshToken.builder()
@@ -95,17 +97,10 @@ public class AuthService {
             .build();
         refreshTokenRepository.save(rt);
 
-        tokenRedisService.storeTokens(accessToken, refreshTokenValue, user.getUserId(), accessTokenTtl, refreshTokenTtl);
-
         adminAuditLogService.logDirect(user.getUsername(), "LOGIN", "USER", user.getUserId(),
                 "Login from IP " + ipAddress);
 
-        return LoginResponse.builder()
-            .accessToken(accessToken)
-            .tokenType("Bearer")
-            .expiresIn(accessTokenTtl)
-            .refreshToken(refreshTokenValue)
-            .build();
+        return buildLoginResponse(user, userDetails, accessToken, refreshTokenValue);
     }
 
     @Transactional
@@ -122,26 +117,46 @@ public class AuthService {
             throw new SmsException(ErrorCodes.INVALID_REFRESH_TOKEN, "Refresh token has expired", 401);
         }
 
-        String newAccessToken = jwtService.generateAccessToken(rt.getUser(), resolvePermissions(rt.getUser()));
-        tokenRedisService.rotateAccessToken(tokenValue, newAccessToken, rt.getUser().getUserId(), accessTokenTtl);
+        CustomUserDetails userDetails = loadSecurityUser(rt.getUser());
+        String newAccessToken = jwtService.generateAccessToken(rt.getUser(), resolvePermissions(userDetails));
 
-        return LoginResponse.builder()
-            .accessToken(newAccessToken)
-            .tokenType("Bearer")
-            .expiresIn(accessTokenTtl)
-            .refreshToken(tokenValue)
-            .build();
+        return buildLoginResponse(rt.getUser(), userDetails, newAccessToken, tokenValue);
     }
 
-    private List<String> resolvePermissions(UserAccount user) {
-        List<Long> roleIds = user.getRoles().stream()
-                .map(r -> r.getRoleId())
-                .collect(Collectors.toList());
-        if (roleIds.isEmpty()) return List.of();
-        return rolePermissionRepository.findAllByRoleRoleIdIn(roleIds).stream()
-                .map(rp -> rp.getPermission().getPermissionKey())
+    private CustomUserDetails loadSecurityUser(UserAccount user) {
+        return (CustomUserDetails) customUserDetailsService.loadUserByUsername(user.getUserId());
+    }
+
+    private List<String> resolvePermissions(CustomUserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> !authority.startsWith("ROLE_"))
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    private List<String> resolveRoles(CustomUserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private LoginResponse buildLoginResponse(UserAccount user, CustomUserDetails userDetails,
+                                             String accessToken, String refreshTokenValue) {
+        return LoginResponse.builder()
+                .accessToken(accessToken)
+                .tokenType("Bearer")
+                .expiresIn(accessTokenTtl)
+                .refreshToken(refreshTokenValue)
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .roles(resolveRoles(userDetails))
+                .permissions(resolvePermissions(userDetails))
+                .build();
     }
 
     @Transactional
@@ -153,6 +168,5 @@ public class AuthService {
             rt.setRevokedAt(LocalDateTime.now());
             refreshTokenRepository.save(rt);
         });
-        tokenRedisService.revokeByRefreshToken(tokenValue);
     }
 }

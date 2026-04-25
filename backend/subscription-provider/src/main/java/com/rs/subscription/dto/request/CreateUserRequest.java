@@ -21,5 +21,14 @@ public class CreateUserRequest {
     @NotBlank(message = "Password is required")
     private String password;
 
+    @NotBlank(message = "Confirm password is required")
+    private String confirmPassword;
+
+    @AssertTrue(message = "Passwords do not match")
+    private boolean isPasswordConfirmed() {
+        if (password == null || confirmPassword == null) return true;
+        return password.equals(confirmPassword);
+    }
+
     private List<Long> roleIds;
 }

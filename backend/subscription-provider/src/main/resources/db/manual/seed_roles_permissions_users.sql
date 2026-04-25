@@ -63,20 +63,21 @@ ON DUPLICATE KEY UPDATE
 -- ===========================================================
 INSERT INTO user_accounts (user_id, username, email, full_name, password_hash, auth_provider, status, failed_login_attempts, created_by)
 VALUES
-    ('00000000-0000-0000-0000-000000000002', 'billing_admin',   'billing_admin@rs.local',   'Nguyễn Thị Bình',  '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000003', 'group_admin',      'group_admin@rs.local',     'Trần Văn Cường',   '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000004', 'operator1',        'operator1@rs.local',       'Lê Minh Đức',      '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000005', 'operator2',        'operator2@rs.local',       'Phạm Thị Hoa',     '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000006', 'viewer1',          'viewer1@rs.local',         'Hoàng Anh Tuấn',   '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000007', 'individual_user1', 'iuser1@customer.local',    'Nguyễn Văn An',    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000008', 'individual_user2', 'iuser2@customer.local',    'Trần Thị Bảo',     '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000009', 'individual_user3', 'iuser3@customer.local',    'Lý Thành Công',    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'INACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000010', 'group_member1',    'gmember1@abc.com',         'Phan Thị Dung',    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000011', 'group_member2',    'gmember2@xyz.com',         'Đinh Quang Hải',   '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
-    ('00000000-0000-0000-0000-000000000012', 'group_member3',    'gmember3@def.com',         'Vũ Thị Lan',       '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001')
+    ('00000000-0000-0000-0000-000000000002', 'billing_admin',   'billing_admin@rs.local',   'Nguyễn Thị Bình',  '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000003', 'group_admin',      'group_admin@rs.local',     'Trần Văn Cường',   '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000004', 'operator1',        'operator1@rs.local',       'Lê Minh Đức',      '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000005', 'operator2',        'operator2@rs.local',       'Phạm Thị Hoa',     '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000006', 'viewer1',          'viewer1@rs.local',         'Hoàng Anh Tuấn',   '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000007', 'individual_user1', 'iuser1@customer.local',    'Nguyễn Văn An',    '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000008', 'individual_user2', 'iuser2@customer.local',    'Trần Thị Bảo',     '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000009', 'individual_user3', 'iuser3@customer.local',    'Lý Thành Công',    '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'INACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000010', 'group_member1',    'gmember1@abc.com',         'Phan Thị Dung',    '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000011', 'group_member2',    'gmember2@xyz.com',         'Đinh Quang Hải',   '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001'),
+    ('00000000-0000-0000-0000-000000000012', 'group_member3',    'gmember3@def.com',         'Vũ Thị Lan',       '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si', 'LOCAL', 'ACTIVE', 0, '00000000-0000-0000-0000-000000000001')
 ON DUPLICATE KEY UPDATE
     full_name     = VALUES(full_name),
     email         = VALUES(email),
+    password_hash = IF(password_hash = '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu', VALUES(password_hash), password_hash),
     updated_at    = CURRENT_TIMESTAMP;
 
 -- ===========================================================

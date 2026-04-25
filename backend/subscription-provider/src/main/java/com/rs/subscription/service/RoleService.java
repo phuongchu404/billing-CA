@@ -79,6 +79,34 @@ public class RoleService {
             .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED, "Role not found: " + roleId, 404));
     }
 
+    // ── Permission Tree ──
+
+    public List<ModuleGroupResponse> listPermissionTree() {
+        List<Permission> allPerms = permissionRepository.findAllByOrderBySortOrderAsc();
+        Map<String, Map<String, List<Permission>>> moduleMap = new LinkedHashMap<>();
+        for (Permission p : allPerms) {
+            moduleMap
+                .computeIfAbsent(p.getModuleGroup(), k -> new LinkedHashMap<>())
+                .computeIfAbsent(p.getGroupName(), k -> new ArrayList<>())
+                .add(p);
+        }
+        List<ModuleGroupResponse> result = new ArrayList<>();
+        for (Map.Entry<String, Map<String, List<Permission>>> moduleEntry : moduleMap.entrySet()) {
+            ModuleGroupResponse module = new ModuleGroupResponse();
+            module.setModuleName(moduleEntry.getKey());
+            List<PermissionGroupResponse> permGroups = new ArrayList<>();
+            for (Map.Entry<String, List<Permission>> groupEntry : moduleEntry.getValue().entrySet()) {
+                PermissionGroupResponse g = new PermissionGroupResponse();
+                g.setGroupName(groupEntry.getKey());
+                g.setPermissions(groupEntry.getValue().stream().map(this::toPermissionResponse).collect(Collectors.toList()));
+                permGroups.add(g);
+            }
+            module.setPermissionGroups(permGroups);
+            result.add(module);
+        }
+        return result;
+    }
+
     // ── Permission Matrix ──
 
     public RolePermissionMatrixResponse getPermissionMatrix() {

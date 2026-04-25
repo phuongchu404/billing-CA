@@ -9,6 +9,7 @@ import com.rs.subscription.dto.response.IndividualPlanConfigSummaryResponse;
 import com.rs.subscription.service.IndividualPlanConfigService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,22 +20,26 @@ public class IndividualPlanConfigController {
     private final IndividualPlanConfigService service;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('plan:view')")
     public ApiResponse<IndividualPlanConfigSummaryResponse> getSummary() {
         return ApiResponse.success(service.getSummary(), "Fetched individual plan configs");
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('plan:view')")
     public ApiResponse<IndividualPlanConfigDetailResponse> getDetail(@PathVariable Long id) {
         return ApiResponse.success(service.getDetail(id), "Fetched individual plan config detail");
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('plan:create')")
     public ApiResponse<IndividualPlanConfigDetailResponse> create(
             @Valid @RequestBody CreateIndividualPlanConfigRequest req) {
         return ApiResponse.success(service.create(req), "Created individual plan config");
     }
 
     @PostMapping("/{id}/request-apply")
+    @PreAuthorize("hasAuthority('plan:update')")
     public ApiResponse<IndividualPlanConfigDetailResponse> requestApply(
             @PathVariable Long id,
             @Valid @RequestBody IndividualRequestApplyRequest req) {
@@ -42,6 +47,7 @@ public class IndividualPlanConfigController {
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('plan:update')")
     public ApiResponse<IndividualPlanConfigDetailResponse> approve(
             @PathVariable Long id,
             @RequestBody IndividualApproveRequest req) {
@@ -49,6 +55,7 @@ public class IndividualPlanConfigController {
     }
 
     @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAuthority('plan:update')")
     public ApiResponse<IndividualPlanConfigDetailResponse> reject(
             @PathVariable Long id,
             @RequestParam(defaultValue = "system") String actor) {
@@ -56,6 +63,7 @@ public class IndividualPlanConfigController {
     }
 
     @PostMapping("/{id}/stop")
+    @PreAuthorize("hasAuthority('plan:update')")
     public ApiResponse<IndividualPlanConfigDetailResponse> stop(
             @PathVariable Long id,
             @RequestParam(defaultValue = "system") String actor) {
@@ -63,6 +71,7 @@ public class IndividualPlanConfigController {
     }
 
     @PostMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('plan:update')")
     public ApiResponse<IndividualPlanConfigDetailResponse> deactivate(
             @PathVariable Long id,
             @RequestParam(defaultValue = "system") String actor) {

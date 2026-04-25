@@ -493,7 +493,7 @@ VALUES (
     'admin',
     'admin@rs.local',
     'System Administrator',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5qXvS4p6UwHuu',
+    '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si',
     'LOCAL',
     'ACTIVE',
     0,

@@ -27,17 +27,19 @@ export interface ReviewRequest {
   note?: string
 }
 
+// Backend: ApprovalRequestController @ /api/v1/approval-requests
+// @PreAuthorize: subscription:view (GET), subscription:update (POST /{id}/review)
 export const listApprovals = (params?: { status?: string; page?: number; size?: number }) =>
-  request.get('/api/v1/approvals', { params })
+  request.get('/api/v1/approval-requests', { params })
 
 export const getApproval = (id: number) =>
-  request.get(`/api/v1/approvals/${id}`)
+  request.get(`/api/v1/approval-requests/${id}`)
 
 export const submitApproval = (data: SubmitApprovalRequest) =>
-  request.post('/api/v1/approvals', data)
+  request.post('/api/v1/approval-requests', data)
 
 export const approveRequest = (id: number, data: ReviewRequest) =>
-  request.post(`/api/v1/approvals/${id}/approve`, data)
+  request.post(`/api/v1/approval-requests/${id}/review`, { ...data, approved: true })
 
 export const denyRequest = (id: number, data: ReviewRequest) =>
-  request.post(`/api/v1/approvals/${id}/deny`, data)
+  request.post(`/api/v1/approval-requests/${id}/review`, { ...data, approved: false })

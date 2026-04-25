@@ -18,7 +18,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/settings")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 @Tag(name = "Settings", description = "Operational system settings")
 public class SystemSettingController {
 
@@ -26,12 +25,14 @@ public class SystemSettingController {
     private final MailService mailService;
 
     @GetMapping("/{category}")
+    @PreAuthorize("hasAuthority('role:view')")
     @Operation(summary = "Get settings for a category (EMAIL, NOTIFICATION)")
     public ApiResponse<List<SystemSettingResponse>> getCategory(@PathVariable String category) {
         return ApiResponse.success(settingService.getCategory(category), "OK");
     }
 
     @PutMapping("/{category}")
+    @PreAuthorize("hasAuthority('role:update')")
     @Operation(summary = "Update settings for a category")
     public ApiResponse<List<SystemSettingResponse>> updateCategory(
             @PathVariable String category,
@@ -40,6 +41,7 @@ public class SystemSettingController {
     }
 
     @PostMapping("/email/test")
+    @PreAuthorize("hasAuthority('role:update')")
     @Operation(summary = "Send a test email using current configuration")
     public ApiResponse<String> testEmail(@Valid @RequestBody TestEmailRequest req) {
         mailService.sendTestEmail(req.getRecipient());

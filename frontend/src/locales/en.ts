@@ -324,6 +324,10 @@ export default {
     mustStartWithRole: 'Must start with ROLE_',
     unsavedChanges: 'You have unsaved permission changes',
     permissionsSaved: 'Permissions saved successfully',
+    assignRoles: 'Assign roles',
+    resetPassword: 'Reset password',
+    assignPermissions: 'Assign permissions',
+    permissionMatrix: 'Permission matrix',
   },
   permissions: {
     module: {

@@ -6,6 +6,7 @@ import com.rs.subscription.dto.response.ApprovalRequestResponse;
 import com.rs.subscription.service.ApprovalRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,11 +19,13 @@ public class ApprovalRequestController {
     private final ApprovalRequestService approvalRequestService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('subscription:view')")
     public ApiResponse<List<ApprovalRequestResponse>> list() {
         return ApiResponse.success(approvalRequestService.listAll(), "Fetched approval requests");
     }
 
     @PostMapping("/{id}/review")
+    @PreAuthorize("hasAuthority('subscription:update')")
     public ApiResponse<ApprovalRequestResponse> review(@PathVariable Long id, @Valid @RequestBody ReviewCommercialRequest request) {
         return ApiResponse.success(approvalRequestService.review(id, request), "Reviewed approval request");
     }

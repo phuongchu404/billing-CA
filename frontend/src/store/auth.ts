@@ -6,27 +6,17 @@ import type { UserAccount, LoginRequest } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(getToken())
-  const user = ref<UserAccount | null>(
-    JSON.parse(localStorage.getItem('rs_user') || JSON.stringify({
-      userId: 1,
-      username: 'admin',
-      email: 'admin@example.com',
-      fullName: 'Administrator',
-      authProvider: 'LOCAL',
-      status: 'ACTIVE',
-      roles: [{ roleId: 1, roleName: 'ROLE_ADMIN', displayName: 'Admin', isSystemRole: true, createdAt: '' }],
-      permissions: ['*'],
-      createdAt: '',
-    }))
-  )
+  const user = ref<UserAccount | null>(JSON.parse(localStorage.getItem('rs_user') || 'null'))
 
   const isLoggedIn = computed(() => !!token.value)
   const userRoles = computed(() => user.value?.roles?.map(r => r.roleName) || [])
   const isAdmin = computed(() => userRoles.value.includes('ROLE_ADMIN'))
   const isOperator = computed(() => userRoles.value.includes('ROLE_OPERATOR'))
   const permissions = computed(() => user.value?.permissions || [])
-  function hasPermission(_key: string): boolean {
-    return true
+  function hasPermission(key?: string): boolean {
+    if (!key) return true
+    const values = permissions.value
+    return values.includes('*') || values.includes(key)
   }
 
   async function doLogin(credentials: LoginRequest) {
@@ -35,30 +25,26 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = res.data.accessToken
       setToken(res.data.accessToken)
       setRefreshToken(res.data.refreshToken)
-      // Decode JWT payload to get user info
-      try {
-        const payload = JSON.parse(atob(res.data.accessToken.split('.')[1]))
-        user.value = {
-          userId: payload.sub,
-          username: payload.username,
-          email: '',
-          fullName: payload.username,
-          authProvider: 'LOCAL',
-          status: 'ACTIVE',
-          roles: (payload.roles || []).map((r: string, i: number) => ({
-            roleId: i + 1,
-            roleName: r,
-            displayName: r,
-            isSystemRole: true,
-            createdAt: '',
-          })),
-          permissions: payload.permissions || [],
-          createdAt: '',
-        }
-        localStorage.setItem('rs_user', JSON.stringify(user.value))
-      } catch {
-        // ignore parse errors
+      const loginData = res.data
+      const roles = (loginData.roles || []).map((roleName: string, index: number) => ({
+        roleId: index + 1,
+        roleName,
+        displayName: roleName,
+        isSystemRole: roleName === 'ROLE_ADMIN',
+        createdAt: '',
+      }))
+      user.value = {
+        userId: loginData.userId || '',
+        username: loginData.username || '',
+        email: loginData.email || '',
+        fullName: loginData.fullName || loginData.username || '',
+        authProvider: 'LOCAL',
+        status: 'ACTIVE',
+        roles,
+        permissions: loginData.permissions || [],
+        createdAt: '',
       }
+      localStorage.setItem('rs_user', JSON.stringify(user.value))
     }
     return res
   }

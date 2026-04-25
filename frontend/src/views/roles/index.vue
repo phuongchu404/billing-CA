@@ -11,14 +11,14 @@
     <el-card shadow="never" v-loading="loading">
       <!-- Normal mode toolbar -->
       <div v-if="!editMode" class="toolbar">
-        <el-button type="primary" :icon="Plus" @click="openCreate">{{ t('roles.newRole') }}</el-button>
-        <el-button :icon="EditPen" @click="handleEdit">{{ t('roles.editRole') }}</el-button>
+        <el-button type="primary" :icon="Plus" :disabled="!authStore.hasPermission('role:create')" @click="openCreate">{{ t('roles.newRole') }}</el-button>
+        <el-button :icon="EditPen" :disabled="!authStore.hasPermission('role:update')" @click="handleEdit">{{ t('roles.editRole') }}</el-button>
         <el-button
           :icon="Delete"
           type="danger"
           plain
           :loading="saving"
-          :disabled="!selectedRoleId || !!selectedRole?.isSystemRole"
+          :disabled="!authStore.hasPermission('role:update') || !selectedRoleId || !!selectedRole?.isSystemRole"
           @click="handleDeleteRole"
         >Xoá vai trò</el-button>
       </div>
@@ -83,7 +83,10 @@
                   </tr>
 
                   <tr v-for="perm in group.permissions" :key="perm.permissionId" class="perm-row">
-                    <td class="perm-name-cell">{{ perm.displayName }}</td>
+                    <td class="perm-name-cell">
+                      <span>{{ perm.displayName }}</span>
+                      <small>{{ perm.permissionKey }}</small>
+                    </td>
                     <td
                       v-for="role in matrixRoles"
                       :key="'c-' + role.roleId + '-' + perm.permissionId"
@@ -122,24 +125,69 @@
     <!-- Create Role Dialog -->
     <el-dialog
       v-model="dialogVisible"
-      :title="t('roles.newRole')"
-      width="600px"
+      width="560px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-        <el-form-item :label="t('roles.roleName')" prop="roleName">
-          <el-input v-model="form.roleName" placeholder="ROLE_MY_ROLE" />
-        </el-form-item>
-        <el-form-item :label="t('roles.displayName')" prop="displayName">
-          <el-input v-model="form.displayName" />
-        </el-form-item>
-        <el-form-item :label="t('roles.description')">
-          <el-input v-model="form.description" type="textarea" :rows="2" />
+      <template #header>
+        <span class="dlg-title">THÊM MỚI VAI TRÒ</span>
+      </template>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" label-position="left">
+        <el-form-item label="Tên vai trò" prop="displayName">
+          <el-input v-model="form.displayName" placeholder="Nhập tên vai trò" />
+          <div class="field-hint">Nhập tên vai trò không trùng với vai trò đã có</div>
         </el-form-item>
       </el-form>
+
+      <!-- Permission selection table -->
+      <div class="perm-select-wrap">
+        <table class="perm-select-table">
+          <thead>
+            <tr>
+              <th class="pst-th-name">Phân quyền</th>
+              <th class="pst-th-check">Quyền</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="mod in permTree" :key="mod.moduleName">
+              <tr class="pst-module-row" @click="toggleCreateModule(mod.moduleName)">
+                <td>
+                  <span class="pst-arrow" :class="{ expanded: createExpandedModules.has(mod.moduleName) }">▼</span>
+                  {{ t('permissions.module.' + mod.moduleName) }}
+                </td>
+                <td class="pst-check-cell" @click.stop>
+                  <el-checkbox
+                    :model-value="isModuleAllChecked(mod)"
+                    :indeterminate="isModuleIndeterminate(mod)"
+                    @change="(val: any) => toggleModulePerms(mod, !!val)"
+                  />
+                </td>
+              </tr>
+              <template v-if="createExpandedModules.has(mod.moduleName)">
+                <template v-for="group in mod.permissionGroups" :key="group.groupName">
+                  <tr class="pst-group-row">
+                    <td colspan="2">{{ t('permissions.group.' + group.groupName) }}</td>
+                  </tr>
+                  <tr v-for="perm in group.permissions" :key="perm.permissionId" class="pst-perm-row">
+                    <td class="pst-perm-name">{{ perm.displayName }}</td>
+                    <td class="pst-check-cell">
+                      <el-checkbox
+                        :model-value="createSelectedPerms.has(perm.permissionId)"
+                        @change="(val: any) => toggleCreatePerm(perm.permissionId, !!val)"
+                      />
+                    </td>
+                  </tr>
+                </template>
+              </template>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
       <template #footer>
-        <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">{{ t('common.save') }}</el-button>
+        <div class="dlg-footer-right">
+          <el-button type="primary" :loading="saving" @click="handleSave">Xác Nhận</el-button>
+          <el-button @click="dialogVisible = false">Hủy Bỏ</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -150,11 +198,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { Plus, EditPen, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { createRole, deleteRole, getPermissionMatrix, assignPermissions } from '@/api/roles'
+import { createRole, deleteRole, getPermissionMatrix, assignPermissions, listPermissions } from '@/api/roles'
+import { useAuthStore } from '@/store'
 import type { Role, PermissionModule } from '@/types'
 import type { FormInstance } from 'element-plus'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 const loading = ref(false)
 const saving  = ref(false)
 
@@ -250,72 +300,7 @@ async function handleDeleteRole() {
   }
 }
 
-// ── Fallback mock data ──
-const FALLBACK_DATA = {
-  roles: [
-    { roleId: 1, roleName: 'ROLE_ADMIN',   displayName: 'Admin',          isSystemRole: true  },
-    { roleId: 2, roleName: 'ROLE_LEVEL_1', displayName: 'Vai trò cấp 1', isSystemRole: false },
-    { roleId: 3, roleName: 'ROLE_LEVEL_2', displayName: 'Vai trò cấp 2', isSystemRole: false },
-    { roleId: 4, roleName: 'ROLE_LEVEL_3', displayName: 'Vai trò cấp 3', isSystemRole: false },
-    { roleId: 5, roleName: 'ROLE_LEVEL_4', displayName: 'Vai trò cấp 4', isSystemRole: false },
-  ],
-  moduleGroups: [
-    {
-      moduleName: 'DASHBOARD',
-      permissionGroups: [
-        { groupName: 'DASHBOARD', permissions: [
-          { permissionId: 1, permissionCode: 'dashboard:view', displayName: 'Xem thông tin' },
-        ]},
-      ],
-    },
-    {
-      moduleName: 'SUBSCRIPTION_MANAGEMENT',
-      permissionGroups: [
-        { groupName: 'PLAN', permissions: [
-          { permissionId: 2, permissionCode: 'plan:view',   displayName: 'Xem thông tin theo thiết bị'  },
-          { permissionId: 3, permissionCode: 'plan:create', displayName: 'Xem thông tin theo chi nhánh' },
-          { permissionId: 4, permissionCode: 'plan:update', displayName: 'Thêm chi nhánh'               },
-          { permissionId: 5, permissionCode: 'plan:delete', displayName: 'Đổi chi nhánh cho thiết bị'   },
-        ]},
-        { groupName: 'SUBSCRIPTION', permissions: [
-          { permissionId: 6, permissionCode: 'subscription:view',   displayName: 'Xem thông tin'             },
-          { permissionId: 7, permissionCode: 'subscription:create', displayName: 'Tải lên firmware'           },
-          { permissionId: 8, permissionCode: 'subscription:update', displayName: 'Cấu hình cập nhật firmware' },
-        ]},
-      ],
-    },
-    {
-      moduleName: 'SYSTEM_CONFIGURATION',
-      permissionGroups: [
-        { groupName: 'USER', permissions: [
-          { permissionId: 9,  permissionCode: 'user:view',   displayName: 'Xem danh sách người dùng' },
-          { permissionId: 10, permissionCode: 'user:create', displayName: 'Tạo người dùng'           },
-          { permissionId: 11, permissionCode: 'user:update', displayName: 'Chỉnh sửa người dùng'     },
-        ]},
-        { groupName: 'ROLE', permissions: [
-          { permissionId: 12, permissionCode: 'role:view',   displayName: 'Xem danh sách vai trò' },
-          { permissionId: 13, permissionCode: 'role:create', displayName: 'Tạo vai trò'           },
-          { permissionId: 14, permissionCode: 'role:update', displayName: 'Chỉnh sửa vai trò'     },
-        ]},
-        { groupName: 'AUDIT_LOG', permissions: [
-          { permissionId: 15, permissionCode: 'audit-log:view', displayName: 'Xem nhật ký hệ thống' },
-        ]},
-      ],
-    },
-    {
-      moduleName: 'ANALYTICS',
-      permissionGroups: [
-        { groupName: 'REPORT', permissions: [
-          { permissionId: 16, permissionCode: 'report:view', displayName: 'Xem báo cáo' },
-        ]},
-      ],
-    },
-  ],
-  rolePermissions: { 1: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], 2: [1,2,3,6,9,12,16], 3: [1,2,3], 4: [1,2,3,4,5,6,9,12], 5: [2,3] } as Record<number, number[]>,
-  roleUserCounts: { 1: 4, 2: 3, 3: 2, 4: 4, 5: 1 } as Record<number, number>,
-}
-
-function applyData(data: typeof FALLBACK_DATA) {
+function applyData(data: { roles: Role[]; moduleGroups: PermissionModule[]; rolePermissions: Record<number, number[]>; roleUserCounts?: Record<number, number> }) {
   const roles = data.roles as Role[]
   const mods  = data.moduleGroups as PermissionModule[]
   matrixRoles.value  = roles
@@ -333,23 +318,76 @@ async function load() {
   loading.value = true
   try {
     const res = await getPermissionMatrix()
-    if (res.success && res.data?.roles?.length) applyData(res.data)
-    else applyData(FALLBACK_DATA)
-  } catch { applyData(FALLBACK_DATA) }
+    if (res.success && res.data) applyData(res.data)
+    else ElMessage.error(res.message || 'Không tải được ma trận phân quyền')
+  } catch {
+    matrixRoles.value = []
+    moduleGroups.value = []
+    rolePerms.value = {}
+    roleUserCounts.value = {}
+  }
   finally { loading.value = false }
 }
 
 // ── Create dialog ──
 const dialogVisible = ref(false)
 const formRef = ref<FormInstance>()
-const form = reactive({ roleName: '', displayName: '', description: '' })
+const form = reactive({ displayName: '', description: '' })
 const rules = computed(() => ({
-  roleName:    [{ required: true, message: t('common.required') }, { pattern: /^ROLE_/, message: t('roles.mustStartWithRole') }],
   displayName: [{ required: true, message: t('common.required') }],
 }))
 
-function openCreate() {
-  Object.assign(form, { roleName: '', displayName: '', description: '' })
+// Permission tree for create dialog
+const permTree = ref<PermissionModule[]>([])
+const createSelectedPerms = ref<Set<number>>(new Set())
+const createExpandedModules = ref<Set<string>>(new Set())
+
+function isModuleAllChecked(mod: PermissionModule): boolean {
+  return mod.permissionGroups.every(g => g.permissions.every(p => createSelectedPerms.value.has(p.permissionId)))
+}
+
+function isModuleIndeterminate(mod: PermissionModule): boolean {
+  const allPerms = mod.permissionGroups.flatMap(g => g.permissions)
+  const checkedCount = allPerms.filter(p => createSelectedPerms.value.has(p.permissionId)).length
+  return checkedCount > 0 && checkedCount < allPerms.length
+}
+
+function toggleModulePerms(mod: PermissionModule, checked: boolean) {
+  const s = new Set(createSelectedPerms.value)
+  for (const g of mod.permissionGroups)
+    for (const p of g.permissions)
+      checked ? s.add(p.permissionId) : s.delete(p.permissionId)
+  createSelectedPerms.value = s
+}
+
+function toggleCreatePerm(permId: number, checked: boolean) {
+  const s = new Set(createSelectedPerms.value)
+  checked ? s.add(permId) : s.delete(permId)
+  createSelectedPerms.value = s
+}
+
+function toggleCreateModule(name: string) {
+  const s = new Set(createExpandedModules.value)
+  s.has(name) ? s.delete(name) : s.add(name)
+  createExpandedModules.value = s
+}
+
+function toRoleName(displayName: string): string {
+  return 'ROLE_' + displayName.toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+}
+
+async function openCreate() {
+  Object.assign(form, { displayName: '', description: '' })
+  createSelectedPerms.value = new Set()
+  if (permTree.value.length === 0) {
+    try {
+      const res = await listPermissions()
+      if (res.success && res.data) permTree.value = res.data
+    } catch {}
+  }
+  createExpandedModules.value = new Set(permTree.value.map(m => m.moduleName))
   dialogVisible.value = true
 }
 
@@ -357,7 +395,11 @@ async function handleSave() {
   if (!await formRef.value?.validate().catch(() => false)) return
   saving.value = true
   try {
-    await createRole(form)
+    const roleName = toRoleName(form.displayName)
+    const res = await createRole({ roleName, displayName: form.displayName, description: form.description })
+    if (res.data && createSelectedPerms.value.size > 0) {
+      await assignPermissions(res.data.roleId, [...createSelectedPerms.value])
+    }
     ElMessage.success(t('roles.createdMsg'))
     dialogVisible.value = false
     load()
@@ -471,6 +513,15 @@ onMounted(load)
 .perm-row td { border-top: 1px solid var(--el-border-color-lighter); padding: 7px 16px; }
 .perm-row:hover td { background: #fafafa; }
 .perm-name-cell { padding-left: 40px; font-size: 14px; color: #303133; }
+.perm-name-cell span,
+.perm-name-cell small {
+  display: block;
+}
+.perm-name-cell small {
+  margin-top: 2px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
 .check-cell { text-align: center; }
 .check-cell.selected { background: #f0f5ff; }
 .check-cell.edit-col { background: #eef4ff; }
@@ -482,5 +533,114 @@ onMounted(load)
   color: var(--el-text-color-secondary);
   margin-top: 12px;
   font-style: italic;
+}
+
+/* ── Create Role Dialog ── */
+.dlg-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: 0.02em;
+}
+.field-hint {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.dlg-footer-right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Permission select table */
+.perm-select-wrap {
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+.perm-select-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.perm-select-table thead th {
+  background: #f5f7fa;
+  padding: 9px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #606266;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.pst-th-name { text-align: left; }
+.pst-th-check { text-align: center; width: 64px; }
+
+.pst-module-row td {
+  background: #1B60CB;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+  cursor: pointer;
+  user-select: none;
+  border-top: 1px solid #1550b0;
+}
+.pst-module-row:hover td { background: #1550b0; }
+.pst-arrow {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 11px;
+  transition: transform 0.2s;
+  transform: rotate(-90deg);
+}
+.pst-arrow.expanded { transform: rotate(0deg); }
+
+.pst-group-row td {
+  background: #f5f7fa;
+  padding: 7px 14px 7px 28px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #606266;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.pst-perm-row td {
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding: 7px 14px;
+  color: #303133;
+}
+.pst-perm-row:hover td { background: #fafafa; }
+.pst-perm-name { padding-left: 42px !important; font-size: 14px; }
+.pst-check-cell {
+  text-align: center;
+  width: 64px;
+}
+/* White checkbox on blue module row */
+.pst-module-row :deep(.el-checkbox__inner) {
+  background-color: transparent;
+  border-color: rgba(255,255,255,0.8);
+}
+.pst-module-row :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #fff;
+  border-color: #fff;
+}
+.pst-module-row :deep(.el-checkbox__input.is-checked .el-checkbox__inner::after) {
+  border-color: #1B60CB;
+}
+.pst-module-row :deep(.el-checkbox__input.is-indeterminate .el-checkbox__inner) {
+  background-color: #fff;
+  border-color: #fff;
+}
+.pst-module-row :deep(.el-checkbox__input.is-indeterminate .el-checkbox__inner::before) {
+  background-color: #1B60CB;
 }
 </style>

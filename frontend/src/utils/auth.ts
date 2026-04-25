@@ -2,7 +2,7 @@ const TOKEN_KEY = 'rs_access_token'
 const REFRESH_KEY = 'rs_refresh_token'
 const USER_KEY = 'rs_user'
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY) || 'mock_token_for_offline_use'
+export const getToken = () => localStorage.getItem(TOKEN_KEY)
 export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token)
 export const removeToken = () => localStorage.removeItem(TOKEN_KEY)
 export const getRefreshToken = () => localStorage.getItem(REFRESH_KEY)
@@ -15,6 +15,15 @@ export const clearAuth = () => {
 }
 
 /** Returns true if the JWT is missing, malformed, or its exp claim is in the past. */
-export const isTokenExpired = (_token: string): boolean => {
-  return false
+export const isTokenExpired = (token: string): boolean => {
+  try {
+    const payloadPart = token.split('.')[1]
+    if (!payloadPart) return true
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(normalized))
+    if (!payload.exp) return false
+    return payload.exp * 1000 <= Date.now()
+  } catch {
+    return true
+  }
 }

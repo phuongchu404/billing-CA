@@ -25,7 +25,7 @@ public class AuditLogController {
     private final AdminAuditLogService adminAuditLogService;
 
     @GetMapping
-//    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('audit-log:view')")
     @Operation(summary = "Get admin audit logs with optional filters")
     public ApiResponse<PagedResponse<AdminAuditLogResponse>> list(
             @RequestParam(required = false) String actor,

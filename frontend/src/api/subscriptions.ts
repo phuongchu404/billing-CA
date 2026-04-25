@@ -1,32 +1,34 @@
 import request from '@/utils/request'
 import type { ApiResponse, PagedResponse, Subscription } from '@/types'
 
+// Backend: RuntimeSubscriptionController @ /api/v1/runtime-subscriptions
+// @PreAuthorize: subscription:view (GET), subscription:create (POST), subscription:update (PATCH)
 export const getMySubscriptions = () =>
-  request.get<any, ApiResponse<Subscription[]>>('/api/v1/subscriptions/me')
+  request.get<any, ApiResponse<Subscription[]>>('/api/v1/runtime-subscriptions')
 
 export const listSubscriptions = (params: { subscriberType?: string; status?: string; query?: string; page?: number; size?: number }) =>
-  request.get<any, ApiResponse<PagedResponse<Subscription>>>('/api/v1/subscriptions', { params })
+  request.get<any, ApiResponse<PagedResponse<Subscription>>>('/api/v1/runtime-subscriptions', { params })
 
 export const getSubscription = (id: number) =>
-  request.get<any, ApiResponse<Subscription>>(`/api/v1/subscriptions/${id}`)
+  request.get<any, ApiResponse<Subscription>>(`/api/v1/runtime-subscriptions/${id}`)
 
 export const initiateIndividual = (data: { planCode: string; paymentReference?: string }) =>
-  request.post<any, ApiResponse<Subscription>>('/api/v1/subscriptions/individual', data)
+  request.post<any, ApiResponse<Subscription>>('/api/v1/runtime-subscriptions', data)
 
 export const assignGroupPlan = (groupId: number, data: { planCode: string }) =>
-  request.post<any, ApiResponse<Subscription>>(`/api/v1/subscriptions/group/${groupId}`, data)
+  request.post<any, ApiResponse<Subscription>>(`/api/v1/runtime-subscriptions`, { ...data, groupId })
 
 export const cancelSubscription = (id: number) =>
-  request.patch<any, ApiResponse<void>>(`/api/v1/subscriptions/${id}/cancel`)
+  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'CANCELLED' })
 
 export const suspendSubscription = (id: number) =>
-  request.patch<any, ApiResponse<void>>(`/api/v1/subscriptions/${id}/suspend`)
+  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'SUSPENDED' })
 
 export const reactivateSubscription = (id: number) =>
-  request.patch<any, ApiResponse<void>>(`/api/v1/subscriptions/${id}/reactivate`)
+  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'ACTIVE' })
 
 export const approveSubscription = (id: number) =>
-  request.patch<any, ApiResponse<void>>(`/api/v1/subscriptions/${id}/approve`)
+  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'APPROVED' })
 
 export const getAuditLog = (id: number) =>
-  request.get<any, ApiResponse<any[]>>(`/api/v1/subscriptions/${id}/audit`)
+  request.get<any, ApiResponse<any[]>>(`/api/v1/audit-timelines/subscriptions/${id}`)
