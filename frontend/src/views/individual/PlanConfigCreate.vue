@@ -47,27 +47,31 @@
 
       <div class="category-tabs">
         <span class="tab-prefix-label">Phân loại</span>
-        <el-radio-group v-model="activeTab" size="default">
-          <el-radio-button value="INDIVIDUAL">Cá nhân</el-radio-button>
-          <el-radio-button value="ORGANIZATION">Tổ chức</el-radio-button>
-          <el-radio-button value="INDIVIDUAL_OF_ORG">Cá nhân thuộc Tổ chức</el-radio-button>
-        </el-radio-group>
+        <div class="cat-tab-group">
+          <button
+            v-for="tab in TABS"
+            :key="tab.key"
+            :class="['cat-tab', { 'is-active': activeTab === tab.key, 'is-done': isTabCompleted(tab.key) }]"
+            @click="activeTab = tab.key"
+            type="button"
+          >
+            <el-icon v-if="isTabCompleted(tab.key)" class="tab-done-icon"><CircleCheck /></el-icon>
+            {{ tab.label }}
+          </button>
+        </div>
       </div>
 
       <el-table :data="currentRows" border style="margin-top: 12px" table-layout="fixed">
-        <el-table-column width="36" align="center">
-          <template #default>
-            <el-icon class="drag-handle"><Operation /></el-icon>
-          </template>
-        </el-table-column>
-
-        <el-table-column width="36" align="center">
+        <el-table-column width="60" align="center">
           <template #default="{ $index }">
-            <el-icon class="delete-icon" @click="removeRow($index)"><CircleClose /></el-icon>
+            <div class="action-cell">
+              <el-icon class="drag-handle"><Operation /></el-icon>
+              <el-icon class="delete-icon" @click="removeRow($index)"><CircleClose /></el-icon>
+            </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="ĐỐI TƯỢNG" min-width="110">
+        <el-table-column label="PHÂN LOẠI ĐỐI TƯỢNG" min-width="130" sortable>
           <template #default>{{ subjectLabel(activeTab) }}</template>
         </el-table-column>
 
@@ -94,8 +98,8 @@
         <el-table-column label="ĐIỀU KIỆN" width="150" align="center">
           <template #default="{ row }">
             <el-select v-model="row.condition" size="small" placeholder="Chọn điều kiện" style="width: 100%">
-              <el-option label="Lượt ký" value="SIGNING" />
-              <el-option label="Số chứng thư" value="CERT_COUNT" />
+              <el-option label="Lượt ký" value="SIGNING_COUNT" />
+              <el-option label="Số chứng thư" value="CERTIFICATE_COUNT" />
             </el-select>
           </template>
         </el-table-column>
@@ -180,7 +184,7 @@
 
     <!-- Bottom action bar -->
     <div class="action-bar">
-      <el-button type="primary" @click="handleSubmit">Xác Nhận</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleSubmit">Xác Nhận</el-button>
       <el-button @click="handleCancel">Hủy Bỏ</el-button>
     </div>
 
@@ -203,6 +207,7 @@
           >
             <el-option v-for="p in templatePlans" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
+
         </el-form-item>
       </el-form>
       <template #footer>
@@ -214,12 +219,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  CopyDocument, CircleClose, CirclePlus, ArrowUp, ArrowDown, Operation,
+  CopyDocument, CircleClose, CirclePlus, ArrowUp, ArrowDown, Operation, CircleCheck,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import {
+  getIndividualPlanConfigSummary,
+  getIndividualPlanConfigDetail,
+  createIndividualPlanConfig,
+} from '@/api/individual'
+import type { IndividualPlanConfigListItem } from '@/types/individual'
 
 type TabKey = 'INDIVIDUAL' | 'ORGANIZATION' | 'INDIVIDUAL_OF_ORG'
 
@@ -239,33 +250,28 @@ const form = reactive({
   dateRange: null as [Date, Date] | null,
 })
 
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'INDIVIDUAL',       label: 'Cá nhân' },
+  { key: 'ORGANIZATION',     label: 'Tổ chức' },
+  { key: 'INDIVIDUAL_OF_ORG', label: 'Cá nhân thuộc Tổ chức' },
+]
+
 const activeTab = ref<TabKey>('INDIVIDUAL')
 const guideVisible = ref(true)
 const templateDialogVisible = ref(false)
 const selectedTemplate = ref<number | null>(null)
+const templatePlans = ref<IndividualPlanConfigListItem[]>([])
+const submitting = ref(false)
 
 let rowIdSeq = 10
 
 const tabData = reactive<Record<TabKey, ConfigRow[]>>({
-  INDIVIDUAL: [
-    { id: 1, durationMonths: 1,  condition: 'SIGNING',    minValue: 1,  maxValue: 100,       fee: 0 },
-    { id: 2, durationMonths: 3,  condition: 'CERT_COUNT', minValue: 11, maxValue: undefined,  fee: 1000000 },
-    { id: 3, durationMonths: 12, condition: 'CERT_COUNT', minValue: 1,  maxValue: undefined,  fee: 0 },
-    { id: 4, durationMonths: 24, condition: 'CERT_COUNT', minValue: 1,  maxValue: undefined,  fee: 0 },
-    { id: 5, durationMonths: undefined, condition: '', minValue: undefined, maxValue: undefined, fee: undefined },
-  ],
+  INDIVIDUAL: [],
   ORGANIZATION: [],
   INDIVIDUAL_OF_ORG: [],
 })
 
 const currentRows = computed(() => tabData[activeTab.value])
-
-const templatePlans = [
-  { id: 1, name: 'Chữ ký số 2026' },
-  { id: 2, name: 'Chữ ký số 2025' },
-  { id: 3, name: 'Chữ ký số 2026 tháng 5' },
-  { id: 4, name: 'Chữ ký số 2026 tháng 3' },
-]
 
 function subjectLabel(tab: TabKey): string {
   const map: Record<TabKey, string> = {
@@ -274,6 +280,16 @@ function subjectLabel(tab: TabKey): string {
     INDIVIDUAL_OF_ORG: 'Cá nhân thuộc Tổ chức',
   }
   return map[tab]
+}
+
+function isTabCompleted(tab: TabKey): boolean {
+  const rows = tabData[tab]
+  return rows.length > 0 && rows.every(r =>
+    r.durationMonths != null &&
+    r.condition !== '' &&
+    r.minValue != null &&
+    r.fee != null
+  )
 }
 
 function addRow() {
@@ -291,32 +307,104 @@ function removeRow(index: number) {
   tabData[activeTab.value].splice(index, 1)
 }
 
-function applyTemplate() {
+async function applyTemplate() {
   if (!selectedTemplate.value) {
     ElMessage.warning('Vui lòng chọn gói cước mẫu')
     return
   }
-  const plan = templatePlans.find(p => p.id === selectedTemplate.value)
-  if (plan) {
-    form.name = plan.name + ' (bản sao)'
-    ElMessage.success('Đã điền thông tin từ gói cước mẫu')
+  try {
+    const res = await getIndividualPlanConfigDetail(selectedTemplate.value)
+    if (res.success && res.data) {
+      const detail = res.data
+      form.name = detail.name + ' (bản sao)'
+
+      // Gán pricing rules vào tabData theo subjectType
+      tabData.INDIVIDUAL = []
+      tabData.ORGANIZATION = []
+      tabData.INDIVIDUAL_OF_ORG = []
+
+      detail.pricingRules.forEach((r, i) => {
+        const tab = r.subject as TabKey
+        if (tabData[tab]) {
+          tabData[tab].push({
+            id: ++rowIdSeq,
+            durationMonths: r.durationMonths,
+            condition: r.condition,
+            minValue: r.minValue,
+            maxValue: r.maxValue ?? undefined,
+            fee: r.fee,
+          })
+        }
+      })
+
+      ElMessage.success('Đã điền thông tin từ gói cước mẫu')
+    }
+  } catch {
+    ElMessage.error('Không thể tải gói cước mẫu')
   }
   templateDialogVisible.value = false
   selectedTemplate.value = null
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!form.name.trim()) {
     ElMessage.warning('Vui lòng nhập tên gói cước')
     return
   }
-  ElMessage.success('Đã tạo gói cước thành công')
-  router.push('/individual-plan-config')
+
+  const allRules = [
+    ...tabData.INDIVIDUAL.map((r, i) => ({ ...r, subject: 'INDIVIDUAL', sortOrder: i })),
+    ...tabData.ORGANIZATION.map((r, i) => ({ ...r, subject: 'ORGANIZATION', sortOrder: i })),
+    ...tabData.INDIVIDUAL_OF_ORG.map((r, i) => ({ ...r, subject: 'INDIVIDUAL_OF_ORG', sortOrder: i })),
+  ].filter(r => r.durationMonths && r.condition)
+   .map(r => ({
+     subject: r.subject as string,
+     durationMonths: r.durationMonths!,
+     condition: r.condition,
+     minValue: r.minValue,
+     maxValue: r.maxValue,
+     fee: r.fee,
+     sortOrder: r.sortOrder,
+   }))
+
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  const payload = {
+    name: form.name.trim(),
+    applyFrom: form.dateRange ? fmt(form.dateRange[0]) : null,
+    applyUntil: form.dateRange ? fmt(form.dateRange[1]) : null,
+    pricingRules: allRules,
+  }
+
+  submitting.value = true
+  try {
+    const res = await createIndividualPlanConfig(payload)
+    if (res.success) {
+      ElMessage.success('Đã tạo gói cước thành công')
+      router.push('/individual-plan-config')
+    }
+  } catch {
+    ElMessage.error('Tạo gói cước thất bại')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleCancel() {
   router.push('/individual-plan-config')
 }
+
+async function loadTemplatePlans() {
+  try {
+    const res = await getIndividualPlanConfigSummary()
+    if (res.success && res.data) {
+      templatePlans.value = res.data.list ?? []
+    }
+  } catch {
+    // không hiển thị lỗi – chỉ là danh sách chọn mẫu
+  }
+}
+
+onMounted(loadTemplatePlans)
 </script>
 
 <style scoped>
@@ -376,6 +464,67 @@ function handleCancel() {
   font-size: 14px;
   color: #303133;
   flex-shrink: 0;
+}
+
+/* Custom tab group */
+.cat-tab-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 18px;
+  font-size: 14px;
+  color: #606266;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  line-height: 1.4;
+  outline: none;
+  white-space: nowrap;
+}
+
+/* Tab đang active (đang chọn) */
+.cat-tab.is-active {
+  border-color: #409eff;
+  color: #409eff;
+  font-weight: 600;
+  background: #fff;
+}
+
+/* Tab đã điền đủ dữ liệu bắt buộc */
+.cat-tab.is-done {
+  background: #ecf5ff;
+  border-color: #b3d8ff;
+  color: #409eff;
+}
+
+/* Tab vừa done vừa active */
+.cat-tab.is-done.is-active {
+  border-color: #409eff;
+  background: #ecf5ff;
+  color: #409eff;
+}
+
+.tab-done-icon {
+  font-size: 14px;
+  color: #409eff;
+  flex-shrink: 0;
+}
+
+/* Action cell (merged drag + delete) */
+.action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .drag-handle {

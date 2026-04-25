@@ -9,13 +9,13 @@
 
     <el-card shadow="never">
       <div class="current-plan-info">
-        <div>
+        <div v-if="currentPlan">
           Gói cước đang áp dụng:
           <b>{{ currentPlan.name }}</b>
           áp dụng đến ngày
           <b>{{ currentPlan.applyUntil }}</b>
         </div>
-        <div>
+        <div v-if="nextPlan">
           Gói cước tiếp theo:
           <b>{{ nextPlan.name }}</b>
           áp dụng từ ngày
@@ -341,6 +341,14 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { Plus, Refresh, Timer, Check } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
+import {
+  getIndividualPlanConfigSummary,
+  requestApplyPlanConfig,
+  approvePlanConfig,
+  rejectPlanConfig,
+  stopPlanConfig,
+} from "@/api/individual";
+import type { IndividualPlanConfigListItem } from "@/types/individual";
 
 const router = useRouter();
 
@@ -351,14 +359,7 @@ type PlanStatus =
   | "APPROVED"
   | "APPLYING";
 
-interface PlanConfigRow {
-  id: number;
-  name: string;
-  status: PlanStatus;
-  applyFrom: string | null;
-  applyUntil: string | null;
-  updatedAt: string;
-}
+type PlanConfigRow = IndividualPlanConfigListItem;
 
 const loading = ref(false);
 const page = ref(1);
@@ -368,15 +369,9 @@ const filterApplyFrom = ref<Date | null>(null);
 const filterApplyUntil = ref<Date | null>(null);
 const filterUpdatedAt = ref<Date | null>(null);
 
-const lastUpdated = ref("29/03/2026 16:29:00");
-const currentPlan = ref({
-  name: "Chữ ký số 2026 tháng 3",
-  applyUntil: "30/04/2026",
-});
-const nextPlan = ref({
-  name: "Chữ ký số 2026 tháng 5",
-  applyFrom: "01/05/2026",
-});
+const lastUpdated = ref<string | null>(null);
+const currentPlan = ref<{ name: string; applyUntil: string | null } | null>(null);
+const nextPlan = ref<{ name: string; applyFrom: string | null } | null>(null);
 
 // Dialog state
 const activeRow = ref<PlanConfigRow | null>(null);
@@ -385,73 +380,6 @@ const requestApplyDateRange = ref<[Date, Date] | null>(null);
 const approveVisible = ref(false);
 const approveDateRange = ref<[Date, Date] | null>(null);
 const stopApplyVisible = ref(false);
-
-const MOCK_DATA: PlanConfigRow[] = [
-  {
-    id: 1,
-    name: "Chữ ký số 2026",
-    status: "AVAILABLE",
-    applyFrom: null,
-    applyUntil: null,
-    updatedAt: "27/03/2026 18:29:00",
-  },
-  {
-    id: 2,
-    name: "Chữ ký số 2025",
-    status: "UNAVAILABLE",
-    applyFrom: null,
-    applyUntil: null,
-    updatedAt: "27/03/2026 18:29:00",
-  },
-  {
-    id: 3,
-    name: "Chữ ký số 2026 tháng 5_2",
-    status: "PENDING",
-    applyFrom: "08/05/2026",
-    applyUntil: "11/05/2026",
-    updatedAt: "27/03/2026 18:29:00",
-  },
-  {
-    id: 4,
-    name: "Chữ ký số 2026 tháng 5",
-    status: "APPROVED",
-    applyFrom: "01/05/2026",
-    applyUntil: "07/05/2026",
-    updatedAt: "27/03/2026 18:29:00",
-  },
-  {
-    id: 5,
-    name: "Chữ ký số 2026 tháng 3",
-    status: "APPLYING",
-    applyFrom: "27/03/2026",
-    applyUntil: "30/04/2026",
-    updatedAt: "27/03/2026 18:29:00",
-  },
-  {
-    id: 6,
-    name: "Chữ ký số 2025 tháng 12",
-    status: "UNAVAILABLE",
-    applyFrom: "01/12/2025",
-    applyUntil: "31/12/2025",
-    updatedAt: "27/03/2026 18:29:00",
-  },
-  {
-    id: 7,
-    name: "Chữ ký số 2025 tháng 6",
-    status: "UNAVAILABLE",
-    applyFrom: "01/06/2025",
-    applyUntil: "30/06/2025",
-    updatedAt: "27/03/2026 18:29:00",
-  },
-  {
-    id: 8,
-    name: "Chữ ký số 2024",
-    status: "UNAVAILABLE",
-    applyFrom: null,
-    applyUntil: null,
-    updatedAt: "27/03/2026 18:29:00",
-  },
-];
 
 const list = ref<PlanConfigRow[]>([]);
 
@@ -530,36 +458,84 @@ function openStopApply(row: PlanConfigRow) {
 }
 
 // Dialog confirmations
-function confirmRequestApply() {
-  ElMessage.success("Đã gửi yêu cầu áp dụng");
-  requestApplyVisible.value = false;
-  load();
+async function confirmRequestApply() {
+  if (!activeRow.value || !requestApplyDateRange.value) {
+    ElMessage.warning("Vui lòng chọn thời gian áp dụng");
+    return;
+  }
+  const [from, to] = requestApplyDateRange.value;
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  try {
+    await requestApplyPlanConfig(activeRow.value.id, {
+      applyFrom: fmt(from),
+      applyUntil: fmt(to),
+    });
+    ElMessage.success("Đã gửi yêu cầu áp dụng");
+    requestApplyVisible.value = false;
+    load();
+  } catch {
+    ElMessage.error("Gửi yêu cầu thất bại");
+  }
 }
 
-function confirmApprove() {
-  ElMessage.success("Đã duyệt gói cước");
-  approveVisible.value = false;
-  load();
+async function confirmApprove() {
+  if (!activeRow.value) return;
+  const payload: { applyFrom?: string; applyUntil?: string } = {};
+  if (approveDateRange.value) {
+    const [from, to] = approveDateRange.value;
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    payload.applyFrom = fmt(from);
+    payload.applyUntil = fmt(to);
+  }
+  try {
+    await approvePlanConfig(activeRow.value.id, payload);
+    ElMessage.success("Đã duyệt gói cước");
+    approveVisible.value = false;
+    load();
+  } catch {
+    ElMessage.error("Duyệt gói cước thất bại");
+  }
 }
 
-function confirmReject() {
-  ElMessage.info("Đã từ chối duyệt gói cước");
-  approveVisible.value = false;
-  load();
+async function confirmReject() {
+  if (!activeRow.value) return;
+  try {
+    await rejectPlanConfig(activeRow.value.id);
+    ElMessage.info("Đã từ chối duyệt gói cước");
+    approveVisible.value = false;
+    load();
+  } catch {
+    ElMessage.error("Từ chối thất bại");
+  }
 }
 
-function confirmStopApply() {
-  ElMessage.success("Đã dừng áp dụng gói cước");
-  stopApplyVisible.value = false;
-  load();
+async function confirmStopApply() {
+  if (!activeRow.value) return;
+  try {
+    await stopPlanConfig(activeRow.value.id);
+    ElMessage.success("Đã dừng áp dụng gói cước");
+    stopApplyVisible.value = false;
+    load();
+  } catch {
+    ElMessage.error("Dừng áp dụng thất bại");
+  }
 }
 
-function load() {
+async function load() {
   loading.value = true;
-  setTimeout(() => {
-    list.value = [...MOCK_DATA];
+  try {
+    const res = await getIndividualPlanConfigSummary();
+    if (res.success && res.data) {
+      list.value = res.data.list ?? [];
+      currentPlan.value = res.data.currentPlan ?? null;
+      nextPlan.value = res.data.nextPlan ?? null;
+      lastUpdated.value = res.data.lastUpdated ?? null;
+    }
+  } catch {
+    ElMessage.error("Không thể tải danh sách gói cước");
+  } finally {
     loading.value = false;
-  }, 300);
+  }
 }
 
 onMounted(load);

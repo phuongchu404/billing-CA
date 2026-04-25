@@ -257,6 +257,8 @@
 import { ref, computed, onMounted } from "vue";
 import { Refresh, Grid } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
+import { getIndividualUsageTracking } from "@/api/individual";
+import type { IndividualUsageRow, IndividualUsageStats } from "@/types/individual";
 
 type CtsType = "INDIVIDUAL" | "ORGANIZATION" | "INDIVIDUAL_OF_ORG";
 type CtsStatus =
@@ -265,18 +267,6 @@ type CtsStatus =
   | "PENDING_APPROVE"
   | "REVOKED"
   | "EXPIRED";
-
-interface UsageRow {
-  id: number;
-  account: string;
-  purchasedAt: string;
-  ctsType: CtsType;
-  ctsDuration: number;
-  ctsStatus: CtsStatus;
-  signings: number;
-  plan: string;
-  fee: number;
-}
 
 const loading = ref(false);
 const page = ref(1);
@@ -287,54 +277,18 @@ const filterCtsDuration = ref("");
 const filterCtsStatus = ref("");
 const filterPlan = ref("");
 
-const lastUpdated = ref("29/03/2026 16:29:00");
+const lastUpdated = ref<string | null>(null);
 
-const stats = ref({
-  accounts: 22,
-  plansBought: 36,
-  signings: 3800,
-  ctsIndividual: 28,
-  ctsOrg: 6,
-  ctsIndividualOfOrg: 2,
+const stats = ref<IndividualUsageStats>({
+  accounts: 0,
+  plansBought: 0,
+  signings: 0,
+  ctsIndividual: 0,
+  ctsOrg: 0,
+  ctsIndividualOfOrg: 0,
 });
 
-const CTS_TYPES: CtsType[] = [
-  "INDIVIDUAL",
-  "ORGANIZATION",
-  "INDIVIDUAL_OF_ORG",
-  "INDIVIDUAL_OF_ORG",
-  "INDIVIDUAL_OF_ORG",
-];
-const CTS_STATUSES: CtsStatus[] = [
-  "ACTIVE",
-  "PENDING_ACTIVATE",
-  "PENDING_APPROVE",
-  "REVOKED",
-  "EXPIRED",
-  "ACTIVE",
-  "ACTIVE",
-  "ACTIVE",
-  "ACTIVE",
-  "ACTIVE",
-];
-const CTS_DURATIONS = [1, 12, 24, 48, 1, 1, 1, 1, 1, 1];
-const SIGNINGS = [
-  3800, 0, 0, 150000, 100, 150000, 150000, 150000, 150000, 150000,
-];
-
-const MOCK_DATA: UsageRow[] = Array.from({ length: 36 }, (_, i) => ({
-  id: i + 1,
-  account: "001300002288",
-  purchasedAt: "27/03/2026 18:29:00",
-  ctsType: CTS_TYPES[i % CTS_TYPES.length],
-  ctsDuration: CTS_DURATIONS[i % CTS_DURATIONS.length],
-  ctsStatus: CTS_STATUSES[i % CTS_STATUSES.length],
-  signings: SIGNINGS[i % SIGNINGS.length],
-  plan: "SmartCA 2025",
-  fee: 1200000,
-}));
-
-const list = ref<UsageRow[]>([]);
+const list = ref<IndividualUsageRow[]>([]);
 
 const filteredList = computed(() => {
   return list.value.filter((row) => {
@@ -402,12 +356,20 @@ function handleExport() {
   ElMessage.info("Chức năng đang phát triển");
 }
 
-function load() {
+async function load() {
   loading.value = true;
-  setTimeout(() => {
-    list.value = [...MOCK_DATA];
+  try {
+    const res = await getIndividualUsageTracking();
+    if (res.success && res.data) {
+      list.value = res.data.list ?? [];
+      stats.value = res.data.stats ?? stats.value;
+      lastUpdated.value = res.data.lastUpdated ?? null;
+    }
+  } catch {
+    ElMessage.error("Không thể tải dữ liệu theo dõi sử dụng");
+  } finally {
     loading.value = false;
-  }, 300);
+  }
 }
 
 onMounted(load);

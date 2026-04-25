@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <div class="top-actions">
+    <div class="top-actions" v-if="info">
       <el-button
         v-if="info.status === 'AVAILABLE'"
         :icon="Promotion"
@@ -21,12 +21,12 @@
     </div>
 
     <!-- THÔNG TIN GÓI CƯỚC -->
-    <div class="section-card">
+    <div class="section-card" v-loading="loading">
       <div class="section-header" @click="toggleSection('info')">
         <span class="section-title">THÔNG TIN GÓI CƯỚC</span>
         <el-icon class="chevron" :class="{ rotated: !openSections.has('info') }"><ArrowDown /></el-icon>
       </div>
-      <div v-show="openSections.has('info')" class="info-grid">
+      <div v-show="openSections.has('info')" class="info-grid" v-if="info">
         <div class="info-row">
           <div class="info-item">
             <span class="info-label">Tên gói cước:</span>
@@ -34,7 +34,7 @@
           </div>
           <div class="info-item">
             <span class="info-label">Trạng thái:</span>
-            <span class="info-value">{{ statusLabel(info.status) }}</span>
+            <span class="info-value">{{ statusLabel(info.status as any) }}</span>
           </div>
         </div>
         <div class="info-row">
@@ -199,7 +199,7 @@
         <span class="dlg-title">YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC</span>
       </template>
       <div class="dlg-name-row">
-        <span>Tên: <b>{{ info.name }}</b></span>
+        <span>Tên: <b>{{ info?.name }}</b></span>
       </div>
       <el-form label-width="140px" style="margin-top: 16px">
         <el-form-item label="Thời gian áp dụng">
@@ -229,7 +229,7 @@
         <span class="dlg-title">VÔ HIỆU HOÁ</span>
       </template>
       <p class="dlg-body">
-        Bạn đang vô hiệu hoá gói cước {{ info.name }}.
+        Bạn đang vô hiệu hoá gói cước {{ info?.name }}.
         Cấu hình gói cước này sẽ không còn khả dụng. Nhấn "Xác Nhận" để vô hiệu hoá.
       </p>
       <template #footer>
@@ -241,34 +241,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Promotion, Remove, ArrowDown, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import {
+  getIndividualPlanConfigDetail,
+  requestApplyPlanConfig,
+  deactivatePlanConfig,
+} from '@/api/individual'
+import type { IndividualPlanConfigDetail, IndividualPricingRuleRow, IndividualStatusHistoryRow } from '@/types/individual'
 
 type TabKey = 'INDIVIDUAL' | 'ORGANIZATION' | 'INDIVIDUAL_OF_ORG'
 type PlanStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'PENDING' | 'APPROVED' | 'APPLYING'
 
-interface ConfigRow {
-  id: number
-  subject: TabKey
-  durationMonths: number
-  condition: string
-  minValue: number
-  maxValue: number | null
-  fee: number
-}
-
-interface HistoryRow {
-  id: number
-  status: PlanStatus
-  updatedAt: string
-  updatedBy: string
-}
-
 const route = useRoute()
 const router = useRouter()
 
+const planId = Number(route.params.id)
+const loading = ref(false)
 const openSections = ref<Set<string>>(new Set(['info', 'config', 'history']))
 const activeTab = ref<TabKey>('INDIVIDUAL')
 const configFilterStatus = ref('')
@@ -279,46 +270,23 @@ const requestApplyVisible = ref(false)
 const requestApplyDateRange = ref<[Date, Date] | null>(null)
 const deactivateVisible = ref(false)
 
+const info = ref<IndividualPlanConfigDetail | null>(null)
+
+const tabData = reactive<Record<TabKey, IndividualPricingRuleRow[]>>({
+  INDIVIDUAL: [],
+  ORGANIZATION: [],
+  INDIVIDUAL_OF_ORG: [],
+})
+
+const statusHistory = ref<IndividualStatusHistoryRow[]>([])
+
+const currentConfigRows = computed(() => tabData[activeTab.value])
+
 function toggleSection(key: string) {
   const s = new Set(openSections.value)
   s.has(key) ? s.delete(key) : s.add(key)
   openSections.value = s
 }
-
-const info = reactive({
-  id: Number(route.params.id) || 1,
-  name: 'Chữ ký số 2026 tháng 5_2',
-  status: 'AVAILABLE' as PlanStatus,
-  applyFrom: null as string | null,
-  applyUntil: null as string | null,
-  applyHistory: '01/01/2026 - 31/01/2026, 15/03/2026-22/03/2026',
-  createdBy: 'admin123',
-  createdAt: '30/03/2026 16:29:00',
-  updatedAt: '30/03/2026 16:29:00',
-})
-
-const tabData: Record<TabKey, ConfigRow[]> = reactive({
-  INDIVIDUAL: [
-    { id: 1, subject: 'INDIVIDUAL', durationMonths: 1,  condition: 'SIGNING',    minValue: 1,  maxValue: 100,  fee: 0 },
-    { id: 2, subject: 'INDIVIDUAL', durationMonths: 3,  condition: 'CERT_COUNT', minValue: 1,  maxValue: null, fee: 300000 },
-    { id: 3, subject: 'INDIVIDUAL', durationMonths: 12, condition: 'CERT_COUNT', minValue: 1,  maxValue: null, fee: 1000000 },
-    { id: 4, subject: 'INDIVIDUAL', durationMonths: 24, condition: 'CERT_COUNT', minValue: 1,  maxValue: null, fee: 1800000 },
-    { id: 5, subject: 'INDIVIDUAL', durationMonths: 48, condition: 'CERT_COUNT', minValue: 1,  maxValue: 10,   fee: 3000000 },
-    { id: 6, subject: 'INDIVIDUAL', durationMonths: 48, condition: 'CERT_COUNT', minValue: 11, maxValue: null, fee: 2700000 },
-  ],
-  ORGANIZATION: [],
-  INDIVIDUAL_OF_ORG: [],
-})
-
-const currentConfigRows = computed(() => tabData[activeTab.value])
-
-const statusHistory: HistoryRow[] = [
-  { id: 1, status: 'UNAVAILABLE', updatedAt: '30/03/2026 16:29:00', updatedBy: 'admin' },
-  { id: 2, status: 'AVAILABLE',   updatedAt: '30/03/2026 16:29:00', updatedBy: 'admin' },
-  { id: 3, status: 'APPROVED',    updatedAt: '30/03/2026 16:29:00', updatedBy: 'system' },
-  { id: 4, status: 'PENDING',     updatedAt: '30/03/2026 16:29:00', updatedBy: 'system' },
-  { id: 5, status: 'AVAILABLE',   updatedAt: '30/03/2026 16:29:00', updatedBy: 'system' },
-]
 
 function statusLabel(status: PlanStatus): string {
   const map: Record<PlanStatus, string> = {
@@ -341,23 +309,64 @@ function subjectLabel(tab: TabKey): string {
 }
 
 function conditionLabel(condition: string): string {
-  return condition === 'SIGNING' ? 'Lượt ký' : condition === 'CERT_COUNT' ? 'Số chứng thư' : condition
+  if (condition === 'SIGNING_COUNT') return 'Lượt ký'
+  if (condition === 'CERTIFICATE_COUNT') return 'Số chứng thư'
+  return condition
 }
 
 function formatFee(fee: number): string {
   return fee.toLocaleString('vi-VN')
 }
 
-function confirmRequestApply() {
-  ElMessage.success('Đã gửi yêu cầu áp dụng')
-  requestApplyVisible.value = false
+async function load() {
+  loading.value = true
+  try {
+    const res = await getIndividualPlanConfigDetail(planId)
+    if (res.success && res.data) {
+      info.value = res.data
+
+      tabData.INDIVIDUAL = res.data.pricingRules.filter(r => r.subject === 'INDIVIDUAL')
+      tabData.ORGANIZATION = res.data.pricingRules.filter(r => r.subject === 'ORGANIZATION')
+      tabData.INDIVIDUAL_OF_ORG = res.data.pricingRules.filter(r => r.subject === 'INDIVIDUAL_OF_ORG')
+
+      statusHistory.value = res.data.statusHistory ?? []
+    }
+  } catch {
+    ElMessage.error('Không thể tải thông tin gói cước')
+  } finally {
+    loading.value = false
+  }
 }
 
-function confirmDeactivate() {
-  ElMessage.success('Đã vô hiệu hóa gói cước')
-  deactivateVisible.value = false
-  router.push('/individual-plan-config')
+async function confirmRequestApply() {
+  if (!requestApplyDateRange.value) {
+    ElMessage.warning('Vui lòng chọn thời gian áp dụng')
+    return
+  }
+  const [from, to] = requestApplyDateRange.value
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  try {
+    await requestApplyPlanConfig(planId, { applyFrom: fmt(from), applyUntil: fmt(to) })
+    ElMessage.success('Đã gửi yêu cầu áp dụng')
+    requestApplyVisible.value = false
+    load()
+  } catch {
+    ElMessage.error('Gửi yêu cầu thất bại')
+  }
 }
+
+async function confirmDeactivate() {
+  try {
+    await deactivatePlanConfig(planId)
+    ElMessage.success('Đã vô hiệu hóa gói cước')
+    deactivateVisible.value = false
+    router.push('/individual-plan-config')
+  } catch {
+    ElMessage.error('Vô hiệu hóa thất bại')
+  }
+}
+
+onMounted(load)
 </script>
 
 <style scoped>
