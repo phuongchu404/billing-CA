@@ -194,10 +194,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getGroup } from '@/api/groups'
-import { listPlanTemplates, getPlanTemplate, createPlanTemplate } from '@/api/planTemplates'
-import type { GroupDetail } from '@/types/group'
-import type { PlanTemplate, CreatePlanTemplateRequest, PlanPricingRuleRequest } from '@/types/planTemplate'
+import { getGroup, addGroupPlan } from '@/api/groups'
+import { listPlanTemplates, getPlanTemplate } from '@/api/planTemplates'
+import type { GroupDetail, AddGroupPlanRequest } from '@/types/group'
+import type { PlanTemplate, PlanPricingRuleRequest } from '@/types/planTemplate'
 
 const route = useRoute()
 const router = useRouter()
@@ -323,23 +323,15 @@ async function handleSubmit() {
       isActive: true,
     }))
 
-    const planCode = `PLN_${agencyId}_${Date.now()}`
-    const req: CreatePlanTemplateRequest = {
-      planCode,
+    const req: AddGroupPlanRequest = {
       planName: form.planName,
-      customerSegment: 'GROUP',
-      templateScope: 'PARTNER_PRIVATE',
-      status: form.applyDateRange ? 'DRAFT' : 'AVAILABLE',
-      effectiveFrom: form.applyDateRange ? form.applyDateRange[0] : null,
-      effectiveTo: form.applyDateRange ? form.applyDateRange[1] : null,
-      isVisible: true,
-      allowBulkSigning: false,
-      allowApiAccess: false,
-      createdBy: 'system',
+      applyFrom: form.applyDateRange ? form.applyDateRange[0] : null,
+      applyTo: form.applyDateRange ? form.applyDateRange[1] : null,
+      requestedBy: 'system',
       pricingRules,
     }
 
-    const res = await createPlanTemplate(req)
+    const res = await addGroupPlan(agencyId, req)
     if (res.success) {
       ElMessage.success('Tạo gói cước thành công!')
       router.push('/plans/' + agencyId)

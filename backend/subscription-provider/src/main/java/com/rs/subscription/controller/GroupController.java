@@ -1,10 +1,13 @@
 package com.rs.subscription.controller;
 
 import com.rs.subscription.dto.ApiResponse;
+import com.rs.subscription.dto.request.ProvisionGroupRequest;
 import com.rs.subscription.dto.request.UpsertGroupRequest;
 import com.rs.subscription.dto.response.GroupDetailResponse;
 import com.rs.subscription.dto.response.GroupListItemResponse;
 import com.rs.subscription.dto.response.PlanHistoryResponse;
+import com.rs.subscription.dto.response.ProvisionGroupResponse;
+import com.rs.subscription.service.GroupProvisioningService;
 import com.rs.subscription.service.GroupService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ import java.util.List;
 public class GroupController {
 
     private final GroupService groupService;
+    private final GroupProvisioningService groupProvisioningService;
 
     /** Danh sách tất cả đại lý kèm thông tin gói cước hiện tại và usage */
     @GetMapping
@@ -39,6 +43,12 @@ public class GroupController {
     @PostMapping
     public ApiResponse<GroupDetailResponse> create(@Valid @RequestBody UpsertGroupRequest request) {
         return ApiResponse.success(groupService.create(request), "Created group");
+    }
+
+    /** Tạo đại lý + gói cước + gán cùng lúc trong một transaction */
+    @PostMapping("/provision")
+    public ApiResponse<ProvisionGroupResponse> provision(@Valid @RequestBody ProvisionGroupRequest request) {
+        return ApiResponse.success(groupProvisioningService.provision(request), "Provisioned group with plan");
     }
 
     /** Cập nhật thông tin đại lý */

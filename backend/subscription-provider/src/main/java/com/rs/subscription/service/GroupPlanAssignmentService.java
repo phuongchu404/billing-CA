@@ -88,6 +88,8 @@ public class GroupPlanAssignmentService {
         GroupPlanAssignment entity = findEntity(id);
         String decision = request.getDecision().toUpperCase();
         if ("APPROVE".equals(decision)) {
+            if (request.getApplyFrom() != null) entity.setApplyFrom(request.getApplyFrom());
+            if (request.getApplyTo() != null) entity.setApplyTo(request.getApplyTo());
             entity.setAssignmentStatus("APPROVED");
             entity.setApprovedBy(request.getActor());
             entity.setApprovedAt(LocalDateTime.now());
@@ -99,6 +101,11 @@ public class GroupPlanAssignmentService {
             entity.setAssignmentStatus("ACTIVE");
             entity.setActivatedAt(LocalDateTime.now());
         } else if ("STOP".equals(decision)) {
+            String current = entity.getAssignmentStatus();
+            if ("STOPPED".equals(current) || "REJECTED".equals(current) || "EXPIRED".equals(current)) {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Cannot stop assignment in status: " + current, 400);
+            }
             entity.setAssignmentStatus("STOPPED");
             entity.setStoppedAt(LocalDateTime.now());
             entity.setStopReason(request.getNote());

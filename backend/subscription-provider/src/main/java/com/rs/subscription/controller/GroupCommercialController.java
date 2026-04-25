@@ -1,6 +1,7 @@
 package com.rs.subscription.controller;
 
 import com.rs.subscription.dto.ApiResponse;
+import com.rs.subscription.dto.request.AddGroupPlanRequest;
 import com.rs.subscription.dto.request.CreateGroupContactRequest;
 import com.rs.subscription.dto.request.CreateGroupPlanAssignmentRequest;
 import com.rs.subscription.dto.request.ReviewCommercialRequest;
@@ -8,6 +9,7 @@ import com.rs.subscription.dto.response.GroupContactResponse;
 import com.rs.subscription.dto.response.GroupPlanAssignmentResponse;
 import com.rs.subscription.service.GroupContactService;
 import com.rs.subscription.service.GroupPlanAssignmentService;
+import com.rs.subscription.service.GroupProvisioningService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,7 @@ public class GroupCommercialController {
 
     private final GroupContactService groupContactService;
     private final GroupPlanAssignmentService groupPlanAssignmentService;
+    private final GroupProvisioningService groupProvisioningService;
 
     @GetMapping("/{groupId}/contacts")
     public ApiResponse<List<GroupContactResponse>> listContacts(@PathVariable Long groupId) {
@@ -80,5 +83,13 @@ public class GroupCommercialController {
         @Valid @RequestBody ReviewCommercialRequest request
     ) {
         return ApiResponse.success(groupPlanAssignmentService.review(assignmentId, request), "Reviewed group plan assignment");
+    }
+
+    @PostMapping("/{groupId}/add-plan")
+    public ApiResponse<GroupPlanAssignmentResponse> addPlan(
+        @PathVariable Long groupId,
+        @Valid @RequestBody AddGroupPlanRequest request
+    ) {
+        return ApiResponse.success(groupProvisioningService.addPlanToGroup(groupId, request), "Added plan to group");
     }
 }

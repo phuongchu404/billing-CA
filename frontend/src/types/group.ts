@@ -40,6 +40,7 @@ export interface PlanHistory {
   applyFrom: string | null   // "YYYY-MM-DD"
   applyTo: string | null
   planName: string
+  assignmentStatus: string
   ctsCreated: number
   ctsCreatedPct: string
   signingUsed: number
@@ -78,4 +79,35 @@ export interface ReviewAssignmentRequest {
   decision: 'APPROVE' | 'REJECT' | 'STOP' | 'ACTIVATE'
   actor: string
   note?: string
+  applyFrom?: string | null
+  applyTo?: string | null
+}
+
+/** Request thêm gói cước mới vào group đã có */
+export interface AddGroupPlanRequest {
+  planName: string
+  applyFrom?: string | null
+  applyTo?: string | null
+  requestedBy: string
+  pricingRules: import('@/types/planTemplate').PlanPricingRuleRequest[]
+}
+
+/** Request tạo đại lý + gói cước + gán cùng lúc */
+export interface ProvisionGroupRequest {
+  groupName: string
+  picEmails: string[]
+  contactEmails: string[]
+  refContractNo?: string
+  planName: string
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
+  requestedBy: string
+  pricingRules: import('@/types/planTemplate').PlanPricingRuleRequest[]
+}
+
+/** Response trả về sau khi provision thành công */
+export interface ProvisionGroupResponse {
+  group: GroupDetail
+  planTemplate: import('@/types/planTemplate').PlanTemplate
+  assignment: GroupPlanAssignment
 }

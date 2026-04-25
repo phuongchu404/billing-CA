@@ -27,4 +27,8 @@ public class UpsertGroupRequest {
     /** Mã hợp đồng tham chiếu (không bắt buộc) */
     @Size(max = 200)
     private String refContractNo;
+
+    /** Người tạo — nếu null thì mặc định "system" */
+    @Size(max = 100)
+    private String createdBy;
 }

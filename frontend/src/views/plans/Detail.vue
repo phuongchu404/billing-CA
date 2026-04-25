@@ -49,7 +49,9 @@
           >
         </div>
         <div v-if="agency.contactEmails?.length" class="info-row">
-          <span><b>Người đại diện:</b> {{ agency.contactEmails.join(', ') }}</span>
+          <span
+            ><b>Người đại diện:</b> {{ agency.contactEmails.join(", ") }}</span
+          >
         </div>
         <div class="info-row">
           <span><b>Mã hợp đồng tham chiếu:</b> {{ agency.refContractNo }}</span>
@@ -265,6 +267,15 @@
           sortable
           min-width="180"
         />
+        <el-table-column label="TRẠNG THÁI" width="130" sortable prop="assignmentStatus">
+          <template #default="{ row }">
+            <el-tag v-if="row.assignmentStatus === 'APPROVED'" size="small" type="info">Đã duyệt</el-tag>
+            <el-tag v-else-if="row.assignmentStatus === 'ACTIVE'" size="small" type="primary">Đang áp dụng</el-tag>
+            <el-tag v-else-if="row.assignmentStatus === 'STOPPED'" size="small" type="warning">Đã dừng</el-tag>
+            <el-tag v-else-if="row.assignmentStatus === 'EXPIRED'" size="small" type="danger">Hết hạn</el-tag>
+            <el-tag v-else size="small">{{ row.assignmentStatus }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column
           prop="ctsCreated"
           label="SL CTS ĐÃ TẠO"
@@ -457,7 +468,7 @@
           </div>
         </div>
 
-        <el-table :data="planConfigRows" border style="margin-top: 16px">
+        <el-table :data="planConfigRows" border style="margin-top: 16px" v-loading="planDetailLoading">
           <el-table-column type="index" width="50" />
           <el-table-column prop="subject" label="ĐỐI TƯỢNG" width="160" />
           <el-table-column label="THỜI HẠN CHỨNG THƯ" width="160">
@@ -488,7 +499,10 @@
       </div>
       <template #footer>
         <div class="dlg-footer-split">
-          <el-button type="warning" @click="openDisableDialog"
+          <el-button
+            v-if="selectedPlan?.status !== 'unavailable'"
+            type="warning"
+            @click="openDisableDialog"
             >Vô Hiệu Hoá</el-button
           >
           <div>
@@ -674,6 +688,7 @@ import {
   reviewAssignment,
   getGroupPlanHistory,
 } from "@/api/groups";
+import { getPlanTemplate } from "@/api/planTemplates";
 import type {
   GroupDetail,
   GroupPlanAssignment,
@@ -700,10 +715,13 @@ const agency = ref<GroupDetail>({
 
 interface PlanRow {
   id: number;
+  planTemplateId: number;
   planName: string;
   status: "available" | "unavailable" | "pending" | "approved" | "active";
   applyFrom: string;
   applyTo: string;
+  rawApplyFrom: string | null;
+  rawApplyTo: string | null;
   updatedAt: string;
 }
 
@@ -743,10 +761,13 @@ function formatDatetime(iso: string | null): string {
 function mapAssignment(a: GroupPlanAssignment): PlanRow {
   return {
     id: a.groupPlanAssignmentId,
+    planTemplateId: a.planTemplateId,
     planName: a.planName,
     status: mapAssignmentStatus(a.assignmentStatus),
     applyFrom: formatDate(a.applyFrom),
     applyTo: formatDate(a.applyTo),
+    rawApplyFrom: a.applyFrom,
+    rawApplyTo: a.applyTo,
     updatedAt: "",
   };
 }
@@ -779,11 +800,11 @@ async function loadPlans() {
 async function loadHistory() {
   try {
     const res = await getGroupPlanHistory(agencyId);
-    if (res.success && res.data) {
+    if (res.success && Array.isArray(res.data)) {
       historyRows.value = res.data;
     }
   } catch {
-    // silently ignore
+    ElMessage.error("Lỗi khi tải lịch sử áp dụng gói cước");
   }
 }
 
@@ -813,6 +834,7 @@ const approveDateRange = ref<[string, string] | null>(null);
 const stopApplyVisible = ref(false);
 
 const planDetailVisible = ref(false);
+const planDetailLoading = ref(false);
 const planConfigRows = ref<any[]>([]);
 
 const disableVisible = ref(false);
@@ -863,6 +885,10 @@ async function handleSuspend() {
     await ElMessageBox.confirm("Tạm dừng đại lý này?", "Xác nhận", {
       type: "warning",
     });
+  } catch {
+    return; // user cancelled
+  }
+  try {
     const res = await suspendGroup(agencyId);
     if (res.success) {
       agency.value.status = "INACTIVE";
@@ -871,7 +897,7 @@ async function handleSuspend() {
       ElMessage.error(res.message || "Không thể tạm dừng");
     }
   } catch {
-    /* user cancelled */
+    ElMessage.error("Lỗi kết nối server");
   }
 }
 
@@ -888,7 +914,9 @@ function handleRequestApply(row: PlanRow) {
 function handleApprove(row: PlanRow) {
   selectedPlan.value = row;
   approveDateRange.value =
-    row.applyFrom && row.applyTo ? [row.applyFrom, row.applyTo] : null;
+    row.rawApplyFrom && row.rawApplyTo
+      ? [row.rawApplyFrom, row.rawApplyTo]
+      : null;
   approveVisible.value = true;
 }
 
@@ -897,9 +925,41 @@ function handleStopApply(row: PlanRow) {
   stopApplyVisible.value = true;
 }
 
-function handlePlanDetail(row: PlanRow) {
+const subjectTypeLabel: Record<string, string> = {
+  INDIVIDUAL: "Cá nhân",
+  ORGANIZATION: "Tổ chức",
+  INDIVIDUAL_OF_ORG: "Cá nhân thuộc tổ chức",
+};
+const pricingMetricLabel: Record<string, string> = {
+  CERTIFICATE_COUNT: "Số lượng CTS",
+  SIGNING_COUNT: "Số lượt ký",
+};
+
+async function handlePlanDetail(row: PlanRow) {
   selectedPlan.value = row;
+  planConfigRows.value = [];
   planDetailVisible.value = true;
+  planDetailLoading.value = true;
+  try {
+    const res = await getPlanTemplate(row.planTemplateId);
+    if (res.success && res.data) {
+      planConfigRows.value = (res.data.pricingRules ?? [])
+        .filter((r) => r.isActive !== false)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        .map((r) => ({
+          subject: subjectTypeLabel[r.subjectType] ?? r.subjectType,
+          duration: r.certificateValidityValue,
+          condition: pricingMetricLabel[r.pricingMetric] ?? r.pricingMetric,
+          min: r.rangeMin,
+          max: r.rangeMax ?? "Không giới hạn",
+          fee: Number(r.unitPrice),
+        }));
+    }
+  } catch {
+    ElMessage.error("Không thể tải chi tiết gói cước");
+  } finally {
+    planDetailLoading.value = false;
+  }
 }
 
 function openDisableDialog() {
@@ -945,9 +1005,8 @@ async function confirmApprove() {
     const res = await reviewAssignment(selectedPlan.value.id, {
       decision: "APPROVE",
       actor: "system",
-      note: approveDateRange.value
-        ? `${approveDateRange.value[0]} → ${approveDateRange.value[1]}`
-        : "",
+      applyFrom: approveDateRange.value ? approveDateRange.value[0] : null,
+      applyTo: approveDateRange.value ? approveDateRange.value[1] : null,
     });
     if (res.success) {
       ElMessage.success("Đã duyệt gói cước");
@@ -1052,6 +1111,7 @@ async function confirmEdit() {
       groupName: editForm.groupName,
       picEmails: editForm.picEmails,
       contactEmails: editForm.contactEmails,
+      refContractNo: agency.value.refContractNo ?? undefined,
     });
     if (res.success) {
       agency.value.groupName = editForm.groupName;

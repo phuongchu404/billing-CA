@@ -6,8 +6,11 @@ import type {
   UpsertGroupRequest,
   PlanHistory,
   GroupPlanAssignment,
+  AddGroupPlanRequest,
   CreateGroupPlanAssignmentRequest,
   ReviewAssignmentRequest,
+  ProvisionGroupRequest,
+  ProvisionGroupResponse,
 } from '@/types/group'
 
 // ---- Group CRUD ----
@@ -42,3 +45,11 @@ export const createGroupAssignment = (groupId: number, data: CreateGroupPlanAssi
 
 export const reviewAssignment = (assignmentId: number, data: ReviewAssignmentRequest) =>
   request.post<any, ApiResponse<GroupPlanAssignment>>(`/api/v1/groups/plan-assignments/${assignmentId}/review`, data)
+
+// ---- Add plan to existing group (tạo plan template + assignment trong 1 transaction) ----
+export const addGroupPlan = (groupId: number, data: AddGroupPlanRequest) =>
+  request.post<any, ApiResponse<GroupPlanAssignment>>(`/api/v1/groups/${groupId}/add-plan`, data)
+
+// ---- Provision (tạo group + plan + assignment trong 1 transaction) ----
+export const provisionGroup = (data: ProvisionGroupRequest) =>
+  request.post<any, ApiResponse<ProvisionGroupResponse>>('/api/v1/groups/provision', data)

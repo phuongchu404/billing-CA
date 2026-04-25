@@ -8,6 +8,7 @@ import com.rs.subscription.entity.Group;
 import com.rs.subscription.entity.GroupContact;
 import com.rs.subscription.entity.GroupPlanAssignment;
 import com.rs.subscription.entity.PlanPricingRule;
+import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.GroupContactRepository;
@@ -50,20 +51,18 @@ public class GroupService {
     // ----------------------------------------------------------------
     @Transactional
     public GroupDetailResponse create(UpsertGroupRequest request) {
-        // Tạo group với code tự sinh
         String groupCode = generateGroupCode();
         Group group = Group.builder()
             .groupCode(groupCode)
             .groupName(request.getGroupName())
-            .username("grp_" + groupCode.toLowerCase().replace("-", "_"))
-            .password("pending_reset") // sẽ đặt lại qua reset password flow
+            .username("grp_" + groupCode.toLowerCase())
+            .password("pending_reset")
             .refContractNo(request.getRefContractNo())
-            .createdBy("system")
-            .status("ACTIVE")
+            .createdBy(request.getCreatedBy() != null ? request.getCreatedBy() : "system")
+            .status(CommercialEnums.GroupStatus.ACTIVE.name())
             .build();
         Group saved = groupRepository.save(group);
         saveContacts(saved, request);
-        // Reload với contacts
         return toDetail(findEntity(saved.getGroupId()));
     }
 
@@ -108,6 +107,7 @@ public class GroupService {
     // ----------------------------------------------------------------
     // PLAN HISTORY
     // ----------------------------------------------------------------
+    @Transactional(readOnly = true)
     public List<PlanHistoryResponse> getPlanHistory(Long groupId) {
         findEntity(groupId); // ensure group exists
         return assignmentRepository.findHistoryByGroupId(groupId)
@@ -120,6 +120,25 @@ public class GroupService {
     public Group findEntity(Long id) {
         return groupRepository.findById(id)
             .orElseThrow(() -> new SmsException(ErrorCodes.GROUP_NOT_FOUND, "Group not found: " + id, 404));
+    }
+
+    private static final String CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int CODE_LENGTH = 8;
+    private static final int CODE_RETRY_LIMIT = 5;
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+
+    private String generateGroupCode() {
+        for (int attempt = 0; attempt < CODE_RETRY_LIMIT; attempt++) {
+            StringBuilder sb = new StringBuilder(CODE_LENGTH);
+            for (int i = 0; i < CODE_LENGTH; i++) {
+                sb.append(CODE_CHARS.charAt(SECURE_RANDOM.nextInt(CODE_CHARS.length())));
+            }
+            String code = "GRP-" + sb;
+            if (!groupRepository.existsByGroupCode(code)) {
+                return code;
+            }
+        }
+        throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Unable to generate unique group code, please retry", 500);
     }
 
     private void saveContacts(Group group, UpsertGroupRequest request) {
@@ -145,11 +164,6 @@ public class GroupService {
             }
         }
         groupContactRepository.saveAll(contacts);
-    }
-
-    private String generateGroupCode() {
-        long count = groupRepository.count() + 1;
-        return String.format("GRP-%06d", count);
     }
 
     private GroupListItemResponse toListItem(Group group) {
@@ -217,6 +231,7 @@ public class GroupService {
         res.setApplyFrom(a.getApplyFrom());
         res.setApplyTo(a.getApplyTo());
         res.setPlanName(a.getPlanTemplate().getPlanName());
+        res.setAssignmentStatus(a.getAssignmentStatus());
 
         List<Long> ids = List.of(a.getGroupPlanAssignmentId());
         Object[] usage = usageAggregateRepository.sumUsageByAssignmentIds(ids);

@@ -225,10 +225,9 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { createGroup, createGroupAssignment } from '@/api/groups'
-import { createPlanTemplate } from '@/api/planTemplates'
-import type { UpsertGroupRequest, CreateGroupPlanAssignmentRequest } from '@/types/group'
-import type { CreatePlanTemplateRequest, PlanPricingRuleRequest } from '@/types/planTemplate'
+import { provisionGroup } from '@/api/groups'
+import type { ProvisionGroupRequest } from '@/types/group'
+import type { PlanPricingRuleRequest } from '@/types/planTemplate'
 
 const router = useRouter()
 
@@ -289,23 +288,12 @@ async function handleSubmit() {
     return
   }
 
+  // Flush email đang gõ dở chưa nhấn Space/Enter
+  addEmail('pic')
+  addEmail('contact')
+
   submitting.value = true
   try {
-    // Bước 1: Tạo group
-    const groupReq: UpsertGroupRequest = {
-      groupName: form.groupName,
-      picEmails: form.picEmails,
-      contactEmails: form.contactEmails,
-      refContractNo: form.refContractNo || undefined,
-    }
-    const groupRes = await createGroup(groupReq)
-    if (!groupRes.success || !groupRes.data) {
-      ElMessage.error(groupRes.message || 'Không thể tạo đại lý')
-      return
-    }
-    const newGroupId = groupRes.data.groupId
-
-    // Bước 2: Tạo plan template
     const pricingRules: PlanPricingRuleRequest[] = configRows.map((row, i) => ({
       subjectType: row.subjectType,
       certificateValidityValue: row.duration,
@@ -320,47 +308,26 @@ async function handleSubmit() {
       isActive: true,
     }))
 
-    // Tạo planCode tự động từ groupCode + timestamp
-    const planCode = `PLN_${newGroupId}_${Date.now()}`
-    const templateReq: CreatePlanTemplateRequest = {
-      planCode,
+    const req: ProvisionGroupRequest = {
+      groupName: form.groupName,
+      picEmails: form.picEmails,
+      contactEmails: form.contactEmails,
+      refContractNo: form.refContractNo || undefined,
       planName: form.planName,
-      customerSegment: 'GROUP',
-      templateScope: 'PARTNER_PRIVATE',
-      status: form.applyDateRange ? 'DRAFT' : 'AVAILABLE',
       effectiveFrom: form.applyDateRange ? form.applyDateRange[0] : null,
       effectiveTo: form.applyDateRange ? form.applyDateRange[1] : null,
-      isVisible: true,
-      allowBulkSigning: false,
-      allowApiAccess: false,
-      createdBy: 'system',
+      requestedBy: 'system',
       pricingRules,
     }
-    const templateRes = await createPlanTemplate(templateReq)
-    if (!templateRes.success || !templateRes.data) {
-      ElMessage.warning(`Đại lý đã tạo (ID: ${newGroupId}) nhưng không thể tạo gói cước: ${templateRes.message}`)
-      router.push('/plans/' + newGroupId)
-      return
-    }
 
-    const newTemplateId = templateRes.data.planTemplateId
-
-    // Bước 3: Gán gói cước cho đại lý (Assignment)
-    const assignReq: CreateGroupPlanAssignmentRequest = {
-      planTemplateId: newTemplateId,
-      requestedBy: 'system', // Có thể lấy từ auth context nếu có
-      applyFrom: form.applyDateRange ? form.applyDateRange[0] : null,
-      applyTo: form.applyDateRange ? form.applyDateRange[1] : null,
-    }
-    const assignRes = await createGroupAssignment(newGroupId, assignReq)
-    if (!assignRes.success) {
-      ElMessage.warning(`Lỗi khi gán gói cước cho đại lý: ${assignRes.message}`)
-      router.push('/plans/' + newGroupId)
+    const res = await provisionGroup(req)
+    if (!res.success || !res.data) {
+      ElMessage.error(res.message || 'Không thể tạo đại lý')
       return
     }
 
     ElMessage.success('Tạo đại lý và gán gói cước thành công!')
-    router.push('/plans/' + newGroupId)
+    router.push('/plans/' + res.data.group.groupId)
   } catch (e) {
     ElMessage.error('Lỗi kết nối server')
   } finally {

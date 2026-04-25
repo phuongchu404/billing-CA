@@ -47,18 +47,6 @@ const router = createRouter({
           meta: { title: "Thêm mới gói cước" },
         },
         {
-          path: "individual-plans",
-          name: "IndividualPlans",
-          component: () => import("@/views/individual/Plans.vue"),
-          meta: { title: "Individual Plans" },
-        },
-        {
-          path: "individual-subscriptions",
-          name: "IndividualSubscriptions",
-          component: () => import("@/views/individual/Subscriptions.vue"),
-          meta: { title: "Individual Subscriptions" },
-        },
-        {
           path: "individual-plan-config",
           name: "IndividualPlanConfig",
           component: () => import("@/views/individual/PlanConfig.vue"),

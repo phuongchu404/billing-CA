@@ -3,6 +3,8 @@ package com.rs.subscription.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class ReviewCommercialRequest {
     @NotBlank
@@ -12,4 +14,8 @@ public class ReviewCommercialRequest {
     private String decision;
 
     private String note;
+
+    private LocalDate applyFrom;
+
+    private LocalDate applyTo;
 }
