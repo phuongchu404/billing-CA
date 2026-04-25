@@ -142,6 +142,7 @@ export interface RolePermissionMatrix {
   roles: Role[]
   moduleGroups: PermissionModule[]
   rolePermissions: Record<number, number[]>
+  roleUserCounts?: Record<number, number>
 }
 
 export interface UserAccount {

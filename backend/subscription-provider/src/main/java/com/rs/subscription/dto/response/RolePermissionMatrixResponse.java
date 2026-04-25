@@ -11,6 +11,8 @@ public class RolePermissionMatrixResponse {
     private List<ModuleGroupResponse> moduleGroups;
     /** roleId -> list of permissionIds */
     private Map<Long, List<Long>> rolePermissions;
+    /** roleId -> number of active users assigned to that role */
+    private Map<Long, Integer> roleUserCounts;
 
     @Data
     public static class ModuleGroupResponse {

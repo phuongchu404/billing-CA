@@ -68,11 +68,9 @@ public class RoleService {
         if (Boolean.TRUE.equals(role.getIsSystemRole())) {
             throw new SmsException(ErrorCodes.CANNOT_MODIFY_SYSTEM_ROLE, "System roles cannot be deleted", 400);
         }
-        boolean inUse = userRoleRepository.existsByRoleRoleId(roleId);
-        if (inUse) {
-            throw new SmsException(ErrorCodes.ROLE_IN_USE, "Role is assigned to one or more users", 409);
-        }
+        userRoleRepository.deleteAllByRoleRoleId(roleId);
         rolePermissionRepository.deleteAllByRoleRoleId(roleId);
+        entityManager.flush();
         roleRepository.deleteById(roleId);
     }
 
@@ -124,10 +122,20 @@ public class RoleService {
             }
         }
 
+        // Build roleId -> user count
+        Map<Long, Integer> roleUserCounts = new HashMap<>();
+        for (Role r : roles) roleUserCounts.put(r.getRoleId(), 0);
+        for (Object[] row : userRoleRepository.countUsersByRole()) {
+            Long roleId = (Long) row[0];
+            Long count  = (Long) row[1];
+            roleUserCounts.put(roleId, count.intValue());
+        }
+
         RolePermissionMatrixResponse response = new RolePermissionMatrixResponse();
         response.setRoles(roles.stream().map(this::toResponse).collect(Collectors.toList()));
         response.setModuleGroups(moduleGroups);
         response.setRolePermissions(rolePermsMap);
+        response.setRoleUserCounts(roleUserCounts);
         return response;
     }
 

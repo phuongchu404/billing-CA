@@ -13,6 +13,14 @@
       <div v-if="!editMode" class="toolbar">
         <el-button type="primary" :icon="Plus" @click="openCreate">{{ t('roles.newRole') }}</el-button>
         <el-button :icon="EditPen" @click="handleEdit">{{ t('roles.editRole') }}</el-button>
+        <el-button
+          :icon="Delete"
+          type="danger"
+          plain
+          :loading="saving"
+          :disabled="!selectedRoleId || !!selectedRole?.isSystemRole"
+          @click="handleDeleteRole"
+        >Xoá vai trò</el-button>
       </div>
 
       <!-- Edit mode top actions -->
@@ -139,10 +147,10 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, EditPen } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Plus, EditPen, Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { createRole, getPermissionMatrix, assignPermissions } from '@/api/roles'
+import { createRole, deleteRole, getPermissionMatrix, assignPermissions } from '@/api/roles'
 import type { Role, PermissionModule } from '@/types'
 import type { FormInstance } from 'element-plus'
 
@@ -207,6 +215,39 @@ async function confirmEdit() {
 
 function cancelEdit() {
   editMode.value = false
+}
+
+const selectedRole = computed(() => matrixRoles.value.find(r => r.roleId === selectedRoleId.value) ?? null)
+
+async function handleDeleteRole() {
+  if (!selectedRoleId.value) return
+  const role = selectedRole.value
+  if (!role) return
+  if (role.isSystemRole) {
+    ElMessage.warning('Không thể xoá vai trò hệ thống')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      `Bạn đang xoá vai trò "${role.displayName}". Hành động này không thể hoàn tác. Xác nhận xoá?`,
+      'Xoá vai trò',
+      { confirmButtonText: 'Xác nhận', cancelButtonText: 'Huỷ', type: 'warning' }
+    )
+  } catch {
+    return
+  }
+  saving.value = true
+  try {
+    await deleteRole(role.roleId)
+    ElMessage.success(`Đã xoá vai trò "${role.displayName}"`)
+    selectedRoleId.value = null
+    await load()
+  } catch (err: any) {
+    const msg = err?.response?.data?.message ?? 'Xoá vai trò thất bại'
+    ElMessage.error(msg)
+  } finally {
+    saving.value = false
+  }
 }
 
 // ── Fallback mock data ──

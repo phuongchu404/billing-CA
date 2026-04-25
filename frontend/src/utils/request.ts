@@ -181,6 +181,14 @@ request.interceptors.response.use(
         { roleId: 4, roleName: 'ROLE_LEVEL_3', displayName: 'Vai trò cấp 3', isSystemRole: false },
         { roleId: 5, roleName: 'ROLE_LEVEL_4', displayName: 'Vai trò cấp 4', isSystemRole: false },
       ]
+    } else if (url.includes('audit-logs')) {
+      mockResponse.data = {
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        page: 0,
+        size: 20,
+      }
     } else if (url.includes('users')) {
       mockResponse.data = [
         { userId: 1, username: 'admin', roles: [{ roleName: 'ROLE_ADMIN' }] }

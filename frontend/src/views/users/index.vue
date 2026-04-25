@@ -166,9 +166,9 @@
                 >
                   <el-option
                     v-for="r in allRoles"
-                    :key="r"
-                    :label="r"
-                    :value="r"
+                    :key="r.roleId"
+                    :label="r.displayName"
+                    :value="r.displayName"
                   />
                 </el-select>
               </td>
@@ -320,7 +320,7 @@
             placeholder="Chọn vai trò"
             style="width: 100%"
           >
-            <el-option v-for="r in allRoles" :key="r" :label="r" :value="r" />
+            <el-option v-for="r in allRoles" :key="r.roleId" :label="r.displayName" :value="r.displayName" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -447,12 +447,15 @@ import {
 import { ElMessage, ElIcon } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
+  listUsers,
   createUser,
   updateUser,
   resetUserPassword,
   deleteUser,
 } from "@/api/users";
+import { listRoles } from "@/api/roles";
 import type { FormInstance } from "element-plus";
+import type { Role } from "@/types";
 
 const { t } = useI18n();
 
@@ -470,9 +473,9 @@ const SortIndicator = defineComponent({
   },
 });
 
-// ── Mock data ──
+// ── Data model ──
 interface UserRow {
-  id: number;
+  id: string;
   username: string;
   fullName: string;
   email: string;
@@ -481,23 +484,16 @@ interface UserRow {
   createdAt: string;
 }
 
-const MOCK_USERS: UserRow[] = Array.from({ length: 22 }, (_, i) => ({
-  id: i + 1,
-  username: "nguyenvana123",
-  fullName: "Nguyễn Văn A",
-  email: "abc123@gmail.com",
-  status: i === 1 ? "REVOKED" : "ACTIVE",
-  roleName: i === 1 ? "admin" : "Vai trò cấp 4",
-  createdAt: "30/03/2026 16:29:00",
-}));
+const users = ref<UserRow[]>([]);
+const allRoles = ref<Role[]>([]);
 
-const allRoles = ref([
-  "admin",
-  "Vai trò cấp 1",
-  "Vai trò cấp 2",
-  "Vai trò cấp 3",
-  "Vai trò cấp 4",
-]);
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 
 // ── State ──
 const loading = ref(false);
@@ -513,15 +509,19 @@ const sortDir = ref<"asc" | "desc">("asc");
 
 // ── Computed ──
 const filteredUsers = computed(() => {
-  let list = [...MOCK_USERS];
+  let list = [...users.value];
   if (filterUsername.value)
     list = list.filter(
       (u) =>
         u.username.includes(filterUsername.value) ||
         u.fullName.includes(filterUsername.value),
     );
-  if (filterStatus.value)
-    list = list.filter((u) => u.status === filterStatus.value);
+  if (filterStatus.value) {
+    if (filterStatus.value === "ACTIVE")
+      list = list.filter((u) => u.status === "ACTIVE");
+    else
+      list = list.filter((u) => u.status !== "ACTIVE");
+  }
   if (filterRole.value)
     list = list.filter((u) => u.roleName === filterRole.value);
   if (sortField.value) {
@@ -585,8 +585,32 @@ function resetFilters() {
   page.value = 1;
 }
 
-function load() {
-  /* data is computed from MOCK_USERS */
+async function load() {
+  loading.value = true;
+  try {
+    const [usersRes, rolesRes] = await Promise.all([
+      listUsers({ page: 0, size: 500 }),
+      listRoles(),
+    ]);
+    if (rolesRes.success && rolesRes.data) {
+      allRoles.value = rolesRes.data;
+    }
+    if (usersRes.success && usersRes.data) {
+      users.value = usersRes.data.content.map((u) => ({
+        id: u.userId,
+        username: u.username,
+        fullName: u.fullName,
+        email: u.email,
+        status: u.status === "ACTIVE" ? "ACTIVE" : "REVOKED",
+        roleName: u.roles?.[0]?.displayName ?? "-",
+        createdAt: formatDate(u.createdAt),
+      }));
+    }
+  } catch {
+    ElMessage.error("Không thể tải danh sách người dùng");
+  } finally {
+    loading.value = false;
+  }
 }
 
 // ── Create dialog ──
@@ -622,15 +646,17 @@ async function handleCreate() {
   if (!(await createFormRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
+    const roleMatch = allRoles.value.find((r) => r.displayName === createForm.roleName);
     await createUser({
       username: createForm.username,
       email: createForm.email,
       fullName: createForm.fullName,
       password: createForm.password,
-      roleIds: [],
+      roleIds: roleMatch ? [roleMatch.roleId] : [],
     });
     ElMessage.success(t("users.createdMsg"));
     createVisible.value = false;
+    await load();
   } finally {
     saving.value = false;
   }
@@ -662,12 +688,13 @@ async function handleEdit() {
   if (!editingUser.value) return;
   saving.value = true;
   try {
-    await updateUser(String(editingUser.value.id), {
+    await updateUser(editingUser.value.id, {
       fullName: editForm.fullName,
       email: editForm.email,
     });
     ElMessage.success(t("users.updatedMsg"));
     editVisible.value = false;
+    await load();
   } finally {
     saving.value = false;
   }
@@ -691,9 +718,10 @@ function openDeleteFromEdit() {
 async function handleDelete() {
   saving.value = true;
   try {
-    await deleteUser(String(deleteTarget.value!.id));
+    await deleteUser(deleteTarget.value!.id);
     ElMessage.success(t("users.deleted"));
     deleteVisible.value = false;
+    await load();
   } finally {
     saving.value = false;
   }
@@ -717,7 +745,7 @@ async function handleResetPwd() {
   }
   saving.value = true;
   try {
-    await resetUserPassword(String(resetTarget.value!.id), newPassword.value);
+    await resetUserPassword(resetTarget.value!.id, newPassword.value);
     ElMessage.success(t("users.passwordReset"));
     resetPwdVisible.value = false;
   } finally {

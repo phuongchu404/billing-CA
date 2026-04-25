@@ -98,12 +98,18 @@
             </tr>
           </thead>
           <tbody>
+            <tr v-if="loading">
+              <td colspan="6" style="text-align:center;padding:24px;color:#909399">Đang tải...</td>
+            </tr>
+            <tr v-else-if="pagedLogs.length === 0">
+              <td colspan="6" style="text-align:center;padding:24px;color:#909399">Không có dữ liệu</td>
+            </tr>
             <tr v-for="(log, i) in pagedLogs" :key="log.id" class="data-row">
               <td class="td-num">{{ (page - 1) * size + i + 1 }}</td>
               <td>{{ log.action }}</td>
-              <td>{{ log.message }}</td>
+              <td>{{ log.details }}</td>
               <td>{{ log.actor }}</td>
-              <td>{{ log.createdAt }}</td>
+              <td>{{ formatDate(log.createdAt) }}</td>
               <td class="td-actions">
                 <el-button
                   size="small"
@@ -184,33 +190,18 @@
       <div class="dlg-meta">
         <div class="dlg-meta-row">
           <span><strong>Thao tác:</strong> {{ detailLog?.action }}</span>
-          <span><strong>Bảng:</strong> {{ detailLog?.table }}</span>
+          <span><strong>Đối tượng:</strong> {{ detailLog?.entityType }}</span>
         </div>
         <div class="dlg-meta-row">
-          <span><strong>Thông điệp:</strong> {{ detailLog?.message }}</span>
+          <span><strong>ID đối tượng:</strong> {{ detailLog?.entityId }}</span>
         </div>
         <div class="dlg-meta-row">
-          <span><strong>Thời gian:</strong> {{ detailLog?.createdAt }}</span>
+          <span><strong>Thời gian:</strong> {{ formatDate(detailLog?.createdAt ?? '') }}</span>
           <span><strong>Tài khoản:</strong> {{ detailLog?.actor }}</span>
         </div>
-      </div>
-      <div class="dlg-table-wrap">
-        <table class="dlg-table">
-          <thead>
-            <tr>
-              <th>THÔNG TIN</th>
-              <th>GIÁ TRỊ CŨ</th>
-              <th>GIÁ TRỊ MỚI</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(ch, i) in detailLog?.changes" :key="i">
-              <td>{{ ch.field }}</td>
-              <td>{{ ch.oldValue }}</td>
-              <td>{{ ch.newValue }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="dlg-meta-row" v-if="detailLog?.details">
+          <span><strong>Chi tiết:</strong> {{ detailLog?.details }}</span>
+        </div>
       </div>
       <template #footer>
         <el-button @click="detailVisible = false">Đóng</el-button>
@@ -229,8 +220,9 @@ import {
   CaretTop,
   CaretBottom,
 } from "@element-plus/icons-vue";
-import { ElIcon } from "element-plus";
+import { ElIcon, ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { listAuditLogs, type AdminAuditLogEntry } from "@/api/auditLogs";
 
 const { t } = useI18n();
 
@@ -248,52 +240,44 @@ const SortIndicator = defineComponent({
   },
 });
 
-// ── Mock data ──
-interface LogChange {
-  field: string;
-  oldValue: string;
-  newValue: string;
-}
-interface LogRow {
-  id: number;
-  action: string;
-  message: string;
-  actor: string;
-  createdAt: string;
-  table: string;
-  changes: LogChange[];
-}
-
-const MOCK_CHANGES: LogChange[] = Array.from({ length: 11 }, () => ({
-  field: "lastModified",
-  oldValue: "30/03/2026 16:29:00",
-  newValue: "30/03/2026 16:29:00",
-}));
-
-const MOCK_LOGS: LogRow[] = Array.from({ length: 84 }, (_, i) => ({
-  id: i + 1,
-  action: "Chỉnh sửa",
-  message: "Chỉnh sửa vai trò",
-  actor: "nguyenvana",
-  createdAt: "30/03/2026 16:29:00",
-  table: "role",
-  changes: MOCK_CHANGES,
-}));
-
 // ── State ──
+const logs = ref<AdminAuditLogEntry[]>([]);
+const loading = ref(false);
 const page = ref(1);
 const size = ref(10);
+const total = ref(0);
+const totalPages = ref(1);
 const sortField = ref("");
 const sortDir = ref<"asc" | "desc">("asc");
 const lastUpdated = ref("");
 
+// ── Fetch ──
+async function fetchLogs() {
+  loading.value = true;
+  try {
+    const res = await listAuditLogs({ page: page.value - 1, size: size.value });
+    if (res?.data) {
+      logs.value = res.data.content ?? [];
+      total.value = res.data.totalElements ?? 0;
+      totalPages.value = Math.max(1, res.data.totalPages ?? 1);
+    }
+  } catch {
+    ElMessage.error("Không thể tải dữ liệu audit logs");
+  } finally {
+    loading.value = false;
+    const now = new Date();
+    lastUpdated.value =
+      now.toLocaleDateString("vi-VN") + " " + now.toLocaleTimeString("vi-VN");
+  }
+}
+
 // ── Computed ──
-const sortedLogs = computed(() => {
-  const list = [...MOCK_LOGS];
+const pagedLogs = computed(() => {
+  const list = [...logs.value];
   if (sortField.value) {
     list.sort((a, b) => {
-      const va = (a as any)[sortField.value] as string;
-      const vb = (b as any)[sortField.value] as string;
+      const va = String((a as any)[sortField.value] ?? "");
+      const vb = String((b as any)[sortField.value] ?? "");
       return sortDir.value === "asc"
         ? va.localeCompare(vb)
         : vb.localeCompare(va);
@@ -302,14 +286,6 @@ const sortedLogs = computed(() => {
   return list;
 });
 
-const total = computed(() => sortedLogs.value.length);
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(total.value / size.value)),
-);
-const pagedLogs = computed(() => {
-  const start = (page.value - 1) * size.value;
-  return sortedLogs.value.slice(start, start + size.value);
-});
 const pageRange = computed(() => {
   const tp = totalPages.value,
     cur = page.value,
@@ -331,34 +307,40 @@ function setSort(field: string) {
     sortDir.value = "asc";
   }
 }
-function goPage(p: number) {
+async function goPage(p: number) {
   page.value = Math.max(1, Math.min(p, totalPages.value));
+  await fetchLogs();
 }
-function onSizeChange() {
+async function onSizeChange() {
   page.value = 1;
+  await fetchLogs();
 }
-function resetFilters() {
+async function resetFilters() {
   sortField.value = "";
   page.value = 1;
+  await fetchLogs();
 }
 function exportData() {
   /* TODO: implement export */
 }
 
+function formatDate(val: string) {
+  if (!val) return "";
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  return d.toLocaleDateString("vi-VN") + " " + d.toLocaleTimeString("vi-VN");
+}
+
 // ── Detail dialog ──
 const detailVisible = ref(false);
-const detailLog = ref<LogRow | null>(null);
+const detailLog = ref<AdminAuditLogEntry | null>(null);
 
-function openDetail(log: LogRow) {
+function openDetail(log: AdminAuditLogEntry) {
   detailLog.value = log;
   detailVisible.value = true;
 }
 
-onMounted(() => {
-  const now = new Date();
-  lastUpdated.value =
-    now.toLocaleDateString("vi-VN") + " " + now.toLocaleTimeString("vi-VN");
-});
+onMounted(fetchLogs);
 </script>
 
 <style scoped>
@@ -534,35 +516,4 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.dlg-table-wrap {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 4px;
-  overflow: hidden;
-  max-height: 360px;
-  overflow-y: auto;
-}
-.dlg-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.dlg-table thead tr {
-  background: #fafafa;
-}
-.dlg-table th {
-  padding: 9px 14px;
-  font-weight: 600;
-  font-size: 12px;
-  color: #606266;
-  text-align: left;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.dlg-table td {
-  padding: 9px 14px;
-  color: #303133;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-.dlg-table tr:first-child td {
-  border-top: none;
-}
 </style>
