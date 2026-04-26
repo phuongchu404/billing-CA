@@ -81,59 +81,58 @@
       <div v-show="openSections.has('config')">
         <div class="category-tabs">
           <span class="tab-prefix-label">Phân loại</span>
-          <el-radio-group v-model="activeTab" size="default">
-            <el-radio-button value="INDIVIDUAL">Cá nhân</el-radio-button>
-            <el-radio-button value="ORGANIZATION">Tổ chức</el-radio-button>
-            <el-radio-button value="INDIVIDUAL_OF_ORG">Cá nhân thuộc Tổ chức</el-radio-button>
-          </el-radio-group>
+          <div class="cat-tab-group">
+            <button
+              v-for="tab in TABS"
+              :key="tab.key"
+              :class="['cat-tab', { 'is-active': activeTab === tab.key, 'is-done': isTabCompleted(tab.key) }]"
+              @click="activeTab = tab.key"
+              type="button"
+            >
+              <el-icon v-if="isTabCompleted(tab.key)" class="tab-done-icon"><CircleCheck /></el-icon>
+              {{ tab.label }}
+            </button>
+          </div>
         </div>
 
-        <el-table :data="currentConfigRows" border style="margin-top: 12px">
+        <el-table :data="currentConfigRows" border style="margin-top: 12px" table-layout="fixed">
           <el-table-column type="index" width="55" :index="(i: number) => i + 1">
             <template #header>
-              <div class="col-label">#</div>
-              <div class="col-filter">
-                <el-button link :icon="Refresh" @click="configFilterStatus = ''" />
-              </div>
+              <span>#</span>
             </template>
           </el-table-column>
 
           <el-table-column prop="subject" sortable min-width="130">
             <template #header>
-              <div class="col-label">ĐỐI TƯỢNG</div>
-              <div class="col-filter"></div>
+              <span>PHÂN LOẠI ĐỐI TƯỢNG</span>
             </template>
-            <template #default="{ row }">{{ subjectLabel(row.subject) }}</template>
+            <template #default>{{ subjectLabel(activeTab) }}</template>
           </el-table-column>
 
-          <el-table-column prop="durationMonths" sortable width="160">
+          <el-table-column prop="durationMonths" sortable width="160" align="center">
             <template #header>
-              <div class="col-label">THỜI HẠN<br />CHỨNG THƯ</div>
-              <div class="col-filter"></div>
+              <span>THỜI HẠN</span><br /><span>CHỨNG THƯ</span>
             </template>
             <template #default="{ row }">{{ row.durationMonths }} tháng</template>
           </el-table-column>
 
-          <el-table-column prop="condition" sortable width="150">
+          <el-table-column prop="condition" sortable width="150" align="center">
             <template #header>
-              <div class="col-label">ĐIỀU KIỆN</div>
-              <div class="col-filter"></div>
+              <span>ĐIỀU KIỆN</span>
             </template>
             <template #default="{ row }">{{ conditionLabel(row.condition) }}</template>
           </el-table-column>
 
-          <el-table-column prop="minValue" sortable width="160" align="right">
+          <el-table-column prop="minValue" sortable width="160" align="center">
             <template #header>
-              <div class="col-label">GIÁ TRỊ MIN<br />(CỦA ĐIỀU KIỆN)</div>
-              <div class="col-filter"></div>
+              <span>GIÁ TRỊ MIN</span><br /><span>(CỦA ĐIỀU KIỆN)</span>
             </template>
             <template #default="{ row }">{{ row.minValue }}</template>
           </el-table-column>
 
-          <el-table-column prop="maxValue" sortable width="170" align="right">
+          <el-table-column prop="maxValue" sortable width="180" align="center">
             <template #header>
-              <div class="col-label">GIÁ TRỊ MAX<br />(CỦA ĐIỀU KIỆN)</div>
-              <div class="col-filter"></div>
+              <span>GIÁ TRỊ MAX</span><br /><span>(CỦA ĐIỀU KIỆN)</span>
             </template>
             <template #default="{ row }">
               {{ row.maxValue != null ? row.maxValue : 'Không giới hạn' }}
@@ -142,8 +141,7 @@
 
           <el-table-column prop="fee" sortable width="140" align="right">
             <template #header>
-              <div class="col-label">PHÍ/ ĐIỀU KIỆN</div>
-              <div class="col-filter"></div>
+              <span>PHÍ/ ĐIỀU KIỆN</span>
             </template>
             <template #default="{ row }">{{ formatFee(row.fee) }} vnd</template>
           </el-table-column>
@@ -243,7 +241,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Promotion, Remove, ArrowDown, Refresh } from '@element-plus/icons-vue'
+import { Promotion, Remove, ArrowDown, Refresh, CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
   getIndividualPlanConfigDetail,
@@ -262,8 +260,13 @@ const planId = Number(route.params.id)
 const loading = ref(false)
 const openSections = ref<Set<string>>(new Set(['info', 'config', 'history']))
 const activeTab = ref<TabKey>('INDIVIDUAL')
-const configFilterStatus = ref('')
 const historyPage = ref(1)
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'INDIVIDUAL', label: 'Cá nhân' },
+  { key: 'ORGANIZATION', label: 'Tổ chức' },
+  { key: 'INDIVIDUAL_OF_ORG', label: 'Cá nhân thuộc Tổ chức' },
+]
 
 // Dialog state
 const requestApplyVisible = ref(false)
@@ -306,6 +309,10 @@ function subjectLabel(tab: TabKey): string {
     INDIVIDUAL_OF_ORG: 'Cá nhân thuộc Tổ chức',
   }
   return map[tab]
+}
+
+function isTabCompleted(tab: TabKey): boolean {
+  return tabData[tab].length > 0
 }
 
 function conditionLabel(condition: string): string {
@@ -447,6 +454,49 @@ onMounted(load)
   flex-shrink: 0;
   padding-left: 0;
 }
+.cat-tab-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 18px;
+  font-size: 14px;
+  color: #606266;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  line-height: 1.4;
+  outline: none;
+  white-space: nowrap;
+}
+.cat-tab.is-active {
+  border-color: #409eff;
+  color: #409eff;
+  font-weight: 600;
+  background: #fff;
+}
+.cat-tab.is-done {
+  background: #ecf5ff;
+  border-color: #b3d8ff;
+  color: #409eff;
+}
+.cat-tab.is-done.is-active {
+  border-color: #409eff;
+  background: #ecf5ff;
+  color: #409eff;
+}
+.tab-done-icon {
+  font-size: 14px;
+  color: #409eff;
+  flex-shrink: 0;
+}
 
 /* Section inner padding for tables */
 .section-card > div:not(.section-header) {
@@ -454,8 +504,13 @@ onMounted(load)
 }
 
 /* Column filter row pattern */
+:deep(.el-table th.el-table__cell) {
+  color: #606266;
+  font-size: 12px;
+  font-weight: 600;
+}
 .col-label { font-weight: 600; font-size: 13px; white-space: normal; line-height: 1.3; }
-.col-filter { margin-top: 6px; min-height: 28px; }
+.col-filter { min-height: 28px; }
 
 :deep(.el-table th.el-table__cell) { vertical-align: top; padding: 8px 0; }
 :deep(.el-table td.el-table__cell) { padding: 8px 0; }

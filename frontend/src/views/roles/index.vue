@@ -12,15 +12,31 @@
       <!-- Normal mode toolbar -->
       <div v-if="!editMode" class="toolbar">
         <el-button type="primary" :icon="Plus" :disabled="!authStore.hasPermission('role:create')" @click="openCreate">{{ t('roles.newRole') }}</el-button>
-        <el-button :icon="EditPen" :disabled="!authStore.hasPermission('role:update')" @click="handleEdit">{{ t('roles.editRole') }}</el-button>
-        <el-button
-          :icon="Delete"
-          type="danger"
-          plain
-          :loading="saving"
-          :disabled="!authStore.hasPermission('role:update') || !selectedRoleId || !!selectedRole?.isSystemRole"
-          @click="handleDeleteRole"
-        >Xoá vai trò</el-button>
+        <el-tooltip
+          :content="isProtectedRole ? 'Không thể chỉnh sửa vai trò ROLE_ADMIN' : ''"
+          :disabled="!isProtectedRole"
+          placement="top"
+        >
+          <el-button
+            :icon="EditPen"
+            :disabled="!authStore.hasPermission('role:update') || !selectedRoleId || isProtectedRole"
+            @click="handleEdit"
+          >{{ t('roles.editRole') }}</el-button>
+        </el-tooltip>
+        <el-tooltip
+          :content="isProtectedRole ? 'Không thể xoá vai trò ROLE_ADMIN' : ''"
+          :disabled="!isProtectedRole"
+          placement="top"
+        >
+          <el-button
+            :icon="Delete"
+            type="danger"
+            plain
+            :loading="saving"
+            :disabled="!authStore.hasPermission('role:update') || !selectedRoleId || !!selectedRole?.isSystemRole"
+            @click="handleDeleteRole"
+          >Xoá vai trò</el-button>
+        </el-tooltip>
       </div>
 
       <!-- Edit mode top actions -->
@@ -246,6 +262,10 @@ function handleEdit() {
     ElMessage.warning(t('roles.selectRoleFirst'))
     return
   }
+  if (isProtectedRole.value) {
+    ElMessage.warning('Không thể chỉnh sửa vai trò ROLE_ADMIN')
+    return
+  }
   editPerms.value = new Set(rolePerms.value[selectedRoleId.value] || [])
   editMode.value = true
 }
@@ -267,7 +287,8 @@ function cancelEdit() {
   editMode.value = false
 }
 
-const selectedRole = computed(() => matrixRoles.value.find(r => r.roleId === selectedRoleId.value) ?? null)
+const selectedRole      = computed(() => matrixRoles.value.find(r => r.roleId === selectedRoleId.value) ?? null)
+const isProtectedRole   = computed(() => selectedRole.value?.roleName === 'ROLE_ADMIN')
 
 async function handleDeleteRole() {
   if (!selectedRoleId.value) return

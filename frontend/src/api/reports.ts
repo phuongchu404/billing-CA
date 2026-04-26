@@ -1,18 +1,90 @@
 import request from '@/utils/request'
-import type { ApiResponse, SubscriptionSummary, TypedSubscriptionSummary, Subscription } from '@/types'
+import type { ApiResponse } from '@/types'
 
-export const getSubscriptionSummary = () =>
-  request.get<any, ApiResponse<SubscriptionSummary>>('/api/v1/reports/subscriptions/summary')
+export interface GroupStatsSummary {
+  activePartners: number
+  newCts: number
+  signings: number
+  expiringSoon: number
+  newCtsPct: number
+  signingsPct: number
+}
 
-export const getTypedSubscriptionSummary = (subscriberType: 'INDIVIDUAL' | 'GROUP') =>
-  request.get<any, ApiResponse<TypedSubscriptionSummary>>('/api/v1/reports/subscriptions/summary', {
-    params: { subscriberType }
+export interface CertDataByType {
+  individual: number[]
+  organization: number[]
+  individualOfOrg: number[]
+}
+
+export interface GrowthItem {
+  current: number
+  prev: number
+  growth: number
+}
+
+export interface RatioItem {
+  name: string
+  individual: number
+  organization: number
+  individualOfOrg: number
+}
+
+export interface GroupReportResponse {
+  stats: GroupStatsSummary
+  agencies: string[]
+  certData: CertDataByType
+  signingData: number[]
+  growthData: GrowthItem[]
+  ratioData: RatioItem[]
+  expiringRows: ExpiringGroupRow[]
+  lastUpdated: string
+}
+
+export interface ExpiringGroupRow {
+  code: string
+  name: string
+  plan: string
+  expiry: string
+}
+
+export interface IndividualStatsSummary {
+  activeCustomers: number
+  newCts: number
+  signings: number
+  uploads: number
+  uploadPct: number
+}
+
+export interface ChartByType {
+  individual: number[]
+  organization: number[]
+  individualOfOrg: number[]
+}
+
+export interface FailureChart {
+  pin: number[]
+  otp: number[]
+  moc: number[]
+}
+
+export interface IndividualReportResponse {
+  stats: IndividualStatsSummary
+  weeks: string[]
+  newCustChart: number[]
+  ctsChart: ChartByType
+  signingChart: ChartByType
+  failureChart: FailureChart
+}
+
+export const getGroupReport = (periodKey: string) =>
+  request.get<any, ApiResponse<GroupReportResponse>>('/api/v1/reports/group', {
+    params: { periodKey }
   })
 
-export const getExpiringSoon = (days = 30, subscriberType?: 'INDIVIDUAL' | 'GROUP') =>
-  request.get<any, ApiResponse<Subscription[]>>('/api/v1/reports/subscriptions/expiring-soon', {
-    params: { days, ...(subscriberType ? { subscriberType } : {}) }
-  })
+export const getExpiringSoon = () =>
+  request.get<any, ApiResponse<ExpiringGroupRow[]>>('/api/v1/reports/group/expiring-soon')
 
-export const getAllSubscriptions = () =>
-  request.get<any, ApiResponse<Subscription[]>>('/api/v1/reports/subscriptions/all')
+export const getIndividualReport = (periodKey: string) =>
+  request.get<any, ApiResponse<IndividualReportResponse>>('/api/v1/reports/individual', {
+    params: { periodKey }
+  })

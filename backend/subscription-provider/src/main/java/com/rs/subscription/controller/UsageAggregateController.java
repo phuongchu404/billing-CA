@@ -19,7 +19,7 @@ public class UsageAggregateController {
     private final UsageAggregateService usageAggregateService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('report:view')")
+    @PreAuthorize("hasAuthority('report:view') or hasAuthority('report:group:view')")
     public ApiResponse<List<UsageAggregateResponse>> list(
         @RequestParam(required = false) String aggregateScope,
         @RequestParam(required = false) Long scopeId

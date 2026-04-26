@@ -9,4 +9,5 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     boolean existsByGroupCode(String groupCode);
     boolean existsByUsernameAndGroupIdNot(String username, Long groupId);
     boolean existsByUsername(String username);
+    List<Group> findByStatusOrderByGroupId(String status);
 }

@@ -19,7 +19,7 @@ public class SettlementStatementController {
     private final SettlementStatementService settlementStatementService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('report:view')")
+    @PreAuthorize("hasAuthority('report:view') or hasAuthority('report:group:view')")
     public ApiResponse<List<SettlementStatementResponse>> list(@RequestParam(required = false) Long groupId) {
         if (groupId != null) {
             return ApiResponse.success(settlementStatementService.listByGroup(groupId), "Fetched settlement statements");

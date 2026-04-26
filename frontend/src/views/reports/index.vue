@@ -5,16 +5,19 @@
       <h2>DASHBOARD - BÁO CÁO THỐNG KÊ</h2>
       <div class="type-switcher">
         <span class="switcher-label">Khách hàng</span>
-        <button class="type-btn" :class="{ active: selectedType === 'GROUP' }" @click="setType('GROUP')">Đại lý</button>
-        <button class="type-btn" :class="{ active: selectedType === 'INDIVIDUAL' }" @click="setType('INDIVIDUAL')">Phổ thông</button>
+        <button v-if="canViewGroup"      class="type-btn" :class="{ active: selectedType === 'GROUP' }"      @click="setType('GROUP')">Đại lý</button>
+        <button v-if="canViewIndividual" class="type-btn" :class="{ active: selectedType === 'INDIVIDUAL' }" @click="setType('INDIVIDUAL')">Phổ thông</button>
       </div>
     </div>
 
     <!-- Individual customer dashboard -->
     <IndividualReport v-if="selectedType === 'INDIVIDUAL'" />
 
+    <!-- Không có quyền xem tab nào -->
+    <el-empty v-if="!canViewGroup && !canViewIndividual" description="Bạn không có quyền xem báo cáo" />
+
     <!-- Stat cards -->
-    <el-row v-if="selectedType === 'GROUP'" :gutter="16" style="margin-bottom: 20px">
+    <el-row v-if="selectedType === 'GROUP'" :gutter="16" style="margin-bottom: 20px" v-loading="loading">
       <!-- Card 1: Active partners -->
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
@@ -23,7 +26,7 @@
               <el-icon size="28"><UserFilled /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.activePartners }}</div>
+              <div class="stat-value">{{ report?.stats.activePartners ?? 0 }}</div>
               <div class="stat-label">SL đại lý đang hoạt động</div>
             </div>
           </div>
@@ -38,9 +41,12 @@
               <el-icon size="28"><DocumentChecked /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.newCts.toLocaleString('vi-VN') }}</div>
+              <div class="stat-value">{{ (report?.stats.newCts ?? 0).toLocaleString('vi-VN') }}</div>
               <div class="stat-label">SL CTS mới được tạo trong tháng này</div>
-              <div class="stat-growth positive">+18% <span class="growth-note">so với tháng trước</span></div>
+              <div class="stat-growth" :class="(report?.stats.newCtsPct ?? 0) >= 0 ? 'positive' : 'negative'">
+                {{ (report?.stats.newCtsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.newCtsPct ?? 0 }}%
+                <span class="growth-note">so với tháng trước</span>
+              </div>
             </div>
           </div>
         </el-card>
@@ -54,9 +60,12 @@
               <el-icon size="28"><DataAnalysis /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.signings.toLocaleString('vi-VN') }}</div>
+              <div class="stat-value">{{ (report?.stats.signings ?? 0).toLocaleString('vi-VN') }}</div>
               <div class="stat-label">SL lượt ký trong tháng này</div>
-              <div class="stat-growth negative">-3% <span class="growth-note">so với tháng trước</span></div>
+              <div class="stat-growth" :class="(report?.stats.signingsPct ?? 0) >= 0 ? 'positive' : 'negative'">
+                {{ (report?.stats.signingsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.signingsPct ?? 0 }}%
+                <span class="growth-note">so với tháng trước</span>
+              </div>
             </div>
           </div>
         </el-card>
@@ -70,10 +79,10 @@
               <el-icon size="28"><Warning /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value" style="color: #F56C6C">{{ stats.expiringSoon }}</div>
+              <div class="stat-value" style="color: #F56C6C">{{ report?.stats.expiringSoon ?? 0 }}</div>
               <div class="stat-label">
                 đại lý có gói cước hiệu lực dưới 3 tháng (không có gói tiếp).
-                <el-button link type="primary" style="padding: 0; font-size: 12px" @click="expiringDialogVisible = true">Xem chi tiết</el-button>
+                <el-button link type="primary" style="padding: 0; font-size: 12px" @click="openExpiringDialog">Xem chi tiết</el-button>
               </div>
             </div>
           </div>
@@ -83,7 +92,7 @@
 
     <!-- Month selector -->
     <div v-if="selectedType === 'GROUP'" class="month-bar">
-      <el-select v-model="selectedMonth" size="small" style="width: 140px" @change="refreshCharts">
+      <el-select v-model="selectedMonth" size="small" style="width: 140px" @change="loadReport">
         <el-option v-for="m in monthOptions" :key="m.value" :label="m.label" :value="m.value" />
       </el-select>
     </div>
@@ -129,7 +138,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <div class="dlg-updated">Thời gian cập nhật: 30/03/2020 16:29:00</div>
+      <div class="dlg-updated">Thời gian cập nhật: {{ report?.lastUpdated ?? '' }}</div>
       <template #footer>
         <el-button @click="expiringDialogVisible = false">Đóng</el-button>
       </template>
@@ -150,7 +159,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in ratioData" :key="row.name">
+              <tr v-for="row in report?.ratioData ?? []" :key="row.name">
                 <td>{{ row.name }}</td>
                 <td class="text-right">{{ row.individual }}</td>
                 <td class="text-right">{{ row.organization }}</td>
@@ -171,15 +180,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { UserFilled, DocumentChecked, DataAnalysis, Warning, View } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import IndividualReport from './IndividualReport.vue'
+import { getGroupReport } from '@/api/reports'
+import type { GroupReportResponse } from '@/api/reports'
+import { usePermission } from '@/composables/usePermission'
 
 type CustomerType = 'GROUP' | 'INDIVIDUAL'
 
-const selectedType = ref<CustomerType>('GROUP')
+const { can } = usePermission()
+const canViewGroup      = computed(() => can('report:group:view'))
+const canViewIndividual = computed(() => can('report:individual:view'))
+
+// Auto-select tab đầu tiên có quyền
+const defaultTab: CustomerType = (() => {
+  if (can('report:group:view')) return 'GROUP'
+  if (can('report:individual:view')) return 'INDIVIDUAL'
+  return 'GROUP'
+})()
+
+const selectedType = ref<CustomerType>(defaultTab)
 const selectedMonth = ref('2026-03')
+const loading = ref(false)
+const expiringDialogVisible = ref(false)
+
+const report = ref<GroupReportResponse | null>(null)
+
+const expiringRows = computed(() => report.value?.expiringRows ?? [])
 
 const certChartRef = ref<HTMLElement>()
 const signingChartRef = ref<HTMLElement>()
@@ -196,62 +225,43 @@ const monthOptions = [
   { label: 'Tháng 4/2026', value: '2026-04' },
 ]
 
-const expiringDialogVisible = ref(false)
-
-const expiringRows = [
-  { code: 'TCB',  name: 'Ngân hàng TMCP Kỹ Thương Việt Nam', plan: 'TCB_Ưu đãi tháng 3', expiry: '27/04/2026' },
-  { code: 'TCB 1', name: 'Ngân hàng TMCP Kỹ Thương Việt Nam', plan: 'TCB_Ưu đãi tháng 3', expiry: '27/05/2026' },
-]
-
-const stats = ref({
-  activePartners: 6,
-  newCts: 918,
-  signings: 1932,
-  expiringSoon: 2,
-})
-
-const agencies = ['Đại lý 1', 'Đại lý 2', 'Đại lý 3', 'Đại lý 4', 'Đại lý 5', 'Đại lý 6']
-
-const certData = {
-  individual:      [320, 80, 290, 0, 1, 0],
-  organization:    [10,  0,  40, 0, 0, 0],
-  individualOfOrg: [0,   0,  0,  0, 0, 0],
+async function loadReport() {
+  loading.value = true
+  try {
+    const res = await getGroupReport(selectedMonth.value)
+    report.value = res.data
+    await nextTick()
+    renderCharts()
+  } finally {
+    loading.value = false
+  }
 }
 
-const signingData = [120, 800, 500, 1000, 0, 12]
-
-const growthMetaData = [
-  { current: 120,  prev: 200,  growth: -40 },
-  { current: 800,  prev: 727,  growth: 10  },
-  { current: 500,  prev: 455,  growth: 10  },
-  { current: 1000, prev: 556,  growth: 80  },
-  { current: 0,    prev: 0,    growth: 0   },
-  { current: 12,   prev: 70,   growth: -74 },
-]
-
-const ratioData = [
-  { name: 'Đại Lý 1', individual: 1,   organization: 0,  individualOfOrg: 0   },
-  { name: 'Đại Lý 2', individual: 0,   organization: 32, individualOfOrg: 3   },
-  { name: 'Đại Lý 3', individual: 2.5, organization: 7,  individualOfOrg: 20.5 },
-  { name: 'Đại Lý 4', individual: 3.1, organization: 0,  individualOfOrg: 0   },
-  { name: 'Đại Lý 5', individual: 0,   organization: 0,  individualOfOrg: 0   },
-  { name: 'Đại Lý 6', individual: 0,   organization: 0,  individualOfOrg: 0.1 },
-]
+function openExpiringDialog() {
+  expiringDialogVisible.value = true
+}
 
 function setType(type: CustomerType) {
+  if (type === 'GROUP' && !canViewGroup.value) return
+  if (type === 'INDIVIDUAL' && !canViewIndividual.value) return
   selectedType.value = type
-  if (type === 'GROUP') nextTick(refreshCharts)
+  if (type === 'GROUP') {
+    if (report.value) nextTick(renderCharts)
+    else loadReport()
+  }
 }
 
-function refreshCharts() {
+function renderCharts() {
+  if (!report.value) return
   renderCertChart()
   renderSigningChart()
   renderGrowthChart()
 }
 
 function renderCertChart() {
-  if (!certChartRef.value) return
+  if (!certChartRef.value || !report.value) return
   if (!certChart) certChart = echarts.init(certChartRef.value)
+  const { agencies, certData } = report.value
   certChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: {
@@ -265,34 +275,17 @@ function renderCertChart() {
     xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
     yAxis: { type: 'category', data: agencies, inverse: true, axisLabel: { fontSize: 12 } },
     series: [
-      {
-        name: 'Cá nhân',
-        type: 'bar',
-        stack: 'total',
-        data: certData.individual,
-        itemStyle: { color: '#1B60CB' },
-      },
-      {
-        name: 'Tổ chức',
-        type: 'bar',
-        stack: 'total',
-        data: certData.organization,
-        itemStyle: { color: '#5B9BD5' },
-      },
-      {
-        name: 'Cá nhân thuộc tổ chức',
-        type: 'bar',
-        stack: 'total',
-        data: certData.individualOfOrg,
-        itemStyle: { color: '#D4E6F1' },
-      },
+      { name: 'Cá nhân', type: 'bar', stack: 'total', data: certData.individual, itemStyle: { color: '#1B60CB' } },
+      { name: 'Tổ chức', type: 'bar', stack: 'total', data: certData.organization, itemStyle: { color: '#5B9BD5' } },
+      { name: 'Cá nhân thuộc tổ chức', type: 'bar', stack: 'total', data: certData.individualOfOrg, itemStyle: { color: '#D4E6F1' } },
     ],
   }, true)
 }
 
 function renderSigningChart() {
-  if (!signingChartRef.value) return
+  if (!signingChartRef.value || !report.value) return
   if (!signingChart) signingChart = echarts.init(signingChartRef.value)
+  const { agencies, signingData } = report.value
   signingChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 16, right: 32, bottom: 16, top: 8, containLabel: true },
@@ -316,11 +309,10 @@ function renderSigningChart() {
 }
 
 function renderGrowthChart() {
-  if (!growthChartRef.value) return
+  if (!growthChartRef.value || !report.value) return
   if (!growthChart) growthChart = echarts.init(growthChartRef.value)
-
-  const growthValues = growthMetaData.map(d => d.growth)
-  const colors = growthValues.map(v => (v >= 0 ? '#1B60CB' : '#1B60CB'))
+  const { agencies, growthData } = report.value
+  const growthValues = growthData.map(d => d.growth)
 
   growthChart.setOption({
     tooltip: {
@@ -328,7 +320,7 @@ function renderGrowthChart() {
       axisPointer: { type: 'shadow' },
       formatter: (params: any) => {
         const idx = params[0].dataIndex
-        const meta = growthMetaData[idx]
+        const meta = growthData[idx]
         return [
           `SL lượt ký tháng này: ${meta.current.toLocaleString('vi-VN')}`,
           `SL lượt ký tháng trước: ${meta.prev.toLocaleString('vi-VN')}`,
@@ -344,11 +336,7 @@ function renderGrowthChart() {
       textStyle: { fontSize: 11 },
     },
     grid: { left: 16, right: 16, bottom: 48, top: 8, containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: agencies,
-      axisLabel: { fontSize: 12, interval: 0 },
-    },
+    xAxis: { type: 'category', data: agencies, axisLabel: { fontSize: 12, interval: 0 } },
     yAxis: {
       type: 'value',
       splitLine: { lineStyle: { color: '#f0f0f0' } },
@@ -358,13 +346,8 @@ function renderGrowthChart() {
       {
         name: '% Tăng trưởng = (Tháng hiện tại - Tháng trước) / Tháng trước × 100%',
         type: 'bar',
-        data: growthValues.map((v, i) => ({
-          value: v,
-          itemStyle: { color: colors[i] },
-        })),
-        label: {
-          show: false,
-        },
+        data: growthValues.map(v => ({ value: v, itemStyle: { color: '#1B60CB' } })),
+        label: { show: false },
         markLine: {
           silent: true,
           symbol: 'none',
@@ -383,10 +366,9 @@ function handleResize() {
 }
 
 onMounted(async () => {
-  await nextTick()
-  renderCertChart()
-  renderSigningChart()
-  renderGrowthChart()
+  if (canViewGroup.value && selectedType.value === 'GROUP') {
+    await loadReport()
+  }
   window.addEventListener('resize', handleResize)
 })
 

@@ -101,4 +101,38 @@ const locale = en
   font-size: 14px;
   text-transform: uppercase;
 }
+
+/* Keep Element Plus sort carets on the same row as custom table labels.
+   Header slots with filter controls are taller, so the default inline caret
+   falls below the label unless it is pinned to the top label line. */
+.el-table th.el-table__cell.is-sortable > .cell {
+  position: relative;
+  padding-right: 32px;
+}
+
+.el-table th.el-table__cell.is-sortable > .cell > .caret-wrapper {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  margin-left: 0;
+}
+
+.el-table th.el-table__cell > .cell:has(> .col-filter) {
+  min-height: 74px;
+  position: relative;
+}
+
+.el-table th.el-table__cell > .cell > .col-filter {
+  left: 12px;
+  margin-top: 0;
+  min-height: 32px;
+  position: absolute;
+  right: 12px;
+  top: 38px;
+}
+
+.el-table--small th.el-table__cell > .cell > .col-filter {
+  left: 8px;
+  right: 8px;
+}
 </style>

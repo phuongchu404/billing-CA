@@ -50,7 +50,10 @@ VALUES
     -- SYSTEM_CONFIGURATION / AUDIT_LOG
     (15, 'audit-log:view',        'Xem nhật ký hệ thống',           'SYSTEM_CONFIGURATION',    'AUDIT_LOG',    60),
     -- ANALYTICS / REPORT
-    (16, 'report:view',           'Xem báo cáo',                    'ANALYTICS',               'REPORT',       70)
+    (16, 'report:view',              'Xem báo cáo',                    'ANALYTICS',               'REPORT',       70),
+    -- ANALYTICS / REPORT – tab-level
+    (21, 'report:group:view',        'Xem báo cáo đại lý',             'ANALYTICS',               'REPORT',       71),
+    (22, 'report:individual:view',   'Xem báo cáo phổ thông',          'ANALYTICS',               'REPORT',       72)
 ON DUPLICATE KEY UPDATE
     display_name  = VALUES(display_name),
     module_group  = VALUES(module_group),
@@ -106,31 +109,37 @@ ON DUPLICATE KEY UPDATE created_at = created_at;
 -- ===========================================================
 -- 5. ROLE PERMISSIONS
 --
--- ROLE_ADMIN   (1): tất cả 16 quyền
--- ROLE_LEVEL_1 (3): 1,2,3,6,9,12,16
--- ROLE_LEVEL_2 (4): 1,2,3
--- ROLE_LEVEL_3 (5): 1,2,3,4,5,6,9,12
--- ROLE_LEVEL_4 (6): 2,3
--- ROLE_USER    (2): chỉ dashboard:view (1)
+-- Nguyên tắc report:
+--   report:view (16)            = thấy menu Reports
+--   report:group:view (21)      = thấy tab Đại lý
+--   report:individual:view (22) = thấy tab Phổ thông
+--
+-- ROLE_ADMIN   (1): toàn quyền
+-- ROLE_LEVEL_1 (3): quản trị – cả 2 tab báo cáo
+-- ROLE_LEVEL_2 (4): phổ thông – chỉ tab Phổ thông
+-- ROLE_LEVEL_3 (5): vận hành – không báo cáo
+-- ROLE_LEVEL_4 (6): chỉ xem gói
+-- ROLE_USER    (2): chỉ dashboard:view
 -- ===========================================================
 INSERT INTO role_permissions (role_id, permission_id)
 VALUES
-    -- ROLE_ADMIN: full access
+    -- ROLE_ADMIN: toàn quyền (thêm 21, 22)
     (1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),(1,8),
     (1,9),(1,10),(1,11),(1,12),(1,13),(1,14),(1,15),(1,16),
+    (1,21),(1,22),
 
     -- ROLE_USER: chỉ xem dashboard
     (2,1),
 
-    -- ROLE_LEVEL_1
-    (3,1),(3,2),(3,3),(3,6),(3,9),(3,12),(3,16),
+    -- ROLE_LEVEL_1: cả 2 tab báo cáo
+    (3,1),(3,2),(3,3),(3,6),(3,9),(3,12),(3,16),(3,21),(3,22),
 
-    -- ROLE_LEVEL_2
-    (4,1),(4,2),(4,3),
+    -- ROLE_LEVEL_2: chỉ tab Phổ thông (thêm 22, giữ report:view=16)
+    (4,1),(4,2),(4,3),(4,16),(4,22),
 
-    -- ROLE_LEVEL_3
+    -- ROLE_LEVEL_3: vận hành – không có báo cáo
     (5,1),(5,2),(5,3),(5,4),(5,5),(5,6),(5,9),(5,12),
 
-    -- ROLE_LEVEL_4
+    -- ROLE_LEVEL_4: chỉ xem & tạo gói
     (6,2),(6,3)
 ON DUPLICATE KEY UPDATE role_id = role_id;

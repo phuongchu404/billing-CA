@@ -49,6 +49,22 @@ public interface CertificateUsageRecordRepository extends JpaRepository<Certific
             LocalDateTime from,
             LocalDateTime to);
 
+    /** Đếm lượt ký INDIVIDUAL theo tuần và cert_type trong tháng */
+    @Query(nativeQuery = true,
+           value = "SELECT WEEK(cur.used_at, 1) - WEEK(DATE_FORMAT(cur.used_at, '%Y-%m-01'), 1) + 1 AS week_num, " +
+                   "cpr.cert_type, COUNT(cur.id) " +
+                   "FROM certificate_usage_records cur " +
+                   "JOIN certificate_provisioning_records cpr ON cpr.certificate_id = cur.certificate_id " +
+                   "JOIN subscriptions s ON s.subscription_id = cur.subscription_id " +
+                   "WHERE s.subscriber_type = 'INDIVIDUAL' " +
+                   "AND cur.usage_type = 'SIGNING' " +
+                   "AND cur.used_at >= :from AND cur.used_at < :to " +
+                   "GROUP BY week_num, cpr.cert_type " +
+                   "ORDER BY week_num, cpr.cert_type")
+    List<Object[]> countWeeklySigningsByTypeForIndividual(
+        @Param("from") LocalDateTime from,
+        @Param("to") LocalDateTime to);
+
     @Modifying
     @Query(value = """
         INSERT INTO certificate_usage_daily (certificate_id, usage_date, usage_count, distinct_users)

@@ -35,8 +35,11 @@ export const getNavData = (): MenuItem[] => [
     permissionKey: 'report:view',
     children: [],
     permissions: [
-      { tag: 'reports:view', type: 'button', labelKey: 'common.search', permissionKey: 'report:view', pattern: '/api/v1/usage-aggregates', method: 'GET' },
-      { tag: 'reports:settlement', type: 'button', labelKey: 'common.search', permissionKey: 'report:view', pattern: '/api/v1/settlement-statements', method: 'GET' },
+      // GROUP tab: 1 button → all GROUP report APIs granted automatically
+      { tag: 'reports:group:view',          type: 'button', labelKey: 'menu.reportGroupTab',      permissionKey: 'report:group:view',      pattern: '/api/v1/reports/group',               method: 'GET' },
+      { tag: 'reports:group:expiring',      type: 'api',    labelKey: 'menu.reportGroupTab',      permissionKey: 'report:group:view',      pattern: '/api/v1/reports/group/expiring-soon', method: 'GET' },
+      // INDIVIDUAL tab: 1 button → all INDIVIDUAL report APIs granted automatically
+      { tag: 'reports:individual:view',     type: 'button', labelKey: 'menu.reportIndividualTab', permissionKey: 'report:individual:view', pattern: '/api/v1/reports/individual',          method: 'GET' },
     ],
   },
   {
@@ -69,10 +72,10 @@ export const getNavData = (): MenuItem[] => [
         type: 'menu',
         labelKey: 'menu.individualUsageTracking',
         icon: TrendCharts,
-        permissionKey: 'report:view',
+        permissionKey: 'individual:usage:view',
         children: [],
         permissions: [
-          { tag: 'individual:usage:view', type: 'button', labelKey: 'common.search', permissionKey: 'report:view', pattern: '/api/v1/individual/usage-tracking', method: 'GET' },
+          { tag: 'individual:usage:view', type: 'button', labelKey: 'common.search', permissionKey: 'individual:usage:view', pattern: '/api/v1/individual/usage-tracking', method: 'GET' },
         ],
       },
     ],

@@ -63,6 +63,8 @@ export default {
     roleManagement: 'Quản lý vai trò',
     accountManagement: 'Quản lý tài khoản',
     logsManagement: 'Quản lý logs',
+    reportGroupTab: 'Xem báo cáo đại lý',
+    reportIndividualTab: 'Xem báo cáo phổ thông',
   },
   individual: {
     plansTitle: 'Gói cá nhân',
@@ -340,9 +342,9 @@ export default {
     },
     group: {
       DASHBOARD: 'Tổng quan',
-      PLAN: 'Gói dịch vụ',
-      GROUP: 'Khách hàng doanh nghiệp',
-      SUBSCRIPTION: 'Đăng ký dịch vụ',
+      PLAN: 'Cấu hình gói cước',
+      INDIVIDUAL_USAGE: 'Theo dõi sử dụng',
+      AGENCY: 'Khách hàng đại lý',
       PARTNER: 'Đối tác',
       CERTIFICATE: 'Chứng thư số',
       USER: 'Quản lý người dùng',

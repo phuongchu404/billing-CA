@@ -29,4 +29,28 @@ public interface GroupPlanAssignmentRepository extends JpaRepository<GroupPlanAs
     /** Scheduler: ACTIVE và đã qua ngày kết thúc → cần chuyển sang EXPIRED */
     @Query("SELECT a FROM GroupPlanAssignment a WHERE a.assignmentStatus = 'ACTIVE' AND a.applyTo < :today")
     List<GroupPlanAssignment> findActiveReadyToExpire(@Param("today") LocalDate today);
+
+    /** Lấy ACTIVE assignments của một group (có thể có nhiều - multi-plan) */
+    List<GroupPlanAssignment> findByGroupGroupIdAndAssignmentStatus(Long groupId, String status);
+
+    /** Batch: ACTIVE assignments cho nhiều group cùng lúc (tránh N+1) */
+    @Query("SELECT a FROM GroupPlanAssignment a WHERE a.group.groupId IN :groupIds AND a.assignmentStatus = :status")
+    List<GroupPlanAssignment> findByGroupIdsAndStatus(
+        @Param("groupIds") List<Long> groupIds,
+        @Param("status") String status);
+
+    /** Đại lý có gói sắp hết hạn trong ngưỡng và chưa có gói tiếp theo */
+    @Query("SELECT a FROM GroupPlanAssignment a " +
+           "WHERE a.assignmentStatus = 'ACTIVE' " +
+           "AND a.applyTo BETWEEN :today AND :threshold " +
+           "AND NOT EXISTS (" +
+           "  SELECT a2 FROM GroupPlanAssignment a2 " +
+           "  WHERE a2.group = a.group " +
+           "  AND a2.groupPlanAssignmentId != a.groupPlanAssignmentId " +
+           "  AND a2.assignmentStatus IN ('APPROVED', 'ACTIVE') " +
+           "  AND a2.applyFrom > a.applyTo" +
+           ")")
+    List<GroupPlanAssignment> findExpiringSoonWithNoSuccessor(
+        @Param("today") LocalDate today,
+        @Param("threshold") LocalDate threshold);
 }

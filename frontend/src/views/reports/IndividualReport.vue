@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-loading="loading">
     <!-- Stat cards -->
     <el-row :gutter="16" style="margin-bottom: 20px">
       <!-- Card 1 -->
@@ -10,7 +10,7 @@
               <el-icon size="28"><UserFilled /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ data.activeCustomers }}</div>
+              <div class="stat-value">{{ report?.stats.activeCustomers ?? 0 }}</div>
               <div class="stat-label">SL khách hàng có CTS đang hoạt động</div>
             </div>
           </div>
@@ -25,9 +25,8 @@
               <el-icon size="28"><DocumentChecked /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ data.newCts }}</div>
+              <div class="stat-value">{{ report?.stats.newCts ?? 0 }}</div>
               <div class="stat-label">SL CTS mới được tạo trong tháng này</div>
-              <div class="stat-growth positive">+18% <span class="growth-note">so với tháng trước</span></div>
             </div>
           </div>
         </el-card>
@@ -41,9 +40,8 @@
               <el-icon size="28"><DataAnalysis /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ data.signings.toLocaleString('vi-VN') }}</div>
+              <div class="stat-value">{{ (report?.stats.signings ?? 0).toLocaleString('vi-VN') }}</div>
               <div class="stat-label">SL lượt ký trong tháng này</div>
-              <div class="stat-growth negative">-3% <span class="growth-note">so với tháng trước</span></div>
             </div>
           </div>
         </el-card>
@@ -54,12 +52,12 @@
         <el-card shadow="never" class="stat-card">
           <div class="stat-inner" style="align-items:center">
             <div class="stat-info">
-              <div class="stat-value">{{ data.uploads.toLocaleString('vi-VN') }}</div>
+              <div class="stat-value">{{ (report?.stats.uploads ?? 0).toLocaleString('vi-VN') }}</div>
               <div class="stat-label">Tài liệu đã được tải lên trong tháng này</div>
             </div>
             <div class="donut-wrap">
               <div ref="donutRef" style="width:72px;height:72px" />
-              <div class="donut-label">{{ data.uploadPct }}%</div>
+              <div class="donut-label">{{ report?.stats.uploadPct ?? 0 }}%</div>
             </div>
           </div>
         </el-card>
@@ -68,7 +66,7 @@
 
     <!-- Month selector -->
     <div class="month-bar">
-      <el-select v-model="selectedMonth" size="small" style="width:140px">
+      <el-select v-model="selectedMonth" size="small" style="width:140px" @change="loadReport">
         <el-option v-for="m in monthOptions" :key="m.value" :label="m.label" :value="m.value" />
       </el-select>
     </div>
@@ -148,11 +146,16 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { UserFilled, DocumentChecked, DataAnalysis } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import { getIndividualReport } from '@/api/reports'
+import type { IndividualReportResponse } from '@/api/reports'
 
 const selectedMonth = ref('2026-03')
 const filterCts = ref('')
 const filterSigning = ref('')
 const filterFailure = ref('')
+const loading = ref(false)
+
+const report = ref<IndividualReportResponse | null>(null)
 
 const donutRef = ref<HTMLElement>()
 const newCustChartRef = ref<HTMLElement>()
@@ -173,16 +176,6 @@ const monthOptions = [
   { label: 'Tháng 4/2026', value: '2026-04' },
 ]
 
-const data = ref({
-  activeCustomers: 16,
-  newCts: 8,
-  signings: 1200,
-  uploads: 1250,
-  uploadPct: 96,
-})
-
-const weeks = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4']
-
 const COLORS = {
   individual:      '#1B60CB',
   organization:    '#5B9BD5',
@@ -192,17 +185,34 @@ const COLORS = {
   moc:  '#FDBA74',
 }
 
+async function loadReport() {
+  loading.value = true
+  try {
+    const res = await getIndividualReport(selectedMonth.value)
+    report.value = res.data
+    await nextTick()
+    renderDonut()
+    renderNewCustChart()
+    renderCtsChart()
+    renderSigningChart()
+    renderFailureChart()
+  } finally {
+    loading.value = false
+  }
+}
+
 function renderDonut() {
-  if (!donutRef.value) return
+  if (!donutRef.value || !report.value) return
   if (!donutChart) donutChart = echarts.init(donutRef.value)
+  const pct = report.value.stats.uploadPct
   donutChart.setOption({
     series: [{
       type: 'pie',
       radius: ['68%', '100%'],
       startAngle: 90,
       data: [
-        { value: data.value.uploadPct, itemStyle: { color: '#1B60CB' } },
-        { value: 100 - data.value.uploadPct, itemStyle: { color: '#E4E7ED' } },
+        { value: pct, itemStyle: { color: '#1B60CB' } },
+        { value: 100 - pct, itemStyle: { color: '#E4E7ED' } },
       ],
       label: { show: false },
       emphasis: { scale: false },
@@ -211,9 +221,10 @@ function renderDonut() {
 }
 
 function renderNewCustChart() {
-  if (!newCustChartRef.value) return
+  if (!newCustChartRef.value || !report.value) return
   if (!newCustChart) newCustChart = echarts.init(newCustChartRef.value)
-  const values = [12, 3, 5, 4]
+  const weeks = report.value.weeks
+  const values = report.value.newCustChart
   newCustChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 16, right: 16, bottom: 16, top: 24, containLabel: true },
@@ -230,12 +241,10 @@ function renderNewCustChart() {
 }
 
 function renderCtsChart() {
-  if (!ctsChartRef.value) return
+  if (!ctsChartRef.value || !report.value) return
   if (!ctsChart) ctsChart = echarts.init(ctsChartRef.value)
-
-  const individual =      [23, 1, 3, 7]
-  const organization =    [0,  0, 0, 2]
-  const individualOfOrg = [0,  0, 0, 0]
+  const weeks = report.value.weeks
+  const { individual, organization, individualOfOrg } = report.value.ctsChart
 
   const visibleSeries = []
   if (!filterCts.value || filterCts.value === 'INDIVIDUAL')
@@ -256,12 +265,10 @@ function renderCtsChart() {
 }
 
 function renderSigningChart() {
-  if (!signingChartRef.value) return
+  if (!signingChartRef.value || !report.value) return
   if (!signingChart) signingChart = echarts.init(signingChartRef.value)
-
-  const individual =      [50,  60,  210, 100]
-  const organization =    [0,   0,   50,  11]
-  const individualOfOrg = [0,   0,   30,  15]
+  const weeks = report.value.weeks
+  const { individual, organization, individualOfOrg } = report.value.signingChart
 
   const visibleSeries = []
   if (!filterSigning.value || filterSigning.value === 'INDIVIDUAL')
@@ -282,61 +289,25 @@ function renderSigningChart() {
 }
 
 function renderFailureChart() {
-  if (!failureChartRef.value) return
+  if (!failureChartRef.value || !report.value) return
   if (!failureChart) failureChart = echarts.init(failureChartRef.value)
-
-  const pinData = [21, 14, 23, 5]
-  const otpData = [45, 40, 57, 37]
-  const mocData = [14, 14, 15, 15]
+  const weeks = report.value.weeks
+  const { pin, otp, moc } = report.value.failureChart
 
   failureChart.setOption({
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      formatter: (params: any) => {
-        return params.map((p: any) => `${p.seriesName}: thất bại ${p.value}%`).join('<br/>')
-      },
+      formatter: (params: any) => params.map((p: any) => `${p.seriesName}: thất bại ${p.value}%`).join('<br/>'),
     },
-    legend: {
-      bottom: 0,
-      data: ['Mã PIN', 'OTP', 'MoC'],
-      itemWidth: 12,
-      itemHeight: 12,
-      textStyle: { fontSize: 11 },
-    },
+    legend: { bottom: 0, data: ['Mã PIN', 'OTP', 'MoC'], itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 11 } },
     grid: { left: 16, right: 16, bottom: 48, top: 8, containLabel: true },
     xAxis: { type: 'category', data: weeks, axisLabel: { fontSize: 12 } },
-    yAxis: {
-      type: 'value',
-      max: 100,
-      splitLine: { lineStyle: { color: '#f0f0f0' } },
-      axisLabel: { formatter: (v: number) => v },
-    },
+    yAxis: { type: 'value', max: 100, splitLine: { lineStyle: { color: '#f0f0f0' } }, axisLabel: { formatter: (v: number) => v } },
     series: [
-      {
-        name: 'Mã PIN',
-        type: 'bar',
-        data: pinData,
-        itemStyle: { color: COLORS.pin },
-        barMaxWidth: 28,
-        label: { show: true, position: 'top', fontSize: 11, color: '#606266' },
-      },
-      {
-        name: 'OTP',
-        type: 'bar',
-        data: otpData,
-        itemStyle: { color: COLORS.otp },
-        barMaxWidth: 28,
-        label: { show: true, position: 'top', fontSize: 11, color: '#606266' },
-      },
-      {
-        name: 'MoC',
-        type: 'bar',
-        data: mocData,
-        itemStyle: { color: COLORS.moc },
-        barMaxWidth: 28,
-        label: { show: true, position: 'top', fontSize: 11, color: '#606266' },
-      },
+      { name: 'Mã PIN', type: 'bar', data: pin, itemStyle: { color: COLORS.pin }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
+      { name: 'OTP', type: 'bar', data: otp, itemStyle: { color: COLORS.otp }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
+      { name: 'MoC', type: 'bar', data: moc, itemStyle: { color: COLORS.moc }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
     ],
   }, true)
 }
@@ -350,12 +321,7 @@ function handleResize() {
 }
 
 onMounted(async () => {
-  await nextTick()
-  renderDonut()
-  renderNewCustChart()
-  renderCtsChart()
-  renderSigningChart()
-  renderFailureChart()
+  await loadReport()
   window.addEventListener('resize', handleResize)
 })
 
@@ -376,10 +342,6 @@ onUnmounted(() => {
 .stat-info { flex: 1; }
 .stat-value { font-size: 28px; font-weight: 700; color: #303133; line-height: 1.2; }
 .stat-label { font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4; }
-.stat-growth { font-size: 12px; margin-top: 4px; font-weight: 500; }
-.stat-growth.positive { color: #67c23a; }
-.stat-growth.negative { color: #f56c6c; }
-.growth-note { color: #909399; font-weight: 400; }
 
 .donut-wrap { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .donut-label { position: absolute; font-size: 12px; font-weight: 700; color: #303133; pointer-events: none; }

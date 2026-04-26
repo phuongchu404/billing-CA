@@ -17,7 +17,7 @@ public class IndividualUsageTrackingController {
     private final IndividualUsageTrackingService service;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('report:view')")
+    @PreAuthorize("hasAuthority('report:view') OR hasAuthority('individual:usage:view')")
     public ApiResponse<IndividualUsageTrackingResponse> getUsageTracking() {
         return ApiResponse.success(service.getUsageTracking(), "Fetched individual usage tracking");
     }

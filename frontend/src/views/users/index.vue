@@ -70,161 +70,148 @@
       </div> -->
 
       <!-- Table -->
-      <div class="table-wrap">
-        <table class="users-table">
-          <thead>
-            <!-- Header row -->
-            <tr class="header-row">
-              <th class="th-num">#</th>
-              <th class="th-sort" @click="setSort('username')">
-                {{ t("users.username").toUpperCase() }}
-                <SortIndicator
-                  field="username"
-                  :current="sortField"
-                  :dir="sortDir"
+      <el-table
+        class="users-el-table"
+        :data="pagedUsers"
+        border
+        @sort-change="handleSortChange"
+      >
+        <el-table-column
+          width="55"
+          type="index"
+          :index="(i: number) => (page - 1) * size + i + 1"
+        >
+          <template #header>
+            <div class="col-label">#</div>
+            <div class="col-filter">
+              <el-button
+                :icon="RefreshRight"
+                link
+                @click.stop="resetFilters"
+              />
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="username" sortable="custom" min-width="150">
+          <template #header>
+            <div class="col-label">{{ t("users.username").toUpperCase() }}</div>
+            <div class="col-filter" @click.stop>
+              <el-input
+                v-model="filterUsername"
+                size="small"
+                clearable
+                @input="onFilter"
+              />
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="status" sortable="custom" width="145">
+          <template #header>
+            <div class="col-label">TRẠNG THÁI</div>
+            <div class="col-filter" @click.stop>
+              <el-select
+                v-model="filterStatus"
+                size="small"
+                clearable
+                @change="onFilter"
+                style="width: 100%"
+              >
+                <el-option label="Hoạt động" value="ACTIVE" />
+                <el-option label="Đã thu hồi" value="REVOKED" />
+              </el-select>
+            </div>
+          </template>
+          <template #default="{ row }">
+            <span
+              class="status-badge"
+              :class="row.status === 'ACTIVE' ? 'active' : 'revoked'"
+            >
+              {{ row.status === "ACTIVE" ? "Hoạt động" : "Đã thu hồi" }}
+            </span>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="roleName" sortable="custom" min-width="150">
+          <template #header>
+            <div class="col-label">VAI TRÒ</div>
+            <div class="col-filter" @click.stop>
+              <el-select
+                v-model="filterRole"
+                size="small"
+                clearable
+                @change="onFilter"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="r in allRoles"
+                  :key="r.roleId"
+                  :label="r.displayName"
+                  :value="r.displayName"
                 />
-              </th>
-              <th class="th-sort" @click="setSort('status')">
-                TRẠNG THÁI
-                <SortIndicator
-                  field="status"
-                  :current="sortField"
-                  :dir="sortDir"
-                />
-              </th>
-              <th class="th-sort" @click="setSort('role')">
-                VAI TRÒ
-                <SortIndicator
-                  field="role"
-                  :current="sortField"
-                  :dir="sortDir"
-                />
-              </th>
-              <th class="th-sort" @click="setSort('fullName')">
-                TÊN NGƯỜI DÙNG
-                <SortIndicator
-                  field="fullName"
-                  :current="sortField"
-                  :dir="sortDir"
-                />
-              </th>
-              <th class="th-sort" @click="setSort('email')">
-                EMAIL
-                <SortIndicator
-                  field="fullName"
-                  :current="sortField"
-                  :dir="sortDir"
-                />
-              </th>
-              <th class="th-sort" @click="setSort('createdAt')">
-                THỜI GIAN TẠO
-                <SortIndicator
-                  field="createdAt"
-                  :current="sortField"
-                  :dir="sortDir"
-                />
-              </th>
-              <th class="th-actions">HÀNH ĐỘNG</th>
-            </tr>
-            <!-- Filter row -->
-            <tr class="filter-row">
-              <td class="filter-refresh">
+              </el-select>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="fullName" sortable="custom" min-width="170">
+          <template #header>
+            <div class="col-label">TÊN NGƯỜI DÙNG</div>
+            <div class="col-filter"></div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="email" sortable="custom" min-width="190">
+          <template #header>
+            <div class="col-label">EMAIL</div>
+            <div class="col-filter"></div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="createdAt" sortable="custom" width="175">
+          <template #header>
+            <div class="col-label">THỜI GIAN TẠO</div>
+            <div class="col-filter"></div>
+          </template>
+        </el-table-column>
+
+        <el-table-column fixed="right" width="320">
+          <template #header>
+            <div class="col-label">HÀNH ĐỘNG</div>
+            <div class="col-filter"></div>
+          </template>
+          <template #default="{ row }">
+            <div class="td-actions">
+              <template v-if="row.status === 'ACTIVE'">
                 <el-button
-                  :icon="RefreshRight"
-                  circle
                   size="small"
-                  @click="resetFilters"
-                />
-              </td>
-              <td class="filter-cell">
-                <el-input
-                  v-model="filterUsername"
-                  size="small"
-                  clearable
-                  @input="onFilter"
-                />
-              </td>
-              <td class="filter-cell">
-                <el-select
-                  v-model="filterStatus"
-                  size="small"
-                  clearable
-                  @change="onFilter"
-                  style="width: 100%"
+                  :icon="EditPen"
+                  :disabled="!can('user:update')"
+                  @click="openEdit(row)"
+                  >Chỉnh sửa</el-button
                 >
-                  <el-option label="Hoạt động" value="ACTIVE" />
-                  <el-option label="Đã thu hồi" value="REVOKED" />
-                </el-select>
-              </td>
-              <td class="filter-cell">
-                <el-select
-                  v-model="filterRole"
+                <el-button
                   size="small"
-                  clearable
-                  @change="onFilter"
-                  style="width: 100%"
+                  :icon="Key"
+                  :disabled="!can('user:update')"
+                  @click="openResetPwd(row)"
+                  >Đặt lại mật khẩu</el-button
                 >
-                  <el-option
-                    v-for="r in allRoles"
-                    :key="r.roleId"
-                    :label="r.displayName"
-                    :value="r.displayName"
-                  />
-                </el-select>
-              </td>
-              <td />
-              <td />
-              <td />
-              <td />
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(user, i) in pagedUsers" :key="user.id" class="data-row">
-              <td class="td-num">{{ (page - 1) * size + i + 1 }}</td>
-              <td>{{ user.username }}</td>
-              <td>
-                <span
-                  class="status-badge"
-                  :class="user.status === 'ACTIVE' ? 'active' : 'revoked'"
+                <el-button
+                  size="small"
+                  :icon="Delete"
+                  type="warning"
+                  plain
+                  :disabled="!can('user:update')"
+                  @click="openDelete(row)"
+                  >Xoá tài khoản</el-button
                 >
-                  {{ user.status === "ACTIVE" ? "Hoạt động" : "Đã thu hồi" }}
-                </span>
-              </td>
-              <td>{{ user.roleName }}</td>
-              <td>{{ user.fullName }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.createdAt }}</td>
-              <td class="td-actions">
-                <template v-if="user.status === 'ACTIVE'">
-                  <el-button
-                    size="small"
-                    :icon="EditPen"
-                    :disabled="!can('user:update')"
-                    @click="openEdit(user)"
-                    >Chỉnh sửa</el-button
-                  >
-                  <el-button
-                    size="small"
-                    :icon="Key"
-                    :disabled="!can('user:update')"
-                    @click="openResetPwd(user)"
-                    >Đặt lại mật khẩu</el-button
-                  >
-                  <el-button
-                    size="small"
-                    :icon="Delete"
-                    type="warning"
-                    plain
-                    :disabled="!can('user:update')"
-                    @click="openDelete(user)"
-                    >Xoá tài khoản</el-button
-                  >
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </template>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
 
       <!-- Pagination bottom -->
       <div class="pagination-bar">
@@ -452,21 +439,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, defineComponent, h } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import {
   Plus,
   EditPen,
   Key,
   RefreshRight,
-  DCaret,
-  CaretTop,
-  CaretBottom,
   Delete,
 } from "@element-plus/icons-vue";
 import { usePermission } from "@/composables/usePermission";
 
 const { can } = usePermission();
-import { ElMessage, ElIcon } from "element-plus";
+import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
 import {
   listUsers,
@@ -480,20 +464,6 @@ import type { FormInstance } from "element-plus";
 import type { Role } from "@/types";
 
 const { t } = useI18n();
-
-// ── Sort indicator component ──
-const SortIndicator = defineComponent({
-  props: { field: String, current: String, dir: String },
-  setup(props) {
-    return () => {
-      if (props.field !== props.current)
-        return h(ElIcon, { class: "sort-icon" }, () => h(DCaret));
-      return h(ElIcon, { class: "sort-icon active" }, () =>
-        props.dir === "asc" ? h(CaretTop) : h(CaretBottom),
-      );
-    };
-  },
-});
 
 // ── Data model ──
 interface UserRow {
@@ -579,13 +549,16 @@ const pageRange = computed(() => {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 });
 
-function setSort(field: string) {
-  if (sortField.value === field)
-    sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
-  else {
-    sortField.value = field;
-    sortDir.value = "asc";
-  }
+function handleSortChange({
+  prop,
+  order,
+}: {
+  prop: string;
+  order: "ascending" | "descending" | null;
+}) {
+  sortField.value = order ? prop : "";
+  sortDir.value = order === "descending" ? "desc" : "asc";
+  page.value = 1;
 }
 
 function goPage(p: number) {
@@ -857,91 +830,31 @@ onMounted(load);
   cursor: not-allowed;
 }
 
-/* ── Table ── */
-.table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
-}
-
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-/* Header */
-.header-row th {
-  background: #fff;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  padding: 10px 12px;
-  font-weight: 600;
-  font-size: 12px;
+.col-label {
   color: #606266;
-  white-space: nowrap;
-  text-align: left;
-}
-.th-num {
-  width: 48px;
-  text-align: center;
-}
-.th-actions {
-  width: 220px;
-  text-align: center;
-}
-.th-sort {
-  cursor: pointer;
-  user-select: none;
-}
-.th-sort:hover {
-  color: #1b60cb;
-}
-
-:deep(.sort-icon) {
   font-size: 12px;
-  vertical-align: middle;
-  margin-left: 2px;
-  color: #c0c4cc;
+  font-weight: 600;
+  line-height: 1.35;
+  text-transform: uppercase;
 }
-:deep(.sort-icon.active) {
-  color: #1b60cb;
+.col-filter {
+  min-height: 32px;
 }
-
-/* Filter row */
-.filter-row {
-  background: #fafafa;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+:deep(.users-el-table th.el-table__cell) {
+  padding: 8px 0;
+  vertical-align: top;
 }
-.filter-row td {
-  padding: 6px 8px;
-}
-.filter-refresh {
-  text-align: center;
-}
-.filter-cell {
-  min-width: 100px;
-}
-
-/* Data rows */
-.data-row td {
-  border-top: 1px solid var(--el-border-color-lighter);
-  padding: 9px 12px;
-  color: #303133;
-  font-size: 14px;
-}
-.data-row:hover td {
-  background: #f5f7fa;
-}
-.td-num {
-  text-align: center;
-  color: #909399;
+:deep(.users-el-table td.el-table__cell) {
+  padding: 9px 0;
 }
 .td-actions {
+  display: flex;
+  gap: 6px;
   text-align: left;
   white-space: nowrap;
 }
-.td-actions .el-button + .el-button {
-  margin-left: 6px;
+.td-actions :deep(.el-button) {
+  margin: 0;
 }
 
 /* Status badge */

@@ -170,6 +170,9 @@ public class RoleService {
     @Transactional
     public void assignPermissions(Long roleId, List<Long> permissionIds) {
         Role role = findById(roleId);
+        if (Boolean.TRUE.equals(role.getIsSystemRole())) {
+            throw new SmsException(ErrorCodes.CANNOT_MODIFY_SYSTEM_ROLE, "System roles cannot have their permissions changed", 400);
+        }
         rolePermissionRepository.deleteAllByRoleRoleId(roleId);
         entityManager.flush();
 
