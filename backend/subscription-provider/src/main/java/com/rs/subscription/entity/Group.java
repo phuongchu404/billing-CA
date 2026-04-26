@@ -41,6 +41,10 @@ public class Group {
     @Column(nullable = false, length = 100)
     private String createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_user_id")
+    private UserAccount owner;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

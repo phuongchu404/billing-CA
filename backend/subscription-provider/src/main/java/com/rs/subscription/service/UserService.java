@@ -184,6 +184,41 @@ public class UserService {
         return getUserById(userId);
     }
 
+    /** Gán manager trực tiếp cho user. Truyền null để xoá manager. */
+    @Transactional
+    public UserResponse setManager(String userId, String managerUserId) {
+        UserAccount user = findById(userId);
+        if (managerUserId == null || managerUserId.isBlank()) {
+            user.setManager(null);
+        } else {
+            if (userId.equals(managerUserId)) {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED, "User cannot be their own manager", 400);
+            }
+            UserAccount manager = findById(managerUserId);
+            // Ngăn vòng lặp: managerUserId không được là cấp dưới của userId
+            List<String> subordinates = userAccountRepository.findAllSubordinateIds(userId);
+            if (subordinates.contains(managerUserId)) {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Circular hierarchy: the designated manager is already a subordinate", 400);
+            }
+            user.setManager(manager);
+        }
+        return toResponse(userAccountRepository.save(user));
+    }
+
+    /** Trả về danh sách userId của tất cả cấp dưới (đệ quy). */
+    @Transactional(readOnly = true)
+    public List<String> getSubordinateIds(String managerId) {
+        return userAccountRepository.findAllSubordinateIds(managerId);
+    }
+
+    /** Trả về danh sách cấp dưới trực tiếp (1 cấp). */
+    @Transactional(readOnly = true)
+    public List<UserResponse> getDirectSubordinates(String managerId) {
+        return userAccountRepository.findDirectSubordinates(managerId)
+            .stream().map(this::toResponse).toList();
+    }
+
     public UserAccount findById(String userId) {
         return userAccountRepository.findById(userId)
             .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED, "User not found: " + userId, 404));
@@ -210,6 +245,10 @@ public class UserService {
         r.setStatus(u.getStatus());
         r.setLastLoginAt(u.getLastLoginAt());
         r.setCreatedAt(u.getCreatedAt());
+        if (u.getManager() != null) {
+            r.setManagerUserId(u.getManager().getUserId());
+            r.setManagerName(u.getManager().getFullName());
+        }
         r.setRoles(u.getRoles().stream().map(role -> {
             RoleResponse rr = new RoleResponse();
             rr.setRoleId(role.getRoleId());

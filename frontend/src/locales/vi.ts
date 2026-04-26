@@ -65,6 +65,9 @@ export default {
     logsManagement: 'Quản lý logs',
     reportGroupTab: 'Xem báo cáo đại lý',
     reportIndividualTab: 'Xem báo cáo phổ thông',
+    partnerAccess: 'Quyền truy cập đối tác',
+    partnerAccessGrant: 'Cấp quyền đối tác',
+    partnerAccessRevoke: 'Thu hồi quyền đối tác',
   },
   individual: {
     plansTitle: 'Gói cá nhân',

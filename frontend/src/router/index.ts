@@ -93,6 +93,12 @@ const router = createRouter({
           },
         },
         {
+          path: "partner-access",
+          name: "PartnerAccess",
+          component: () => import("@/views/partner/AccessManagement.vue"),
+          meta: { title: "Quyền truy cập đối tác", permission: "partner:access:grant" },
+        },
+        {
           path: "audit-logs",
           name: "AuditLogs",
           component: () => import("@/views/audit-logs/index.vue"),

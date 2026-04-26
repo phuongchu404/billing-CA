@@ -48,6 +48,14 @@ public class UserAccount {
     @Column(length = 36)
     private String createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_user_id")
+    private UserAccount manager;
+
+    @OneToMany(mappedBy = "manager", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<UserAccount> subordinates = new ArrayList<>();
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -229,7 +229,7 @@ async function loadReport() {
   loading.value = true
   try {
     const res = await getGroupReport(selectedMonth.value)
-    report.value = res.data
+    report.value = res.data ?? null
     await nextTick()
     renderCharts()
   } finally {

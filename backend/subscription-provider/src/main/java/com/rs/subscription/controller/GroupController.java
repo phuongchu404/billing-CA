@@ -1,6 +1,7 @@
 package com.rs.subscription.controller;
 
 import com.rs.subscription.dto.ApiResponse;
+import com.rs.subscription.dto.request.AssignGroupOwnerRequest;
 import com.rs.subscription.dto.request.ProvisionGroupRequest;
 import com.rs.subscription.dto.request.UpsertGroupRequest;
 import com.rs.subscription.dto.response.GroupDetailResponse;
@@ -16,10 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * REST controller quản lý Group (khách hàng đại lý).
- * HTTP security chỉ phân biệt public/authenticated; quyền chi tiết ở @PreAuthorize.
- */
 @RestController
 @RequestMapping("/api/v1/groups")
 @RequiredArgsConstructor
@@ -28,21 +25,21 @@ public class GroupController {
     private final GroupService groupService;
     private final GroupProvisioningService groupProvisioningService;
 
-    /** Danh sách tất cả đại lý kèm thông tin gói cước hiện tại và usage */
+    /** Danh sách đại lý — tự động lọc theo scope của user hiện tại */
     @GetMapping
-    @PreAuthorize("hasAuthority('group:view')")
+    @PreAuthorize("hasAnyAuthority('group:view','group:view:own','group:view:subordinates')")
     public ApiResponse<List<GroupListItemResponse>> listAll() {
         return ApiResponse.success(groupService.listAll(), "Fetched groups");
     }
 
     /** Chi tiết một đại lý */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('group:view')")
+    @PreAuthorize("hasAnyAuthority('group:view','group:view:own','group:view:subordinates','report:view:partner')")
     public ApiResponse<GroupDetailResponse> getById(@PathVariable Long id) {
         return ApiResponse.success(groupService.getById(id), "Fetched group");
     }
 
-    /** Tạo đại lý mới (hệ thống tự sinh groupCode) */
+    /** Tạo đại lý mới */
     @PostMapping
     @PreAuthorize("hasAuthority('group:create')")
     public ApiResponse<GroupDetailResponse> create(@Valid @RequestBody UpsertGroupRequest request) {
@@ -66,7 +63,17 @@ public class GroupController {
         return ApiResponse.success(groupService.update(id, request), "Updated group");
     }
 
-    /** Tạm dừng đại lý (ACTIVE → INACTIVE) */
+    /** Gán nhân viên phụ trách cho group (admin / manager) */
+    @PatchMapping("/{id}/owner")
+    @PreAuthorize("hasAuthority('group:assign:owner')")
+    public ApiResponse<GroupDetailResponse> assignOwner(
+        @PathVariable Long id,
+        @Valid @RequestBody AssignGroupOwnerRequest request
+    ) {
+        return ApiResponse.success(groupService.assignOwner(id, request.getOwnerUserId()), "Owner assigned");
+    }
+
+    /** Tạm dừng đại lý */
     @PatchMapping("/{id}/suspend")
     @PreAuthorize("hasAuthority('group:update')")
     public ApiResponse<Void> suspend(@PathVariable Long id) {
@@ -74,7 +81,7 @@ public class GroupController {
         return ApiResponse.success("Group suspended");
     }
 
-    /** Kích hoạt lại đại lý (INACTIVE → ACTIVE) */
+    /** Kích hoạt lại đại lý */
     @PatchMapping("/{id}/activate")
     @PreAuthorize("hasAuthority('group:update')")
     public ApiResponse<Void> activate(@PathVariable Long id) {
@@ -84,7 +91,7 @@ public class GroupController {
 
     /** Lịch sử áp dụng gói cước của đại lý */
     @GetMapping("/{id}/plan-history")
-    @PreAuthorize("hasAuthority('group:view')")
+    @PreAuthorize("hasAnyAuthority('group:view','group:view:own','group:view:subordinates','report:view:partner')")
     public ApiResponse<List<PlanHistoryResponse>> getPlanHistory(@PathVariable Long id) {
         return ApiResponse.success(groupService.getPlanHistory(id), "Fetched plan history");
     }

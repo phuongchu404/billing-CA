@@ -711,6 +711,8 @@ const agency = ref<GroupDetail>({
   createdBy: null,
   createdAt: null,
   updatedAt: null,
+  ownerUserId: null,
+  ownerName: null,
 });
 
 interface PlanRow {

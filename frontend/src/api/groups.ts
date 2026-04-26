@@ -53,3 +53,7 @@ export const addGroupPlan = (groupId: number, data: AddGroupPlanRequest) =>
 // ---- Provision (tạo group + plan + assignment trong 1 transaction) ----
 export const provisionGroup = (data: ProvisionGroupRequest) =>
   request.post<any, ApiResponse<ProvisionGroupResponse>>('/api/v1/groups/provision', data)
+
+// ---- Owner assignment ----
+export const assignGroupOwner = (groupId: number, ownerUserId: string | null) =>
+  request.patch<any, ApiResponse<GroupDetail>>(`/api/v1/groups/${groupId}/owner`, { ownerUserId })

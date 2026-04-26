@@ -8,12 +8,14 @@ import com.rs.subscription.entity.Group;
 import com.rs.subscription.entity.GroupContact;
 import com.rs.subscription.entity.GroupPlanAssignment;
 import com.rs.subscription.entity.PlanPricingRule;
+import com.rs.subscription.entity.UserAccount;
 import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.GroupContactRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
 import com.rs.subscription.repository.GroupRepository;
+import com.rs.subscription.repository.UserAccountRepository;
 import com.rs.subscription.repository.UsageAggregateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,19 +33,35 @@ public class GroupService {
     private final GroupContactRepository groupContactRepository;
     private final GroupPlanAssignmentRepository assignmentRepository;
     private final UsageAggregateRepository usageAggregateRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final DataScopeService dataScopeService;
 
     // ----------------------------------------------------------------
-    // LIST ALL
+    // LIST ALL — lọc theo scope của user hiện tại
     // ----------------------------------------------------------------
     public List<GroupListItemResponse> listAll() {
-        return groupRepository.findAll().stream().map(this::toListItem).toList();
+        List<Long> visibleIds = dataScopeService.resolveVisibleGroupIds();
+        List<Group> groups;
+        if (visibleIds == null) {
+            groups = groupRepository.findAll();
+        } else if (visibleIds.isEmpty()) {
+            return List.of();
+        } else {
+            groups = groupRepository.findAllById(visibleIds);
+        }
+        return groups.stream()
+                .sorted(java.util.Comparator.comparingLong(Group::getGroupId))
+                .map(this::toListItem)
+                .toList();
     }
 
     // ----------------------------------------------------------------
     // GET BY ID
     // ----------------------------------------------------------------
     public GroupDetailResponse getById(Long id) {
-        return toDetail(findEntity(id));
+        Group group = findEntity(id);
+        assertCanAccess(id);
+        return toDetail(group);
     }
 
     // ----------------------------------------------------------------
@@ -52,6 +70,14 @@ public class GroupService {
     @Transactional
     public GroupDetailResponse create(UpsertGroupRequest request) {
         String groupCode = generateGroupCode();
+
+        UserAccount owner = null;
+        if (request.getOwnerUserId() != null && !request.getOwnerUserId().isBlank()) {
+            owner = userAccountRepository.findById(request.getOwnerUserId())
+                .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Owner user not found: " + request.getOwnerUserId(), 400));
+        }
+
         Group group = Group.builder()
             .groupCode(groupCode)
             .groupName(request.getGroupName())
@@ -59,6 +85,7 @@ public class GroupService {
             .password("pending_reset")
             .refContractNo(request.getRefContractNo())
             .createdBy(request.getCreatedBy() != null ? request.getCreatedBy() : "system")
+            .owner(owner)
             .status(CommercialEnums.GroupStatus.ACTIVE.name())
             .build();
         Group saved = groupRepository.save(group);
@@ -71,14 +98,44 @@ public class GroupService {
     // ----------------------------------------------------------------
     @Transactional
     public GroupDetailResponse update(Long id, UpsertGroupRequest request) {
+        assertCanAccess(id);
         Group group = findEntity(id);
         group.setGroupName(request.getGroupName());
         group.setRefContractNo(request.getRefContractNo());
+
+        if (request.getOwnerUserId() != null) {
+            if (request.getOwnerUserId().isBlank()) {
+                group.setOwner(null);
+            } else {
+                UserAccount owner = userAccountRepository.findById(request.getOwnerUserId())
+                    .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Owner user not found: " + request.getOwnerUserId(), 400));
+                group.setOwner(owner);
+            }
+        }
+
         groupRepository.save(group);
-        // Replace contacts
         groupContactRepository.deleteByGroupGroupId(id);
         saveContacts(group, request);
         return toDetail(findEntity(id));
+    }
+
+    // ----------------------------------------------------------------
+    // ASSIGN OWNER (admin gán nhân viên phụ trách)
+    // ----------------------------------------------------------------
+    @Transactional
+    public GroupDetailResponse assignOwner(Long groupId, String ownerUserId) {
+        Group group = findEntity(groupId);
+        if (ownerUserId == null || ownerUserId.isBlank()) {
+            group.setOwner(null);
+        } else {
+            UserAccount owner = userAccountRepository.findById(ownerUserId)
+                .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Owner user not found: " + ownerUserId, 400));
+            group.setOwner(owner);
+        }
+        groupRepository.save(group);
+        return toDetail(findEntity(groupId));
     }
 
     // ----------------------------------------------------------------
@@ -86,6 +143,7 @@ public class GroupService {
     // ----------------------------------------------------------------
     @Transactional
     public void suspend(Long id) {
+        assertCanAccess(id);
         Group group = findEntity(id);
         if ("INACTIVE".equals(group.getStatus())) {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Group is already inactive", 400);
@@ -96,6 +154,7 @@ public class GroupService {
 
     @Transactional
     public void activate(Long id) {
+        assertCanAccess(id);
         Group group = findEntity(id);
         if ("ACTIVE".equals(group.getStatus())) {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Group is already active", 400);
@@ -109,7 +168,8 @@ public class GroupService {
     // ----------------------------------------------------------------
     @Transactional(readOnly = true)
     public List<PlanHistoryResponse> getPlanHistory(Long groupId) {
-        findEntity(groupId); // ensure group exists
+        findEntity(groupId);
+        assertCanAccess(groupId);
         return assignmentRepository.findHistoryByGroupId(groupId)
             .stream().map(this::toPlanHistory).toList();
     }
@@ -120,6 +180,13 @@ public class GroupService {
     public Group findEntity(Long id) {
         return groupRepository.findById(id)
             .orElseThrow(() -> new SmsException(ErrorCodes.GROUP_NOT_FOUND, "Group not found: " + id, 404));
+    }
+
+    private void assertCanAccess(Long groupId) {
+        if (!dataScopeService.canAccessGroup(groupId)) {
+            throw new SmsException(ErrorCodes.GROUP_ACCESS_DENIED,
+                "Access denied to group: " + groupId, 403);
+        }
     }
 
     private static final String CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -173,6 +240,10 @@ public class GroupService {
         res.setGroupName(group.getGroupName());
         res.setStatus(group.getStatus());
         res.setUpdatedAt(group.getUpdatedAt());
+        if (group.getOwner() != null) {
+            res.setOwnerUserId(group.getOwner().getUserId());
+            res.setOwnerName(group.getOwner().getFullName());
+        }
 
         Optional<GroupPlanAssignment> activeOpt = assignmentRepository
             .findFirstByGroupGroupIdAndAssignmentStatusOrderByActivatedAtDesc(group.getGroupId(), "ACTIVE");
@@ -210,6 +281,10 @@ public class GroupService {
         res.setCreatedBy(group.getCreatedBy());
         res.setCreatedAt(group.getCreatedAt());
         res.setUpdatedAt(group.getUpdatedAt());
+        if (group.getOwner() != null) {
+            res.setOwnerUserId(group.getOwner().getUserId());
+            res.setOwnerName(group.getOwner().getFullName());
+        }
 
         List<GroupContact> contacts = groupContactRepository
             .findByGroupGroupIdOrderByIsPrimaryDescGroupContactIdAsc(group.getGroupId());
@@ -249,7 +324,6 @@ public class GroupService {
         return res;
     }
 
-    /** Tổng quota chứng thư từ pricing rules (quotaTotal field) */
     private Integer getCertQuota(GroupPlanAssignment a) {
         int total = a.getPlanTemplate().getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getQuotaTotal() != null)
@@ -257,7 +331,6 @@ public class GroupService {
         return total > 0 ? total : null;
     }
 
-    /** Quota lượt ký: dùng rangeMax của rule SIGNING_COUNT */
     private Integer getSigningQuota(GroupPlanAssignment a) {
         int total = a.getPlanTemplate().getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive())

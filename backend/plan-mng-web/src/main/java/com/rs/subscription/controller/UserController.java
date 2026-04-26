@@ -17,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Users", description = "User management")
@@ -154,5 +156,27 @@ public class UserController {
                                              @Valid @RequestBody ChangePasswordRequest req) {
         userService.changePassword(user.getUserId(), req);
         return ApiResponse.success("Password changed successfully");
+    }
+
+    @PatchMapping("/api/v1/admin/users/{userId}/manager")
+    @PreAuthorize("hasAuthority('user:update')")
+    @Operation(summary = "Assign or clear manager for user")
+    public ApiResponse<com.rs.subscription.dto.response.UserResponse> setManager(
+            @PathVariable String userId,
+            @Valid @RequestBody com.rs.subscription.dto.request.SetManagerRequest req,
+            @CurrentUser CustomUserDetails admin) {
+        String adminId = admin.getUserId();
+        com.rs.subscription.dto.response.UserResponse user = userService.setManager(userId, req.getManagerUserId());
+        auditLogService.log(adminId, "SET_USER_MANAGER", "USER", userId,
+                "Set manager to: " + req.getManagerUserId());
+        return ApiResponse.success(user, "Manager updated successfully");
+    }
+
+    @GetMapping("/api/v1/admin/users/{userId}/subordinates")
+    @PreAuthorize("hasAnyAuthority('user:view','group:view:subordinates')")
+    @Operation(summary = "List direct subordinates of a user")
+    public ApiResponse<java.util.List<com.rs.subscription.dto.response.UserResponse>> getSubordinates(
+            @PathVariable String userId) {
+        return ApiResponse.success(userService.getDirectSubordinates(userId), "Subordinates retrieved successfully");
     }
 }

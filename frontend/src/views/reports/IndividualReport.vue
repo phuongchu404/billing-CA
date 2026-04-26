@@ -189,7 +189,7 @@ async function loadReport() {
   loading.value = true
   try {
     const res = await getIndividualReport(selectedMonth.value)
-    report.value = res.data
+    report.value = res.data ?? null
     await nextTick()
     renderDonut()
     renderNewCustChart()

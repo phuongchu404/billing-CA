@@ -226,6 +226,8 @@ const agency = reactive<GroupDetail>({
   createdBy: null,
   createdAt: null,
   updatedAt: null,
+  ownerUserId: null,
+  ownerName: null,
 })
 
 const form = reactive({

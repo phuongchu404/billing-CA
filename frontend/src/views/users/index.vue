@@ -162,6 +162,17 @@
           </template>
         </el-table-column>
 
+        <el-table-column prop="managerName" sortable="custom" min-width="160">
+          <template #header>
+            <div class="col-label">QUẢN LÝ TRỰC TIẾP</div>
+            <div class="col-filter"></div>
+          </template>
+          <template #default="{ row }">
+            <span v-if="row.managerName">{{ row.managerName }}</span>
+            <span v-else class="text-muted">—</span>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="email" sortable="custom" min-width="190">
           <template #header>
             <div class="col-label">EMAIL</div>
@@ -190,6 +201,13 @@
                   :disabled="!can('user:update')"
                   @click="openEdit(row)"
                   >Chỉnh sửa</el-button
+                >
+                <el-button
+                  size="small"
+                  :icon="Connection"
+                  :disabled="!can('user:update')"
+                  @click="openAssignManager(row)"
+                  >Gán quản lý</el-button
                 >
                 <el-button
                   size="small"
@@ -329,6 +347,22 @@
             <el-option v-for="r in allRoles" :key="r.roleId" :label="r.displayName" :value="r.displayName" />
           </el-select>
         </el-form-item>
+        <el-form-item label="Quản lý:">
+          <el-select
+            v-model="createForm.managerUserId"
+            placeholder="Chọn quản lý (không bắt buộc)"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="u in users"
+              :key="u.id"
+              :label="`${u.fullName} (${u.username})`"
+              :value="u.id"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dlg-footer-right">
@@ -407,6 +441,34 @@
       </template>
     </el-dialog>
 
+    <!-- Assign Manager Dialog -->
+    <el-dialog v-model="assignManagerVisible" width="420px" :close-on-click-modal="false">
+      <template #header>
+        <span class="dlg-title">GÁN QUẢN LÝ TRỰC TIẾP</span>
+      </template>
+      <el-form label-width="130px" label-position="left">
+        <el-form-item label="Tài khoản:">
+          <span>{{ assignManagerTarget?.fullName }} ({{ assignManagerTarget?.username }})</span>
+        </el-form-item>
+        <el-form-item label="Quản lý:">
+          <el-select v-model="assignManagerId" clearable placeholder="Chọn quản lý (để trống = xoá)" style="width:100%">
+            <el-option
+              v-for="u in users.filter(u => u.id !== assignManagerTarget?.id)"
+              :key="u.id"
+              :label="`${u.fullName} (${u.username})`"
+              :value="u.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dlg-footer-right">
+          <el-button type="primary" :loading="saving" @click="handleAssignManager">Xác Nhận</el-button>
+          <el-button @click="assignManagerVisible = false">Hủy Bỏ</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- Reset Password Dialog -->
     <el-dialog
       v-model="resetPwdVisible"
@@ -446,6 +508,7 @@ import {
   Key,
   RefreshRight,
   Delete,
+  Connection,
 } from "@element-plus/icons-vue";
 import { usePermission } from "@/composables/usePermission";
 
@@ -458,6 +521,7 @@ import {
   updateUser,
   resetUserPassword,
   deleteUser,
+  assignManager,
 } from "@/api/users";
 import { listRoles } from "@/api/roles";
 import type { FormInstance } from "element-plus";
@@ -473,6 +537,7 @@ interface UserRow {
   email: string;
   status: "ACTIVE" | "REVOKED";
   roleName: string;
+  managerName: string;
   createdAt: string;
 }
 
@@ -598,6 +663,7 @@ async function load() {
         email: u.email,
         status: u.status === "ACTIVE" ? "ACTIVE" : "REVOKED",
         roleName: u.roles?.[0]?.displayName ?? "-",
+        managerName: u.managerName ?? "",
         createdAt: formatDate(u.createdAt),
       }));
     }
@@ -618,6 +684,7 @@ const createForm = reactive({
   password: "",
   confirmPassword: "",
   roleName: "",
+  managerUserId: "",
 });
 const createRules = computed(() => ({
   username: [{ required: true, message: t("common.required") }],
@@ -644,6 +711,7 @@ function openCreate() {
     password: "",
     confirmPassword: "",
     roleName: "",
+    managerUserId: "",
   });
   createVisible.value = true;
 }
@@ -653,7 +721,7 @@ async function handleCreate() {
   saving.value = true;
   try {
     const roleMatch = allRoles.value.find((r) => r.displayName === createForm.roleName);
-    await createUser({
+    const res = await createUser({
       username: createForm.username,
       email: createForm.email,
       fullName: createForm.fullName,
@@ -661,6 +729,9 @@ async function handleCreate() {
       confirmPassword: createForm.confirmPassword,
       roleIds: roleMatch ? [roleMatch.roleId] : [],
     });
+    if (createForm.managerUserId && res.success && res.data?.userId) {
+      await assignManager(res.data.userId, createForm.managerUserId);
+    }
     ElMessage.success(t("users.createdMsg"));
     createVisible.value = false;
     await load();
@@ -755,6 +826,30 @@ async function handleResetPwd() {
     await resetUserPassword(resetTarget.value!.id, newPassword.value);
     ElMessage.success(t("users.passwordReset"));
     resetPwdVisible.value = false;
+  } finally {
+    saving.value = false;
+  }
+}
+
+// ── Assign Manager dialog ──
+const assignManagerVisible = ref(false);
+const assignManagerTarget = ref<UserRow | null>(null);
+const assignManagerId = ref<string>("");
+
+function openAssignManager(user: UserRow) {
+  assignManagerTarget.value = user;
+  assignManagerId.value = "";
+  assignManagerVisible.value = true;
+}
+
+async function handleAssignManager() {
+  if (!assignManagerTarget.value) return;
+  saving.value = true;
+  try {
+    await assignManager(assignManagerTarget.value.id, assignManagerId.value || null);
+    ElMessage.success("Đã cập nhật quản lý trực tiếp");
+    assignManagerVisible.value = false;
+    await load();
   } finally {
     saving.value = false;
   }

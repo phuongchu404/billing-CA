@@ -36,3 +36,10 @@ export const getMyProfile = () =>
 
 export const changePassword = (data: { currentPassword: string; newPassword: string }) =>
   request.put<any, ApiResponse<void>>('/api/v1/users/me/password', data)
+
+// ---- Manager / hierarchy ----
+export const assignManager = (userId: string, managerUserId: string | null) =>
+  request.patch<any, ApiResponse<UserAccount>>(`/api/v1/admin/users/${userId}/manager`, { managerUserId })
+
+export const getSubordinates = (userId: string) =>
+  request.get<any, ApiResponse<UserAccount[]>>(`/api/v1/admin/users/${userId}/subordinates`)

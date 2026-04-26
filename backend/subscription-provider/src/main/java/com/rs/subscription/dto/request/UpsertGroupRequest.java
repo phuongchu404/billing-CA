@@ -31,4 +31,8 @@ public class UpsertGroupRequest {
     /** Người tạo — nếu null thì mặc định "system" */
     @Size(max = 100)
     private String createdBy;
+
+    /** userId của nhân viên nội bộ phụ trách group này (nullable) */
+    @Size(max = 36)
+    private String ownerUserId;
 }

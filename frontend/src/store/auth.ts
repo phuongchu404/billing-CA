@@ -12,11 +12,17 @@ export const useAuthStore = defineStore('auth', () => {
   const userRoles = computed(() => user.value?.roles?.map(r => r.roleName) || [])
   const isAdmin = computed(() => userRoles.value.includes('ROLE_ADMIN'))
   const isOperator = computed(() => userRoles.value.includes('ROLE_OPERATOR'))
+  const isPartner = computed(() => userRoles.value.includes('ROLE_PARTNER'))
+  const isManager = computed(() => userRoles.value.includes('ROLE_MANAGER'))
   const permissions = computed(() => user.value?.permissions || [])
   function hasPermission(key?: string): boolean {
     if (!key) return true
     const values = permissions.value
     return values.includes('*') || values.includes(key)
+  }
+  /** Kiểm tra user có bất kỳ permission nào trong danh sách không */
+  function hasAnyPermission(...keys: string[]): boolean {
+    return keys.some(k => hasPermission(k))
   }
 
   async function doLogin(credentials: LoginRequest) {
@@ -59,5 +65,5 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuth()
   }
 
-  return { token, user, isLoggedIn, isAdmin, isOperator, userRoles, permissions, hasPermission, doLogin, doLogout }
+  return { token, user, isLoggedIn, isAdmin, isOperator, isPartner, isManager, userRoles, permissions, hasPermission, hasAnyPermission, doLogin, doLogout }
 })

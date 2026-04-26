@@ -13,6 +13,8 @@ public class UserResponse {
     private String authProvider;
     private String status;
     private List<RoleResponse> roles;
+    private String managerUserId;
+    private String managerName;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
 }

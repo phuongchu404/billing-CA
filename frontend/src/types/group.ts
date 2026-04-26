@@ -11,6 +11,8 @@ export interface GroupListItem {
   signingUsed: number | null
   signingUsedPct: string | null
   updatedAt: string | null    // LocalDateTime → ISO string
+  ownerUserId: string | null
+  ownerName: string | null
 }
 
 /** Chi tiết đại lý (Detail.vue, AddPlan.vue) */
@@ -25,6 +27,8 @@ export interface GroupDetail {
   createdBy: string | null
   createdAt: string | null
   updatedAt: string | null
+  ownerUserId: string | null
+  ownerName: string | null
 }
 
 /** Request tạo/cập nhật đại lý */
@@ -33,6 +37,21 @@ export interface UpsertGroupRequest {
   picEmails: string[]
   contactEmails: string[]
   refContractNo?: string
+  ownerUserId?: string | null
+}
+
+/** Quyền truy cập báo cáo của đối tác */
+export interface PartnerGroupAccess {
+  id: number
+  partnerUserId: string
+  partnerName: string
+  groupId: number
+  groupCode: string
+  groupName: string
+  grantedBy: string
+  grantedAt: string
+  revokedAt: string | null
+  active: boolean
 }
 
 /** Một dòng lịch sử áp dụng gói cước */

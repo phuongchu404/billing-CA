@@ -24,4 +24,7 @@ public class GroupListItemResponse {
     /** % lượt ký đã dùng so với quota (null nếu không giới hạn) */
     private String signingUsedPct;
     private LocalDateTime updatedAt;
+    /** userId nhân viên phụ trách (null nếu chưa gán) */
+    private String ownerUserId;
+    private String ownerName;
 }

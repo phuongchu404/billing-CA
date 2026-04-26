@@ -91,6 +91,17 @@
           </template>
         </el-table-column>
 
+        <el-table-column prop="ownerName" sortable min-width="150">
+          <template #header>
+            <div class="col-label">NHÂN VIÊN PHỤ TRÁCH</div>
+            <div class="col-filter"></div>
+          </template>
+          <template #default="{ row }">
+            <span v-if="row.ownerName">{{ row.ownerName }}</span>
+            <span v-else class="text-muted">—</span>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="currentPlan" sortable min-width="160">
           <template #header>
             <div class="col-label">GÓI CƯỚC HIỆN TẠI</div>
@@ -182,6 +193,13 @@
                 >Chi tiết</el-button
               >
               <el-button
+                v-if="can('group:assign:owner')"
+                size="small"
+                :icon="UserFilled"
+                @click.stop="openAssignOwner(row)"
+                >Phụ trách</el-button
+              >
+              <el-button
                 size="small"
                 :icon="Document"
                 @click.stop="handleExportRow(row)"
@@ -217,6 +235,34 @@
         />
       </div>
     </el-card>
+
+    <!-- Assign Owner Dialog -->
+    <el-dialog v-model="assignOwnerVisible" width="420px" :close-on-click-modal="false">
+      <template #header>
+        <span style="font-size:15px;font-weight:700;">GÁN NHÂN VIÊN PHỤ TRÁCH</span>
+      </template>
+      <el-form label-width="130px" label-position="left">
+        <el-form-item label="Đại lý:">
+          <span>{{ assignOwnerTarget?.groupName }}</span>
+        </el-form-item>
+        <el-form-item label="Nhân viên:">
+          <el-select v-model="assignOwnerUserId" clearable placeholder="Chọn nhân viên" style="width:100%">
+            <el-option
+              v-for="u in allStaffUsers"
+              :key="u.userId"
+              :label="`${u.fullName} (${u.username})`"
+              :value="u.userId"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <el-button type="primary" :loading="savingOwner" @click="handleAssignOwner">Xác Nhận</el-button>
+          <el-button @click="assignOwnerVisible = false">Hủy</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -229,13 +275,16 @@ import {
   Refresh,
   View,
   Document,
+  UserFilled,
 } from "@element-plus/icons-vue";
-import { listGroups } from "@/api/groups";
+import { listGroups, assignGroupOwner } from "@/api/groups";
+import { listUsers } from "@/api/users";
 import { usePermission } from "@/composables/usePermission";
+import { ElMessage } from "element-plus";
 
 const { can } = usePermission();
 import type { GroupListItem } from "@/types/group";
-import { ElMessage } from "element-plus";
+import type { UserAccount } from "@/types";
 
 const router = useRouter();
 
@@ -338,6 +387,41 @@ function goDetail(row: AgencyRow) {
 
 function handleExportRow(_row: AgencyRow) {
   // TODO: implement per-row export
+}
+
+// ── Assign owner dialog ──
+const assignOwnerVisible = ref(false);
+const assignOwnerTarget = ref<AgencyRow | null>(null);
+const assignOwnerUserId = ref<string>("");
+const allStaffUsers = ref<UserAccount[]>([]);
+const savingOwner = ref(false);
+
+async function openAssignOwner(row: AgencyRow) {
+  assignOwnerTarget.value = row;
+  assignOwnerUserId.value = row.ownerUserId ?? "";
+  assignOwnerVisible.value = true;
+  if (!allStaffUsers.value.length) {
+    const res = await listUsers({ page: 0, size: 200 });
+    if (res.success && res.data) allStaffUsers.value = res.data.content;
+  }
+}
+
+async function handleAssignOwner() {
+  if (!assignOwnerTarget.value) return;
+  savingOwner.value = true;
+  try {
+    const res = await assignGroupOwner(
+      assignOwnerTarget.value.groupId,
+      assignOwnerUserId.value || null
+    );
+    if (res.success) {
+      ElMessage.success("Đã cập nhật nhân viên phụ trách");
+      assignOwnerVisible.value = false;
+      await load();
+    }
+  } finally {
+    savingOwner.value = false;
+  }
 }
 
 onMounted(load);

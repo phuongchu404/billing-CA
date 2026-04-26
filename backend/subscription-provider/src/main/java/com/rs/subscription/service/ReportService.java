@@ -42,17 +42,30 @@ public class ReportService {
     private final CertificateProvisioningRepository certProvisioningRepository;
     private final CertificateUsageRecordRepository certUsageRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final DataScopeService dataScopeService;
 
     /**
-     * GROUP tab report.
-     * Tổng số query cố định = 5, bất kể số lượng đại lý (đã loại bỏ N+1).
-     * Cache 10 phút per periodKey.
+     * GROUP tab report — lọc theo scope của user hiện tại.
+     * Admin: toàn bộ groups.
+     * Staff/Manager: chỉ groups thuộc về mình / cấp dưới.
+     * Partner: chỉ groups được cấp quyền.
+     * Cache theo periodKey + userId để tránh cache chéo giữa các user.
      */
-    @Cacheable(cacheNames = "groupReport", key = "#periodKey")
+    @Cacheable(cacheNames = "groupReport", key = "#periodKey + ':' + T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getName()")
     @Transactional(readOnly = true)
     public GroupReportResponse getGroupReport(String periodKey) {
-        // ── Query 1: tất cả group đang ACTIVE ─────────────────────────────
-        List<Group> activeGroups = groupRepository.findByStatusOrderByGroupId("ACTIVE");
+        // ── Query 1: groups theo scope của user ───────────────────────────
+        List<Long> visibleIds = dataScopeService.resolveVisibleGroupIds();
+        List<Group> activeGroups;
+        if (visibleIds == null) {
+            activeGroups = groupRepository.findByStatusOrderByGroupId("ACTIVE");
+        } else if (visibleIds.isEmpty()) {
+            return emptyGroupReport();
+        } else {
+            activeGroups = groupRepository.findByStatusOrderByGroupId("ACTIVE").stream()
+                .filter(g -> visibleIds.contains(g.getGroupId()))
+                .collect(Collectors.toList());
+        }
         if (activeGroups.isEmpty()) {
             return emptyGroupReport();
         }

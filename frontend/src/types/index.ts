@@ -154,6 +154,8 @@ export interface UserAccount {
   status: 'ACTIVE' | 'INACTIVE' | 'LOCKED'
   roles: Role[]
   permissions: string[]
+  managerUserId?: string | null
+  managerName?: string | null
   lastLoginAt?: string
   createdAt: string
 }
