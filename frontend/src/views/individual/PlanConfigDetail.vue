@@ -212,12 +212,30 @@
         </el-form-item>
       </el-form>
       <p class="dlg-note">
-        Khi bấm nút Xác Nhận, hệ thống sẽ đưa phiên bản hiện tại sẽ chuyển sang trạng thái "Chờ duyệt".
-        Sau khi được duyệt, bảng gói cước sẽ được áp dụng từ 00:00:00 ngày bắt đầu đến 23:59:59 ngày kết thúc.
+        Khi bấm nút Xác Nhận, hệ thống sẽ tự động tạo yêu cầu phê duyệt nhiều cấp và gửi email thông báo
+        cho người phê duyệt cấp 1. Số cấp duyệt được xác định theo giá trị gói cước.
       </p>
       <template #footer>
-        <el-button type="primary" @click="confirmRequestApply">Xác Nhận</el-button>
+        <el-button type="primary" :loading="requestApplyLoading" @click="confirmRequestApply">Xác Nhận</el-button>
         <el-button @click="requestApplyVisible = false">Huỷ Bỏ</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Dialog: Approval success -->
+    <el-dialog v-model="approvalSuccessVisible" title="YÊU CẦU ĐÃ ĐƯỢC GỬI" width="440px" align-center>
+      <div style="text-align:center; padding: 8px 0 16px">
+        <el-icon style="font-size:48px; color:#67c23a"><CircleCheck /></el-icon>
+        <p style="margin:12px 0 4px; font-size:15px; font-weight:600; color:#303133">
+          Yêu cầu áp dụng đã được gửi!
+        </p>
+        <p style="font-size:13px; color:#606266; margin:0">
+          Email thông báo đã được gửi đến người phê duyệt cấp 1.<br />
+          Theo dõi tiến trình duyệt tại màn Phê duyệt.
+        </p>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="goToApproval">Xem tiến trình duyệt</el-button>
+        <el-button @click="approvalSuccessVisible = false">Đóng</el-button>
       </template>
     </el-dialog>
 
@@ -242,6 +260,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Promotion, Remove, ArrowDown, Refresh, CircleCheck } from '@element-plus/icons-vue'
+// CircleCheck already imported above — used in approval success dialog
 import { ElMessage } from 'element-plus'
 import {
   getIndividualPlanConfigDetail,
@@ -271,6 +290,9 @@ const TABS: { key: TabKey; label: string }[] = [
 // Dialog state
 const requestApplyVisible = ref(false)
 const requestApplyDateRange = ref<[Date, Date] | null>(null)
+const requestApplyLoading = ref(false)
+const approvalSuccessVisible = ref(false)
+const lastApprovalId = ref<number | null>(null)
 const deactivateVisible = ref(false)
 
 const info = ref<IndividualPlanConfigDetail | null>(null)
@@ -352,14 +374,25 @@ async function confirmRequestApply() {
   }
   const [from, to] = requestApplyDateRange.value
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  requestApplyLoading.value = true
   try {
-    await requestApplyPlanConfig(planId, { applyFrom: fmt(from), applyUntil: fmt(to) })
-    ElMessage.success('Đã gửi yêu cầu áp dụng')
+    const res = await requestApplyPlanConfig(planId, { applyFrom: fmt(from), applyUntil: fmt(to) })
+    if (res.data?.approvalRequestId) {
+      lastApprovalId.value = res.data.approvalRequestId
+    }
     requestApplyVisible.value = false
+    approvalSuccessVisible.value = true
     load()
   } catch {
     ElMessage.error('Gửi yêu cầu thất bại')
+  } finally {
+    requestApplyLoading.value = false
   }
+}
+
+function goToApproval() {
+  approvalSuccessVisible.value = false
+  router.push(lastApprovalId.value ? `/approvals/${lastApprovalId.value}` : '/approvals')
 }
 
 async function confirmDeactivate() {

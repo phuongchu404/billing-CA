@@ -29,7 +29,8 @@ public class CertificateProvisioningRecord {
     @JoinColumn(name = "pricing_rule_id")
     private PlanPricingRule pricingRule;
 
-    @Column(nullable = false, length = 100)
+    @Convert(converter = UuidBinaryConverter.class)
+    @Column(nullable = false, columnDefinition = "BINARY(16)")
     private String userId;
 
     @Column(unique = true, nullable = false, length = 36)

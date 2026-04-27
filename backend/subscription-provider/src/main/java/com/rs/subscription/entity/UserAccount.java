@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 public class UserAccount {
 
     @Id
-    @Column(length = 36)
+    @Convert(converter = UuidBinaryConverter.class)
+    @Column(columnDefinition = "BINARY(16)")
     private String userId;
 
     @Column(unique = true, nullable = false, length = 100)

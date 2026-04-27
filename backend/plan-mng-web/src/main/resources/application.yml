@@ -7,15 +7,9 @@ spring:
   application:
     name: rs-subscription-management-service
   datasource:
-#    url: ${DB_URL:jdbc:mysql://localhost:3306/rs_subscription?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC}
-#    username: ${DB_USERNAME:dev}
-#    password: ${DB_PASSWORD:Dev2019@!}
-#    url: ${DB_URL:jdbc:mysql://10.30.21.124:3306/rs_subscription?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC}
-#    username: ${DB_USERNAME:dev}
-#    password: ${DB_PASSWORD:Ab123!@#}
-    url: ${DB_URL:jdbc:mysql://localhost:3307/rs_subscription?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/rs_subscription?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:phuong1580@}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -24,17 +18,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
         default_batch_fetch_size: 100
   flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    validate-on-migrate: false
+    enabled: false
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -105,6 +96,18 @@ rs:
       max-retries: 5
       retry-cron: "0 */5 * * * *"
       backoff-minutes: 1,5,15,60,360
+
+mail:
+  enabled: ${MAIL_ENABLED:false}
+  host: ${MAIL_HOST:localhost}
+  port: ${MAIL_PORT:587}
+  username: ${MAIL_USERNAME:}
+  password: ${MAIL_PASSWORD:}
+  from:
+    name: ${MAIL_FROM_NAME:Subscription Management}
+    address: ${MAIL_FROM_ADDRESS:noreply@example.com}
+  ssl:
+    enabled: ${MAIL_SSL_ENABLED:false}
 
 logging:
   level:

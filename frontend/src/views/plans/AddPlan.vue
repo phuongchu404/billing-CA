@@ -157,6 +157,24 @@
       <el-button @click="handleCancel">Hủy Bỏ</el-button>
     </div>
 
+    <!-- Dialog: Approval success -->
+    <el-dialog v-model="approvalSuccessVisible" title="YÊU CẦU ĐÃ ĐƯỢC GỬI" width="440px" align-center :close-on-click-modal="false">
+      <div style="text-align:center; padding: 8px 0 16px">
+        <el-icon style="font-size:48px; color:#67c23a"><CircleCheck /></el-icon>
+        <p style="margin:12px 0 4px; font-size:15px; font-weight:600; color:#303133">
+          Gói cước đã được tạo và gửi yêu cầu duyệt!
+        </p>
+        <p style="font-size:13px; color:#606266; margin:0">
+          Email thông báo đã được gửi đến người phê duyệt cấp 1.<br />
+          Theo dõi tiến trình duyệt tại màn Phê duyệt.
+        </p>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="goToApproval">Xem tiến trình duyệt</el-button>
+        <el-button @click="router.push('/plans/' + agencyId)">Về danh sách gói cước</el-button>
+      </template>
+    </el-dialog>
+
     <!-- ===== DIALOG: CHỌN GÓI CƯỚC MẪU ===== -->
     <el-dialog v-model="templateVisible" title="CHỌN GÓI CƯỚC MẪU" width="460px" :close-on-click-modal="false">
       <div class="dlg-body">
@@ -192,7 +210,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { Document, ArrowUp, ArrowDown, CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getGroup, addGroupPlan } from '@/api/groups'
 import { listPlanTemplates, getPlanTemplate } from '@/api/planTemplates'
@@ -244,6 +262,8 @@ const configRows = reactive<ConfigRow[]>([
 const showGuide = ref(true)
 const submitting = ref(false)
 const loadingAgency = ref(false)
+const approvalSuccessVisible = ref(false)
+const lastApprovalId = ref<number | null>(null)
 
 // --- Template dialog ---
 const templateVisible = ref(false)
@@ -335,8 +355,13 @@ async function handleSubmit() {
 
     const res = await addGroupPlan(agencyId, req)
     if (res.success) {
-      ElMessage.success('Tạo gói cước thành công!')
-      router.push('/plans/' + agencyId)
+      if (res.data?.approvalRequestId) {
+        lastApprovalId.value = res.data.approvalRequestId
+        approvalSuccessVisible.value = true
+      } else {
+        ElMessage.success('Tạo gói cước thành công!')
+        router.push('/plans/' + agencyId)
+      }
     } else {
       ElMessage.error(res.message || 'Không thể tạo gói cước')
     }
@@ -349,6 +374,11 @@ async function handleSubmit() {
 
 function handleCancel() {
   router.push('/plans/' + agencyId)
+}
+
+function goToApproval() {
+  approvalSuccessVisible.value = false
+  router.push(lastApprovalId.value ? `/approvals/${lastApprovalId.value}` : '/approvals')
 }
 
 onMounted(() => {

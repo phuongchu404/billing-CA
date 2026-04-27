@@ -16,7 +16,8 @@ public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
     @Column(unique = true, nullable = false, length = 36) private String token;
-    @Column(nullable = false, length = 36) private String userId;
+    @Convert(converter = UuidBinaryConverter.class)
+    @Column(nullable = false, columnDefinition = "BINARY(16)") private String userId;
     @Column(nullable = false) private Boolean used;
     @Column(nullable = false) private LocalDateTime expiresAt;
     @Column(nullable = false, updatable = false) private LocalDateTime createdAt;

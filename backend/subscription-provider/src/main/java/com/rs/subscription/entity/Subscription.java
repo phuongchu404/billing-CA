@@ -21,7 +21,8 @@ public class Subscription {
     @Column(nullable = false, length = 20)
     private String subscriberType;
 
-    @Column(length = 100)
+    @Convert(converter = UuidBinaryConverter.class)
+    @Column(columnDefinition = "BINARY(16)")
     private String userId;
 
     @ManyToOne(fetch = FetchType.LAZY)

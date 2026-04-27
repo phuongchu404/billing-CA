@@ -99,6 +99,18 @@ const router = createRouter({
           meta: { title: "Quyền truy cập đối tác", permission: "partner:access:grant" },
         },
         {
+          path: "approvals",
+          name: "ApprovalList",
+          component: () => import("@/views/approvals/ApprovalList.vue"),
+          meta: { title: "Phê duyệt", permission: "approval:view" },
+        },
+        {
+          path: "approvals/:id",
+          name: "ApprovalDetail",
+          component: () => import("@/views/approvals/ApprovalDetail.vue"),
+          meta: { title: "Chi tiết phê duyệt", permission: "approval:view" },
+        },
+        {
           path: "audit-logs",
           name: "AuditLogs",
           component: () => import("@/views/audit-logs/index.vue"),

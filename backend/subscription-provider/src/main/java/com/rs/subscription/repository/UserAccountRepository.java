@@ -43,4 +43,17 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, String
     // Lấy thông tin user kèm manager (dùng khi hiển thị cây tổ chức)
     @Query("SELECT u FROM UserAccount u LEFT JOIN FETCH u.manager WHERE u.manager.userId = :managerId")
     List<UserAccount> findDirectSubordinates(@Param("managerId") String managerId);
+
+    // Tìm user đang ACTIVE có role tên cụ thể — dùng để gửi notification cho approver
+    @Query("""
+        SELECT u FROM UserAccount u
+        JOIN u.userRoles ur
+        JOIN ur.role r
+        WHERE r.roleName = :roleName
+          AND u.status = 'ACTIVE'
+        """)
+    List<UserAccount> findActiveUsersByRoleName(@Param("roleName") String roleName);
+
+    // Tìm user theo username để lấy email (gửi notification cho requester)
+    Optional<UserAccount> findByUsernameAndStatus(String username, String status);
 }

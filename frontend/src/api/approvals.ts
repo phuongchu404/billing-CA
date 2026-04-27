@@ -1,45 +1,100 @@
 import request from '@/utils/request'
 
-export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'DENIED'
-export type RequestType = 'CREATE_PLAN' | 'ASSIGN_GROUP_PLAN' | 'CANCEL_SUBSCRIPTION' | 'SUSPEND_SUBSCRIPTION'
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface ApprovalResponse {
+export type MultiApprovalStatus = 'DRAFT' | 'IN_APPROVAL' | 'NEED_REVISION' | 'APPROVED' | 'REJECTED'
+export type ApprovalStepStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED'
+export type CustomerSegment = 'INDIVIDUAL' | 'GROUP'
+
+export interface ApprovalStepResponse {
   id: number
-  requestType: RequestType
-  status: ApprovalStatus
+  stepLevel: number
+  requiredApprovalLevel: 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3'
+  status: ApprovalStepStatus
+  decidedBy?: string
+  comment?: string
+  decidedAt?: string
+  createdAt: string
+}
+
+export interface MultiLevelApprovalResponse {
+  id: number
+  requestType: string
+  customerSegment: CustomerSegment
+  status: MultiApprovalStatus
   requestedBy: string
+  entityType: string
+  entityId: string
   description: string
-  payload: Record<string, unknown>
-  reviewedBy?: string
-  reviewNote?: string
-  reviewedAt?: string
+  contractValue?: number
+  totalLevels: number
+  currentLevel: number
+  payload?: Record<string, unknown>
+  steps: ApprovalStepResponse[]
   createdAt: string
   updatedAt: string
 }
 
+export interface ApprovalLevelConfigResponse {
+  id: number
+  customerSegment: CustomerSegment
+  minValue?: number
+  maxValue?: number
+  requiredLevels: number
+  description?: string
+  isActive: boolean
+}
+
 export interface SubmitApprovalRequest {
-  requestType: string
-  description: string
-  payload: Record<string, unknown>
+  submittedBy: string
+  contractValue?: number
 }
 
-export interface ReviewRequest {
-  note?: string
+export interface ApproveStepRequest {
+  approvedBy: string
+  comment?: string
 }
 
-// Backend: ApprovalRequestController @ /api/v1/approval-requests
-// @PreAuthorize: subscription:view (GET), subscription:update (POST /{id}/review)
-export const listApprovals = (params?: { status?: string; page?: number; size?: number }) =>
-  request.get('/api/v1/approval-requests', { params })
+export interface RejectApprovalRequest {
+  rejectedBy: string
+  reason: string
+}
 
+export interface RevisionApprovalRequest {
+  requestedBy: string
+  reason: string
+}
+
+// ─── API calls ────────────────────────────────────────────────────────────────
+
+// GET /api/v1/approval-requests
+export const listApprovals = () =>
+  request.get<MultiLevelApprovalResponse[]>('/api/v1/approval-requests')
+
+// GET /api/v1/approval-requests/{id}
 export const getApproval = (id: number) =>
-  request.get(`/api/v1/approval-requests/${id}`)
+  request.get<MultiLevelApprovalResponse>(`/api/v1/approval-requests/${id}`)
 
-export const submitApproval = (data: SubmitApprovalRequest) =>
-  request.post('/api/v1/approval-requests', data)
+// POST /api/v1/approval-requests/{id}/submit  — Sale submit DRAFT → IN_APPROVAL
+export const submitApproval = (id: number, data: SubmitApprovalRequest) =>
+  request.post<MultiLevelApprovalResponse>(`/api/v1/approval-requests/${id}/submit`, data)
 
-export const approveRequest = (id: number, data: ReviewRequest) =>
-  request.post(`/api/v1/approval-requests/${id}/review`, { ...data, approved: true })
+// POST /api/v1/approval-requests/{id}/approve — Approver duyệt step hiện tại
+export const approveStep = (id: number, data: ApproveStepRequest) =>
+  request.post<MultiLevelApprovalResponse>(`/api/v1/approval-requests/${id}/approve`, data)
 
-export const denyRequest = (id: number, data: ReviewRequest) =>
-  request.post(`/api/v1/approval-requests/${id}/review`, { ...data, approved: false })
+// POST /api/v1/approval-requests/{id}/reject — Từ chối
+export const rejectRequest = (id: number, data: RejectApprovalRequest) =>
+  request.post<MultiLevelApprovalResponse>(`/api/v1/approval-requests/${id}/reject`, data)
+
+// POST /api/v1/approval-requests/{id}/revision — Yêu cầu sửa
+export const requestRevision = (id: number, data: RevisionApprovalRequest) =>
+  request.post<MultiLevelApprovalResponse>(`/api/v1/approval-requests/${id}/revision`, data)
+
+// POST /api/v1/approval-requests/{id}/resubmit — Sale resubmit sau khi sửa
+export const resubmitApproval = (id: number, data: SubmitApprovalRequest) =>
+  request.post<MultiLevelApprovalResponse>(`/api/v1/approval-requests/${id}/resubmit`, data)
+
+// GET /api/v1/approval-requests/level-configs
+export const listLevelConfigs = () =>
+  request.get<ApprovalLevelConfigResponse[]>('/api/v1/approval-requests/level-configs')

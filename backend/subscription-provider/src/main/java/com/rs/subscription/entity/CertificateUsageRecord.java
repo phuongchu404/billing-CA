@@ -21,7 +21,8 @@ public class CertificateUsageRecord {
     @Column(name = "certificate_id", nullable = false, length = 200)
     private String certificateId;
 
-    @Column(name = "user_id", nullable = false, length = 100)
+    @Convert(converter = UuidBinaryConverter.class)
+    @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
     private String userId;
 
     @ManyToOne(fetch = FetchType.LAZY)

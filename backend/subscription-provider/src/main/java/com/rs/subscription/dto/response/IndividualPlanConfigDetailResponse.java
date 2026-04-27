@@ -18,6 +18,8 @@ public class IndividualPlanConfigDetailResponse {
     private String updatedAt;
     private List<PricingRuleRow> pricingRules;
     private List<StatusHistoryRow> statusHistory;
+    // Trả về sau khi "Yêu cầu áp dụng" để frontend điều hướng đến màn approval
+    private Long approvalRequestId;
 
     @Data
     public static class PricingRuleRow {

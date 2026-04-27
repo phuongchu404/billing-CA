@@ -7,6 +7,7 @@ import {
   TrendCharts,
   UserFilled,
   Key,
+  Checked,
 } from '@element-plus/icons-vue'
 import { systemMenu } from './menu/system'
 import type { BackPermission, MenuItem, TreeItem } from './menutype'
@@ -110,6 +111,28 @@ export const getNavData = (): MenuItem[] => [
     permissions: [
       { tag: 'partner-access:grant',  type: 'button', labelKey: 'menu.partnerAccessGrant',  permissionKey: 'partner:access:grant',  pattern: '/api/v1/partner-access',   method: 'POST'   },
       { tag: 'partner-access:revoke', type: 'button', labelKey: 'menu.partnerAccessRevoke', permissionKey: 'partner:access:revoke', pattern: '/api/v1/partner-access/**', method: 'DELETE' },
+    ],
+  },
+  {
+    tag: 'approvals',
+    leaf: true,
+    path: '/approvals',
+    type: 'menu',
+    labelKey: 'menu.approvals',
+    icon: Checked,
+    permissionKey: 'approval:view',
+    children: [],
+    permissions: [
+      // Sale: xem danh sách + submit + resubmit
+      { tag: 'approval:view',      type: 'button', labelKey: 'common.search',   permissionKey: 'approval:view',      pattern: '/api/v1/approval-requests',             method: 'GET' },
+      { tag: 'approval:submit',    type: 'api',    labelKey: 'common.confirm',  permissionKey: 'subscription:update', pattern: '/api/v1/approval-requests/*/submit',    method: 'POST' },
+      { tag: 'approval:resubmit',  type: 'api',    labelKey: 'common.confirm',  permissionKey: 'subscription:update', pattern: '/api/v1/approval-requests/*/resubmit',  method: 'POST' },
+      // Approver cấp 1
+      { tag: 'approval:level1',    type: 'button', labelKey: 'menu.approveL1', permissionKey: 'approval:level1',    pattern: '/api/v1/approval-requests/*/approve',    method: 'POST' },
+      // Approver cấp 2
+      { tag: 'approval:level2',    type: 'button', labelKey: 'menu.approveL2', permissionKey: 'approval:level2',    pattern: '/api/v1/approval-requests/*/approve',    method: 'POST' },
+      // Approver cấp 3
+      { tag: 'approval:level3',    type: 'button', labelKey: 'menu.approveL3', permissionKey: 'approval:level3',    pattern: '/api/v1/approval-requests/*/approve',    method: 'POST' },
     ],
   },
   {

@@ -23,6 +23,12 @@ public final class ErrorCodes {
     public static final String ASSIGNMENT_NOT_FOUND = "2019";
     public static final String SCHEDULE_NOT_FOUND = "2020";
     public static final String SETTLEMENT_NOT_FOUND = "2021";
+    public static final String APPROVAL_STEP_NOT_FOUND = "2022";
+    public static final String APPROVAL_NOT_IN_PROGRESS = "2023";
+    public static final String APPROVAL_SELF_APPROVE = "2024";
+    public static final String APPROVAL_WRONG_LEVEL = "2025";
+    public static final String APPROVAL_NOT_REVISABLE = "2026";
+    public static final String APPROVAL_LEVEL_CONFIG_NOT_FOUND = "2027";
     public static final String UNAUTHORIZED = "3001";
     public static final String FORBIDDEN = "3002";
     public static final String GROUP_ACCESS_DENIED = "3003";

@@ -23,7 +23,8 @@ public class GroupMember {
     @JoinColumn(name = "group_id", nullable = false)
     private Group group;
 
-    @Column(nullable = false, length = 100)
+    @Convert(converter = UuidBinaryConverter.class)
+    @Column(nullable = false, columnDefinition = "BINARY(16)")
     private String userId;
 
     @Column(nullable = false, length = 30)

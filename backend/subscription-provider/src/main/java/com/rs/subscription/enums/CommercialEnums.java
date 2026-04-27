@@ -24,6 +24,30 @@ public final class CommercialEnums {
         DENIED
     }
 
+    // Multi-level approval: trạng thái của toàn bộ request
+    public enum MultiApprovalRequestStatus {
+        DRAFT,
+        IN_APPROVAL,
+        NEED_REVISION,
+        APPROVED,
+        REJECTED
+    }
+
+    // Multi-level approval: trạng thái của từng step
+    public enum ApprovalStepStatus {
+        PENDING,
+        APPROVED,
+        REJECTED,
+        SKIPPED
+    }
+
+    // Role cấp duyệt
+    public enum ApprovalLevel {
+        LEVEL_1,  // Trưởng phòng
+        LEVEL_2,  // Giám đốc
+        LEVEL_3   // CFO
+    }
+
     public enum AssignmentType {
         GROUP_PLAN,
         RETAIL_PLAN
