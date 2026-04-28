@@ -6,7 +6,7 @@ import java.time.LocalDate;
 @Data
 public class SubscriptionVerifyResponse {
     private Long subscriptionId;
-    private String userId;
+    private Long userId;
     private String status;
     private boolean valid;
     private String invalidReason;
@@ -19,3 +19,5 @@ public class SubscriptionVerifyResponse {
     private Integer signingQuotaUsed;
     private Integer signingQuotaRemaining;
 }
+
+

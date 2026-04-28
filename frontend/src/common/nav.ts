@@ -6,7 +6,6 @@ import {
   Setting,
   TrendCharts,
   UserFilled,
-  Key,
   Checked,
 } from '@element-plus/icons-vue'
 import { systemMenu } from './menu/system'
@@ -38,10 +37,10 @@ export const getNavData = (): MenuItem[] => [
     children: [],
     permissions: [
       // GROUP tab: 1 button → all GROUP report APIs granted automatically
-      { tag: 'reports:group:view',          type: 'button', labelKey: 'menu.reportGroupTab',      permissionKey: 'report:group:view',      pattern: '/api/v1/reports/group',               method: 'GET' },
-      { tag: 'reports:group:expiring',      type: 'api',    labelKey: 'menu.reportGroupTab',      permissionKey: 'report:group:view',      pattern: '/api/v1/reports/group/expiring-soon', method: 'GET' },
+      { tag: 'report:group:view',           type: 'button', labelKey: 'menu.reportGroupTab',      permissionKey: 'report:group:view',      pattern: '/api/v1/reports/group',               method: 'GET' },
+      { tag: 'report:group:view:expiring',  type: 'api',    labelKey: 'menu.reportGroupTab',      permissionKey: 'report:group:view',      pattern: '/api/v1/reports/group/expiring-soon', method: 'GET' },
       // INDIVIDUAL tab: 1 button → all INDIVIDUAL report APIs granted automatically
-      { tag: 'reports:individual:view',     type: 'button', labelKey: 'menu.reportIndividualTab', permissionKey: 'report:individual:view', pattern: '/api/v1/reports/individual',          method: 'GET' },
+      { tag: 'report:individual:view',      type: 'button', labelKey: 'menu.reportIndividualTab', permissionKey: 'report:individual:view', pattern: '/api/v1/reports/individual',          method: 'GET' },
     ],
   },
   {
@@ -62,9 +61,9 @@ export const getNavData = (): MenuItem[] => [
         permissionKey: 'plan:view',
         children: [],
         permissions: [
-          { tag: 'individual:plan-config:view', type: 'button', labelKey: 'common.search', permissionKey: 'plan:view', pattern: '/api/v1/individual/plan-configs', method: 'GET' },
-          { tag: 'individual:plan-config:create', type: 'button', labelKey: 'common.add', permissionKey: 'plan:create', pattern: '/api/v1/individual/plan-configs', method: 'POST' },
-          { tag: 'individual:plan-config:update', type: 'button', labelKey: 'common.edit', permissionKey: 'plan:update', pattern: '/api/v1/individual/plan-configs/{id}/**', method: 'POST' },
+          { tag: 'plan:view', type: 'button', labelKey: 'common.search', permissionKey: 'plan:view', pattern: '/api/v1/individual/plan-configs', method: 'GET' },
+          { tag: 'plan:create', type: 'button', labelKey: 'common.add', permissionKey: 'plan:create', pattern: '/api/v1/individual/plan-configs', method: 'POST' },
+          { tag: 'plan:update', type: 'button', labelKey: 'common.edit', permissionKey: 'plan:update', pattern: '/api/v1/individual/plan-configs/{id}/**', method: 'POST' },
         ],
       },
       {
@@ -93,26 +92,14 @@ export const getNavData = (): MenuItem[] => [
     permissionKey: 'group:view',
     children: [],
     permissions: [
-      { tag: 'plans:view',   type: 'button', labelKey: 'common.search', permissionKey: 'group:view',   pattern: '/api/v1/groups',      method: 'GET' },
-      { tag: 'plans:create', type: 'button', labelKey: 'common.add',    permissionKey: 'group:create', pattern: '/api/v1/groups',      method: 'POST' },
-      { tag: 'plans:update', type: 'button', labelKey: 'common.edit',   permissionKey: 'group:update', pattern: '/api/v1/groups/{id}', method: 'PUT' },
+      { tag: 'group:view',   type: 'button', labelKey: 'common.search', permissionKey: 'group:view',   pattern: '/api/v1/groups',      method: 'GET' },
+      { tag: 'group:create', type: 'button', labelKey: 'common.add',    permissionKey: 'group:create', pattern: '/api/v1/groups',      method: 'POST' },
+      { tag: 'group:update', type: 'button', labelKey: 'common.edit',   permissionKey: 'group:update', pattern: '/api/v1/groups/{id}', method: 'PUT' },
+      { tag: 'group:assign:owner', type: 'button', labelKey: 'common.assignOwner', permissionKey: 'group:assign:owner', pattern: '/api/v1/groups/{id}/owner', method: 'PATCH' },
+      { tag: 'group:assign:owner:users', type: 'api', labelKey: 'common.assignOwner', permissionKey: 'group:assign:owner', pattern: '/api/v1/admin/users', method: 'GET' },
     ],
   },
   systemMenu,
-  {
-    tag: 'partner-access',
-    leaf: true,
-    path: '/partner-access',
-    type: 'menu',
-    labelKey: 'menu.partnerAccess',
-    icon: Key,
-    permissionKey: 'partner:access:grant',
-    children: [],
-    permissions: [
-      { tag: 'partner-access:grant',  type: 'button', labelKey: 'menu.partnerAccessGrant',  permissionKey: 'partner:access:grant',  pattern: '/api/v1/partner-access',   method: 'POST'   },
-      { tag: 'partner-access:revoke', type: 'button', labelKey: 'menu.partnerAccessRevoke', permissionKey: 'partner:access:revoke', pattern: '/api/v1/partner-access/**', method: 'DELETE' },
-    ],
-  },
   {
     tag: 'approvals',
     leaf: true,
@@ -125,8 +112,8 @@ export const getNavData = (): MenuItem[] => [
     permissions: [
       // Sale: xem danh sách + submit + resubmit
       { tag: 'approval:view',      type: 'button', labelKey: 'common.search',   permissionKey: 'approval:view',      pattern: '/api/v1/approval-requests',             method: 'GET' },
-      { tag: 'approval:submit',    type: 'api',    labelKey: 'common.confirm',  permissionKey: 'subscription:update', pattern: '/api/v1/approval-requests/*/submit',    method: 'POST' },
-      { tag: 'approval:resubmit',  type: 'api',    labelKey: 'common.confirm',  permissionKey: 'subscription:update', pattern: '/api/v1/approval-requests/*/resubmit',  method: 'POST' },
+      { tag: 'subscription:update:approval-submit',   type: 'api',    labelKey: 'common.confirm',  permissionKey: 'subscription:update', pattern: '/api/v1/approval-requests/*/submit',    method: 'POST' },
+      { tag: 'subscription:update:approval-resubmit', type: 'api',    labelKey: 'common.confirm',  permissionKey: 'subscription:update', pattern: '/api/v1/approval-requests/*/resubmit',  method: 'POST' },
       // Approver cấp 1
       { tag: 'approval:level1',    type: 'button', labelKey: 'menu.approveL1', permissionKey: 'approval:level1',    pattern: '/api/v1/approval-requests/*/approve',    method: 'POST' },
       // Approver cấp 2

@@ -26,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String usernameOrUserId) throws UsernameNotFoundException {
         UserAccount user = userAccountRepository.findByUsername(usernameOrUserId)
-                .or(() -> userAccountRepository.findById(usernameOrUserId))
+                .or(() -> findByNumericId(usernameOrUserId))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + usernameOrUserId));
 
         Set<String> authorities = new LinkedHashSet<>();
@@ -43,4 +43,14 @@ public class CustomUserDetailsService implements UserDetailsService {
                 authorities
         );
     }
+
+    private java.util.Optional<UserAccount> findByNumericId(String value) {
+        try {
+            return userAccountRepository.findById(Long.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return java.util.Optional.empty();
+        }
+    }
 }
+
+

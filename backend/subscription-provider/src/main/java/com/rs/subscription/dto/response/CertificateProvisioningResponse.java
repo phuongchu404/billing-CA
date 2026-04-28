@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 @Data
 public class CertificateProvisioningResponse {
     private Long provisioningRecordId;
-    private String userId;
+    private Long userId;
     private Integer certType;
     private String certificateId;
     private String keyId;
@@ -20,3 +20,5 @@ public class CertificateProvisioningResponse {
     private String planName;
     private LocalDateTime createdAt;
 }
+
+

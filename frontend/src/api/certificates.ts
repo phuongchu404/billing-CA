@@ -18,7 +18,7 @@ export const retryCertificate = (recordId: number) =>
 
 export const getAllCertificates = (params: {
   status?: string
-  userId?: string
+  userId?: number
   page: number
   size: number
 }) => request.get<any, ApiResponse<PagedResponse<CertificateRecord>>>('/api/v1/admin/certificates', { params })
@@ -30,3 +30,5 @@ export const getCertificateUsageHistory = (certId: string, params: { page: numbe
 export const getCertificateUsageDaily = (certId: string, params: { from: string; to: string }) =>
   request.get<any, ApiResponse<{ usageDate: string; usageCount: number; distinctUsers: number }[]>>(
     `/api/v1/admin/certificates/${encodeURIComponent(certId)}/usage-daily`, { params })
+
+

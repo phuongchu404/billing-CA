@@ -115,6 +115,7 @@ public final class CommercialEnums {
     }
 
     public enum AssignmentStatus {
+        AVAILABLE,
         REQUESTED,
         APPROVED,
         ACTIVE,

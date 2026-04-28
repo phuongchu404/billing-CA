@@ -14,14 +14,17 @@ import java.util.stream.Collectors;
 
 public interface AdminAuditLogService {
 
-    void log(String actorUserId, String action, String entityType, String entityId, String details);
+    void log(Long actorUserId, String action, String entityType, Object entityId, String details);
 
-    void logDirect(String actorUsername, String action, String entityType, String entityId, String details);
+    void logDirect(String actorUsername, String action, String entityType, Object entityId, String details);
 
-    void logByUserId(String actorUserId, String action, String entityType, String entityId, String details);
+    void logByUserId(Long actorUserId, String action, String entityType, Object entityId, String details);
 
     PagedResponse<AdminAuditLogResponse> getAdminAuditLogs(
                 String actor, String action, String entityType,
                 LocalDateTime from, LocalDateTime to,
                 int page, int size);
 }
+
+
+

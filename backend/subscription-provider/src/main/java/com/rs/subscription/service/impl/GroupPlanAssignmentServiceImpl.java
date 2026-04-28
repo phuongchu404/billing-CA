@@ -20,6 +20,7 @@ import com.rs.subscription.repository.ApprovalRequestRepository;
 import com.rs.subscription.repository.AssignmentAuditRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
 import com.rs.subscription.repository.GroupRepository;
+import com.rs.subscription.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,20 +68,47 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
         Group group = groupRepository.findById(request.getGroupId())
             .orElseThrow(() -> new SmsException(ErrorCodes.GROUP_NOT_FOUND, "Group not found: " + request.getGroupId(), 404));
         PlanTemplate template = planTemplateService.findEntity(request.getPlanTemplateId());
+        String requestedStatus = CommercialEnums.normalize(request.getAssignmentStatus(), CommercialEnums.AssignmentStatus.class, "assignmentStatus");
+
+        if (CommercialEnums.AssignmentStatus.REQUESTED.name().equals(requestedStatus)) {
+            var availableAssignment = assignmentRepository
+                .findFirstByGroupGroupIdAndPlanTemplatePlanTemplateIdAndAssignmentStatus(
+                    request.getGroupId(),
+                    request.getPlanTemplateId(),
+                    CommercialEnums.AssignmentStatus.AVAILABLE.name());
+
+            if (availableAssignment.isPresent()) {
+                GroupPlanAssignment entity = availableAssignment.get();
+                entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.REQUESTED.name());
+                entity.setRequestedBy(request.getRequestedBy());
+                entity.setRequestedAt(LocalDateTime.now());
+                entity.setApplyFrom(request.getApplyFrom());
+                entity.setApplyTo(request.getApplyTo());
+                entity.setStopReason(request.getStopReason());
+                GroupPlanAssignment saved = assignmentRepository.save(entity);
+                Long approvalId = createMultiLevelApproval(saved, request.getRequestedBy(), request.getApprovalLevel());
+                GroupPlanAssignmentResponse response = toResponse(saved);
+                response.setApprovalRequestId(approvalId);
+                return response;
+            }
+        }
+
         GroupPlanAssignment entity = GroupPlanAssignment.builder()
             .group(group)
             .planTemplate(template)
-            .assignmentStatus(CommercialEnums.normalize(request.getAssignmentStatus(), CommercialEnums.AssignmentStatus.class, "assignmentStatus"))
+            .assignmentStatus(requestedStatus)
             .requestedBy(request.getRequestedBy())
-            .requestedAt(LocalDateTime.now())
+            .requestedAt(CommercialEnums.AssignmentStatus.REQUESTED.name().equals(requestedStatus) ? LocalDateTime.now() : null)
             .applyFrom(request.getApplyFrom())
             .applyTo(request.getApplyTo())
             .stopReason(request.getStopReason())
             .build();
         GroupPlanAssignment saved = assignmentRepository.save(entity);
-        Long approvalId = createMultiLevelApproval(saved, request.getRequestedBy());
         GroupPlanAssignmentResponse response = toResponse(saved);
-        response.setApprovalRequestId(approvalId);
+        if (CommercialEnums.AssignmentStatus.REQUESTED.name().equals(requestedStatus)) {
+            Long approvalId = createMultiLevelApproval(saved, request.getRequestedBy(), request.getApprovalLevel());
+            response.setApprovalRequestId(approvalId);
+        }
         return response;
     }
 
@@ -95,6 +123,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
     public GroupPlanAssignmentResponse review(Long id, ReviewCommercialRequest request) {
         GroupPlanAssignment entity = findEntity(id);
         String decision = request.getDecision().toUpperCase();
+        validateReviewPermission(decision);
         if ("APPROVE".equals(decision)) {
             if (request.getApplyFrom() != null) entity.setApplyFrom(request.getApplyFrom());
             if (request.getApplyTo() != null) entity.setApplyTo(request.getApplyTo());
@@ -102,7 +131,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
             entity.setApprovedBy(request.getActor());
             entity.setApprovedAt(LocalDateTime.now());
         } else if ("REJECT".equals(decision)) {
-            entity.setAssignmentStatus("REJECTED");
+            entity.setAssignmentStatus("AVAILABLE");
             entity.setRejectedBy(request.getActor());
             entity.setRejectedAt(LocalDateTime.now());
         } else if ("ACTIVATE".equals(decision)) {
@@ -124,6 +153,21 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
         return toResponse(assignmentRepository.save(entity));
     }
 
+    private void validateReviewPermission(String decision) {
+        boolean allowed = switch (decision) {
+            case "APPROVE", "REJECT" -> SecurityUtil.hasAnyAuthority(
+                "*",
+                "approval:level1",
+                "approval:level2",
+                "approval:level3");
+            case "ACTIVATE", "STOP" -> SecurityUtil.hasAnyAuthority("*", "group:update");
+            default -> true;
+        };
+        if (!allowed) {
+            throw new SmsException(ErrorCodes.FORBIDDEN, "You do not have permission to perform decision: " + decision, 403);
+        }
+    }
+
     public GroupPlanAssignment findEntity(Long id) {
         return assignmentRepository.findById(id)
             .orElseThrow(() -> new SmsException(ErrorCodes.ASSIGNMENT_NOT_FOUND, "Group plan assignment not found: " + id, 404));
@@ -133,7 +177,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
      * Tạo ApprovalRequest multi-level và tự động submit → gửi email cho Level 1 approver.
      * Giá trị hợp đồng = unitPrice tối đa trong các pricing rules của plan template.
      */
-    private Long createMultiLevelApproval(GroupPlanAssignment entity, String actor) {
+    private Long createMultiLevelApproval(GroupPlanAssignment entity, String actor, Integer approvalLevel) {
         BigDecimal contractValue = entity.getPlanTemplate().getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
             .map(r -> r.getQuotaTotal() != null
@@ -154,17 +198,29 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
             .description("Yêu cầu áp dụng gói cước đại lý: " + entity.getPlanTemplate().getPlanName()
                 + " cho " + entity.getGroup().getGroupName())
             .contractValue(contractValue)
-            .totalLevels(1)
+            .totalLevels(normalizeApprovalLevel(approvalLevel))
             .currentLevel(0)
             .build();
 
         return multiLevelApprovalService.createAndSubmit(draft);
     }
 
+    private int normalizeApprovalLevel(Integer approvalLevel) {
+        if (approvalLevel == null) return 1;
+        if (approvalLevel < 1 || approvalLevel > 3) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "approvalLevel must be between 1 and 3", 400);
+        }
+        return approvalLevel;
+    }
+
     private void updateApproval(GroupPlanAssignment entity, String decision, String actor, String note) {
-        approvalRequestRepository.findByEntityTypeAndEntityId("GROUP_PLAN_ASSIGNMENT", String.valueOf(entity.getGroupPlanAssignmentId()))
+        approvalRequestRepository.findAllByEntityTypeAndEntityIdOrderByCreatedAtDesc(
+                "GROUP_PLAN_ASSIGNMENT",
+                String.valueOf(entity.getGroupPlanAssignmentId()))
+            .stream()
+            .findFirst()
             .ifPresent(approval -> {
-                approval.setStatus("APPROVE".equals(decision) ? "APPROVED" : "REJECT".equals(decision) ? "DENIED" : approval.getStatus());
+                approval.setStatus("APPROVE".equals(decision) ? "APPROVED" : "REJECT".equals(decision) ? "REJECTED" : approval.getStatus());
                 approval.setReviewedBy(actor);
                 approval.setReviewNote(note);
                 approval.setReviewedAt(LocalDateTime.now());
@@ -193,6 +249,12 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
         response.setActivatedAt(entity.getActivatedAt());
         response.setStoppedAt(entity.getStoppedAt());
         response.setStopReason(entity.getStopReason());
+        approvalRequestRepository
+            .findAllByEntityTypeAndEntityIdOrderByCreatedAtDesc("GROUP_PLAN_ASSIGNMENT",
+                String.valueOf(entity.getGroupPlanAssignmentId()))
+            .stream()
+            .findFirst()
+            .ifPresent(approval -> response.setApprovalRequestId(approval.getId()));
         response.setAudits(assignmentAuditRepository.findByGroupPlanAssignmentGroupPlanAssignmentIdOrderByCreatedAtDesc(entity.getGroupPlanAssignmentId())
             .stream().map(this::toAuditResponse).toList());
         return response;

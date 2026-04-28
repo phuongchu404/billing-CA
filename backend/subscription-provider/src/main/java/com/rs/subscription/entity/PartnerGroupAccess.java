@@ -5,13 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-    name = "partner_group_access",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uk_partner_group",
-        columnNames = {"partner_user_id", "group_id"}
-    )
-)
+@Table(name = "partner_group_access")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,6 +33,9 @@ public class PartnerGroupAccess {
 
     private LocalDateTime revokedAt;
 
+    @Column(length = 36)
+    private String revokedBy;
+
     @PrePersist
     void onCreate() {
         grantedAt = LocalDateTime.now();
@@ -48,3 +45,5 @@ public class PartnerGroupAccess {
         return revokedAt == null;
     }
 }
+
+

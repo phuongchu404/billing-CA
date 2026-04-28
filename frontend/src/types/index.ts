@@ -62,7 +62,7 @@ export type SubscriptionStatus = 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' 
 export interface Subscription {
   subscriptionId: number
   subscriberType: 'INDIVIDUAL' | 'GROUP'
-  userId?: string
+  userId?: number
   groupId?: number
   planCode: string
   planName: string
@@ -102,7 +102,7 @@ export interface Partner {
 export interface PartnerMember {
   id: number
   groupId: number
-  userId: string
+  userId: number
   role: 'OPERATOR' | 'MEMBER'
   joinedAt: string
   addedBy: string
@@ -146,7 +146,7 @@ export interface RolePermissionMatrix {
 }
 
 export interface UserAccount {
-  userId: string
+  userId: number
   username: string
   email: string
   fullName: string
@@ -154,7 +154,7 @@ export interface UserAccount {
   status: 'ACTIVE' | 'INACTIVE' | 'LOCKED'
   roles: Role[]
   permissions: string[]
-  managerUserId?: string | null
+  managerUserId?: number | null
   managerName?: string | null
   lastLoginAt?: string
   createdAt: string
@@ -170,7 +170,7 @@ export interface LoginResponse {
   tokenType: string
   expiresIn: number
   refreshToken: string
-  userId?: string
+  userId?: number
   username?: string
   email?: string
   fullName?: string
@@ -180,7 +180,7 @@ export interface LoginResponse {
 
 export interface CertificateRecord {
   provisioningRecordId: number
-  userId: string
+  userId: number
   certType?: 1 | 2 | 3
   certificateId?: string
   keyId?: string
@@ -211,7 +211,7 @@ export interface PartnerPlanAction {
 export interface CertificateUsageEvent {
   id: number
   certificateId: string
-  userId: string
+  userId: number
   usedAt: string
 }
 
@@ -235,3 +235,5 @@ export interface SubscriptionSummary {
   individualActive: number
   groupActive: number
 }
+
+

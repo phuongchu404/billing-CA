@@ -2,6 +2,7 @@ import { Lock } from '@element-plus/icons-vue'
 import type { MenuItem } from '../../menutype'
 import { roleMenu } from './role'
 import { userMenu } from './user'
+import { partnerAccessMenu } from './partnerAccess'
 
 export const systemMenu: MenuItem = {
   tag: 'system',
@@ -10,6 +11,6 @@ export const systemMenu: MenuItem = {
   labelKey: 'menu.permissionMgmt',
   icon: Lock,
   permissionKey: 'role:view',
-  children: [roleMenu, userMenu],
+  children: [roleMenu, userMenu, partnerAccessMenu],
   permissions: [],
 }

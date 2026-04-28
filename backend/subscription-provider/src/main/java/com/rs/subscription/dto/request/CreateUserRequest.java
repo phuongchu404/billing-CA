@@ -24,6 +24,9 @@ public class CreateUserRequest {
     @NotBlank(message = "Confirm password is required")
     private String confirmPassword;
 
+    @Positive(message = "Manager user ID must be positive")
+    private Long managerUserId;
+
     @AssertTrue(message = "Passwords do not match")
     private boolean isPasswordConfirmed() {
         if (password == null || confirmPassword == null) return true;

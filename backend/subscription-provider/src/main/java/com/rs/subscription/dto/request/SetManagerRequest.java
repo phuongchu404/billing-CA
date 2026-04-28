@@ -1,11 +1,13 @@
 package com.rs.subscription.dto.request;
 
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 @Data
 public class SetManagerRequest {
     /** userId manager trực tiếp. Null hoặc blank = xoá manager. */
-    @Size(max = 36)
-    private String managerUserId;
+    @Positive(message = "Manager user ID must be positive")
+    private Long managerUserId;
 }
+
+

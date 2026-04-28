@@ -26,25 +26,25 @@ const router = createRouter({
           path: "plans",
           name: "Plans",
           component: () => import("@/views/plans/index.vue"),
-          meta: { title: "Plans", icon: "Ticket", permission: "plan:view" },
+          meta: { title: "Plans", icon: "Ticket", permission: "group:view" },
         },
         {
           path: "plans/new",
           name: "AgencyCreate",
           component: () => import("@/views/plans/Create.vue"),
-          meta: { title: "Thêm mới đại lý", permission: "plan:create" },
+          meta: { title: "Thêm mới đại lý", permission: "group:create" },
         },
         {
           path: "plans/:id",
           name: "AgencyDetail",
           component: () => import("@/views/plans/Detail.vue"),
-          meta: { title: "Thông tin đại lý", permission: "plan:view" },
+          meta: { title: "Thông tin đại lý", permission: "group:view" },
         },
         {
           path: "plans/:id/add-plan",
           name: "AgencyAddPlan",
           component: () => import("@/views/plans/AddPlan.vue"),
-          meta: { title: "Thêm mới gói cước", permission: "plan:update" },
+          meta: { title: "Thêm mới gói cước", permission: "group:update" },
         },
         {
           path: "individual-plan-config",
@@ -68,7 +68,7 @@ const router = createRouter({
           path: "individual-usage-tracking",
           name: "IndividualUsageTracking",
           component: () => import("@/views/individual/UsageTracking.vue"),
-          meta: { title: "Theo dõi sử dụng", permission: "subscription:view" },
+          meta: { title: "Theo dõi sử dụng", permission: "individual:usage:view" },
         },
         {
           path: "users",

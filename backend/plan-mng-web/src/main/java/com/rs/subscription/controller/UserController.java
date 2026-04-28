@@ -33,15 +33,15 @@ public class UserController {
     @Operation(summary = "Create new user")
     public ApiResponse<UserResponse> create(@Valid @RequestBody CreateUserRequest req,
                                              @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
-        UserResponse user = userService.createUser(req, adminId);
+        Long adminId = admin.getUserId();
+        UserResponse user = userService.createUser(req, String.valueOf(adminId));
         auditLogService.log(adminId, "CREATE_USER", "USER", user.getUserId(),
                 "Created user '" + user.getUsername() + "'");
         return ApiResponse.success(user, "User created successfully");
     }
 
     @GetMapping("/api/v1/admin/users")
-    @PreAuthorize("hasAuthority('user:view')")
+    @PreAuthorize("hasAnyAuthority('user:view','group:assign:owner')")
     @Operation(summary = "List all users")
     public ApiResponse<PagedResponse<UserResponse>> list(
             @RequestParam(required = false) String status,
@@ -54,17 +54,17 @@ public class UserController {
     @GetMapping("/api/v1/admin/users/{userId}")
     @PreAuthorize("hasAuthority('user:view')")
     @Operation(summary = "Get user by ID")
-    public ApiResponse<UserResponse> getById(@PathVariable String userId) {
+    public ApiResponse<UserResponse> getById(@PathVariable Long userId) {
         return ApiResponse.success(userService.getUserById(userId), "User retrieved successfully");
     }
 
     @PutMapping("/api/v1/admin/users/{userId}")
     @PreAuthorize("hasAuthority('user:update')")
     @Operation(summary = "Update user profile")
-    public ApiResponse<UserResponse> update(@PathVariable String userId,
+    public ApiResponse<UserResponse> update(@PathVariable Long userId,
                                              @Valid @RequestBody UpdateUserRequest req,
                                              @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         UserResponse user = userService.updateUser(userId, req);
         auditLogService.log(adminId, "UPDATE_USER", "USER", userId,
                 "Updated profile for user '" + user.getUsername() + "'");
@@ -74,9 +74,9 @@ public class UserController {
     @PatchMapping("/api/v1/admin/users/{userId}/deactivate")
     @PreAuthorize("hasAuthority('user:update')")
     @Operation(summary = "Deactivate user")
-    public ApiResponse<Void> deactivate(@PathVariable String userId,
+    public ApiResponse<Void> deactivate(@PathVariable Long userId,
                                         @CurrentUser CustomUserDetails requester) {
-        String requesterId = requester.getUserId();
+        Long requesterId = requester.getUserId();
         userService.deactivateUser(userId, requesterId);
         auditLogService.log(requesterId, "DEACTIVATE_USER", "USER", userId, "Deactivated user");
         return ApiResponse.success("User deactivated successfully");
@@ -85,9 +85,9 @@ public class UserController {
     @PatchMapping("/api/v1/admin/users/{userId}/reactivate")
     @PreAuthorize("hasAuthority('user:update')")
     @Operation(summary = "Reactivate user")
-    public ApiResponse<Void> reactivate(@PathVariable String userId,
+    public ApiResponse<Void> reactivate(@PathVariable Long userId,
                                         @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         userService.reactivateUser(userId);
         auditLogService.log(adminId, "REACTIVATE_USER", "USER", userId, "Reactivated user");
         return ApiResponse.success("User reactivated successfully");
@@ -96,9 +96,9 @@ public class UserController {
     @PatchMapping("/api/v1/admin/users/{userId}/unlock")
     @PreAuthorize("hasAuthority('user:update')")
     @Operation(summary = "Unlock user account")
-    public ApiResponse<Void> unlock(@PathVariable String userId,
+    public ApiResponse<Void> unlock(@PathVariable Long userId,
                                     @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         userService.unlockUser(userId);
         auditLogService.log(adminId, "UNLOCK_USER", "USER", userId, "Unlocked user account");
         return ApiResponse.success("User unlocked successfully");
@@ -108,9 +108,9 @@ public class UserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('user:update')")
     @Operation(summary = "Delete user")
-    public void delete(@PathVariable String userId,
+    public void delete(@PathVariable Long userId,
                        @CurrentUser CustomUserDetails requester) {
-        String requesterId = requester.getUserId();
+        Long requesterId = requester.getUserId();
         UserResponse user = userService.getUserById(userId);
         userService.deleteUser(userId, requesterId);
         auditLogService.log(requesterId, "DELETE_USER", "USER", userId,
@@ -120,10 +120,10 @@ public class UserController {
     @PutMapping("/api/v1/admin/users/{userId}/roles")
     @PreAuthorize("hasAuthority('user:update') and hasAuthority('role:update')")
     @Operation(summary = "Assign roles to user")
-    public ApiResponse<UserResponse> assignRoles(@PathVariable String userId,
+    public ApiResponse<UserResponse> assignRoles(@PathVariable Long userId,
                                                   @Valid @RequestBody AssignRolesRequest req,
                                                   @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         UserResponse user = userService.assignRoles(userId, req.getRoleIds(), adminId);
         auditLogService.log(adminId, "ASSIGN_USER_ROLES", "USER", userId,
                 "Assigned roles " + req.getRoleIds() + " to user '" + user.getUsername() + "'");
@@ -133,10 +133,10 @@ public class UserController {
     @PatchMapping("/api/v1/admin/users/{userId}/password")
     @PreAuthorize("hasAuthority('user:update')")
     @Operation(summary = "Reset user password")
-    public ApiResponse<Void> resetPassword(@PathVariable String userId,
+    public ApiResponse<Void> resetPassword(@PathVariable Long userId,
                                            @Valid @RequestBody ResetPasswordRequest req,
                                            @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         userService.resetPassword(userId, req.getNewPassword());
         auditLogService.log(adminId, "RESET_USER_PASSWORD", "USER", userId, "Reset user password");
         return ApiResponse.success("Password reset successfully");
@@ -162,10 +162,10 @@ public class UserController {
     @PreAuthorize("hasAuthority('user:update')")
     @Operation(summary = "Assign or clear manager for user")
     public ApiResponse<com.rs.subscription.dto.response.UserResponse> setManager(
-            @PathVariable String userId,
+            @PathVariable Long userId,
             @Valid @RequestBody com.rs.subscription.dto.request.SetManagerRequest req,
             @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         com.rs.subscription.dto.response.UserResponse user = userService.setManager(userId, req.getManagerUserId());
         auditLogService.log(adminId, "SET_USER_MANAGER", "USER", userId,
                 "Set manager to: " + req.getManagerUserId());
@@ -176,7 +176,11 @@ public class UserController {
     @PreAuthorize("hasAnyAuthority('user:view','group:view:subordinates')")
     @Operation(summary = "List direct subordinates of a user")
     public ApiResponse<java.util.List<com.rs.subscription.dto.response.UserResponse>> getSubordinates(
-            @PathVariable String userId) {
+            @PathVariable Long userId) {
         return ApiResponse.success(userService.getDirectSubordinates(userId), "Subordinates retrieved successfully");
     }
 }
+
+
+
+

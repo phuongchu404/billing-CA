@@ -126,7 +126,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private CustomUserDetails loadSecurityUser(UserAccount user) {
-        return (CustomUserDetails) customUserDetailsService.loadUserByUsername(user.getUserId());
+        return (CustomUserDetails) customUserDetailsService.loadUserByUsername(String.valueOf(user.getUserId()));
     }
 
     private List<String> resolvePermissions(CustomUserDetails userDetails) {
@@ -172,3 +172,6 @@ public class AuthServiceImpl implements AuthService {
         });
     }
 }
+
+
+

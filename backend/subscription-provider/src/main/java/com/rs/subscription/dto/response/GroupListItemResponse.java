@@ -25,6 +25,8 @@ public class GroupListItemResponse {
     private String signingUsedPct;
     private LocalDateTime updatedAt;
     /** userId nhân viên phụ trách (null nếu chưa gán) */
-    private String ownerUserId;
+    private Long ownerUserId;
     private String ownerName;
 }
+
+

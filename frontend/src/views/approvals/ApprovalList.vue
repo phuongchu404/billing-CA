@@ -148,15 +148,15 @@ function statusLabel(status: MultiApprovalStatus): string {
   return map[status] ?? status
 }
 
-function statusType(status: MultiApprovalStatus): '' | 'success' | 'warning' | 'danger' | 'info' {
-  const map: Record<MultiApprovalStatus, '' | 'success' | 'warning' | 'danger' | 'info'> = {
+function statusType(status: MultiApprovalStatus): 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined {
+  const map: Record<MultiApprovalStatus, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
     DRAFT: 'info',
-    IN_APPROVAL: '',
+    IN_APPROVAL: 'primary',
     NEED_REVISION: 'warning',
     APPROVED: 'success',
     REJECTED: 'danger',
   }
-  return map[status] ?? ''
+  return map[status]
 }
 
 function formatAmount(value: number): string {
@@ -189,3 +189,5 @@ onMounted(load)
   font-weight: 600;
 }
 </style>
+
+

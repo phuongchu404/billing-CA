@@ -1,6 +1,8 @@
 package com.rs.subscription.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -10,8 +12,9 @@ public class ExecuteRetailPlanFlowRequest {
     @NotBlank
     private String actor;
 
-    @NotBlank
-    private String userId;
+    @NotNull
+    @Positive
+    private Long userId;
 
     private String note;
     private Boolean approveNow = true;
@@ -25,3 +28,5 @@ public class ExecuteRetailPlanFlowRequest {
     private String paymentReference;
     private Long sourceId;
 }
+
+

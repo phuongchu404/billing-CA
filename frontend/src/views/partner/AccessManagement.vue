@@ -2,8 +2,8 @@
   <div>
     <div class="page-header">
       <div>
-        <h2 class="page-title">Quản lý quyền truy cập đối tác</h2>
-        <div class="page-subtitle">Cấp / thu hồi quyền xem báo cáo cho tài khoản đối tác</div>
+        <h2 class="page-title">{{ t('partnerAccess.title') }}</h2>
+        <div class="page-subtitle">{{ t('partnerAccess.subtitle') }}</div>
       </div>
     </div>
 
@@ -12,7 +12,7 @@
       <div class="toolbar">
         <el-select
           v-model="selectedPartner"
-          placeholder="Chọn đối tác"
+          :placeholder="t('partnerAccess.selectPartnerPlaceholder')"
           filterable
           clearable
           style="width: 280px"
@@ -29,25 +29,25 @@
           type="primary"
           :disabled="!selectedPartner || !can('partner:access:grant')"
           @click="openGrant"
-        >+ Cấp quyền mới</el-button>
+        >{{ t('partnerAccess.grantNew') }}</el-button>
       </div>
 
       <!-- Access list -->
-      <el-table :data="accessList" border empty-text="Chọn đối tác để xem danh sách quyền truy cập">
+      <el-table :data="accessList" border :empty-text="t('partnerAccess.emptyText')">
         <el-table-column type="index" width="55" label="#" />
-        <el-table-column prop="groupCode" label="MÃ ĐẠI LÝ" width="120" />
-        <el-table-column prop="groupName" label="TÊN ĐẠI LÝ" min-width="200" />
-        <el-table-column prop="grantedBy" label="ĐƯỢC CẤP BỞI" width="150" />
-        <el-table-column prop="grantedAt" label="NGÀY CẤP" width="160">
+        <el-table-column prop="groupCode" :label="t('partnerAccess.colGroupCode').toUpperCase()" width="120" />
+        <el-table-column prop="groupName" :label="t('partnerAccess.colGroupName').toUpperCase()" min-width="200" />
+        <el-table-column prop="grantedBy" :label="t('partnerAccess.colGrantedBy').toUpperCase()" width="150" />
+        <el-table-column prop="grantedAt" :label="t('partnerAccess.colGrantedAt').toUpperCase()" width="160">
           <template #default="{ row }">{{ formatDatetime(row.grantedAt) }}</template>
         </el-table-column>
-        <el-table-column label="TRẠNG THÁI" width="120">
+        <el-table-column :label="t('common.status').toUpperCase()" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.active" type="success">Còn hiệu lực</el-tag>
-            <el-tag v-else type="info">Đã thu hồi</el-tag>
+            <el-tag v-if="row.active" type="success">{{ t('partnerAccess.statusActive') }}</el-tag>
+            <el-tag v-else type="info">{{ t('partnerAccess.statusRevoked') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column fixed="right" label="HÀNH ĐỘNG" width="130">
+        <el-table-column fixed="right" :label="t('common.actions').toUpperCase()" width="130">
           <template #default="{ row }">
             <el-button
               v-if="row.active"
@@ -56,7 +56,7 @@
               plain
               :disabled="!can('partner:access:revoke')"
               @click="handleRevoke(row)"
-            >Thu hồi</el-button>
+            >{{ t('partnerAccess.revokeAction') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -65,14 +65,14 @@
     <!-- Grant Access Dialog -->
     <el-dialog v-model="grantVisible" width="440px" :close-on-click-modal="false">
       <template #header>
-        <span style="font-size:15px;font-weight:700;">CẤP QUYỀN XEM BÁO CÁO</span>
+        <span class="dlg-title">{{ t('partnerAccess.grantDialogTitle') }}</span>
       </template>
       <el-form label-width="120px" label-position="left">
-        <el-form-item label="Đối tác:">
+        <el-form-item :label="t('partnerAccess.partnerLabel') + ':'">
           <span>{{ partnerUsers.find(u => u.userId === selectedPartner)?.fullName }}</span>
         </el-form-item>
-        <el-form-item label="Đại lý:">
-          <el-select v-model="grantGroupId" filterable clearable placeholder="Chọn đại lý" style="width:100%">
+        <el-form-item :label="t('partnerAccess.groupLabel') + ':'">
+          <el-select v-model="grantGroupId" filterable clearable :placeholder="t('partnerAccess.selectGroupPlaceholder')" style="width:100%">
             <el-option
               v-for="g in availableGroups"
               :key="g.groupId"
@@ -84,8 +84,8 @@
       </el-form>
       <template #footer>
         <div style="display:flex;justify-content:flex-end;gap:8px">
-          <el-button type="primary" :loading="saving" :disabled="!grantGroupId" @click="handleGrant">Xác Nhận</el-button>
-          <el-button @click="grantVisible = false">Hủy</el-button>
+          <el-button type="primary" :loading="saving" :disabled="!grantGroupId" @click="handleGrant">{{ t('common.confirm') }}</el-button>
+          <el-button @click="grantVisible = false">{{ t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -95,6 +95,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { listUsers } from '@/api/users'
 import { listGroups } from '@/api/groups'
 import { grantPartnerAccess, getPartnerAccessHistory, revokePartnerAccess } from '@/api/partnerAccess'
@@ -102,6 +103,7 @@ import { usePermission } from '@/composables/usePermission'
 import type { UserAccount } from '@/types'
 import type { GroupListItem, PartnerGroupAccess } from '@/types/group'
 
+const { t } = useI18n()
 const { can } = usePermission()
 
 const loading = ref(false)
@@ -109,7 +111,7 @@ const saving = ref(false)
 
 const partnerUsers = ref<UserAccount[]>([])
 const allGroups = ref<GroupListItem[]>([])
-const selectedPartner = ref<string>('')
+const selectedPartner = ref<number | null>(null)
 const accessList = ref<PartnerGroupAccess[]>([])
 
 // Groups chưa được cấp quyền cho partner này
@@ -134,7 +136,6 @@ async function loadInitialData() {
       listGroups(),
     ])
     if (usersRes.success && usersRes.data) {
-      // Lọc chỉ user có role PARTNER
       partnerUsers.value = usersRes.data.content.filter(u =>
         u.roles?.some(r => r.roleName === 'ROLE_PARTNER')
       )
@@ -147,8 +148,8 @@ async function loadInitialData() {
   }
 }
 
-async function onPartnerChange(partnerId: string) {
-  if (!partnerId) { accessList.value = []; return }
+async function onPartnerChange(partnerId: number | null) {
+  if (partnerId == null) { accessList.value = []; return }
   loading.value = true
   try {
     const res = await getPartnerAccessHistory(partnerId)
@@ -160,14 +161,14 @@ async function onPartnerChange(partnerId: string) {
 
 async function handleRevoke(row: PartnerGroupAccess) {
   await ElMessageBox.confirm(
-    `Thu hồi quyền xem báo cáo đại lý "${row.groupName}" của đối tác này?`,
-    'Xác nhận thu hồi',
-    { type: 'warning', confirmButtonText: 'Thu hồi', cancelButtonText: 'Hủy' }
+    t('partnerAccess.revokeConfirmMsg', { groupName: row.groupName }),
+    t('partnerAccess.revokeConfirmTitle'),
+    { type: 'warning', confirmButtonText: t('partnerAccess.revokeAction'), cancelButtonText: t('common.cancel') }
   )
   saving.value = true
   try {
     await revokePartnerAccess(row.id)
-    ElMessage.success('Đã thu hồi quyền truy cập')
+    ElMessage.success(t('partnerAccess.revokedSuccess'))
     await onPartnerChange(selectedPartner.value)
   } finally {
     saving.value = false
@@ -188,7 +189,7 @@ async function handleGrant() {
   saving.value = true
   try {
     await grantPartnerAccess(selectedPartner.value, grantGroupId.value)
-    ElMessage.success('Đã cấp quyền truy cập')
+    ElMessage.success(t('partnerAccess.grantedSuccess'))
     grantVisible.value = false
     await onPartnerChange(selectedPartner.value)
   } finally {
@@ -204,4 +205,5 @@ onMounted(loadInitialData)
 .page-title { margin: 0 0 2px; font-size: 20px; font-weight: 700; color: #1a1a2e; }
 .page-subtitle { font-size: 13px; color: var(--el-text-color-secondary); }
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
+.dlg-title { font-size: 15px; font-weight: 700; }
 </style>

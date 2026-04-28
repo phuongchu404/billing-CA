@@ -20,10 +20,8 @@ public class CertificateUsageRecord {
 
     @Column(name = "certificate_id", nullable = false, length = 200)
     private String certificateId;
-
-    @Convert(converter = UuidBinaryConverter.class)
-    @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
-    private String userId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_id")
@@ -49,3 +47,5 @@ public class CertificateUsageRecord {
         if (quantity == null) quantity = 1;
     }
 }
+
+

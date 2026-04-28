@@ -23,9 +23,11 @@ public interface PartnerGroupAccessService {
 
     void revoke(Long accessId, String revokedBy);
 
-    void revokeByPartnerAndGroup(String partnerUserId, Long groupId);
+    void revokeByPartnerAndGroup(Long partnerUserId, Long groupId, String revokedBy);
 
-    List<PartnerGroupAccessResponse> listActiveForPartner(String partnerUserId);
+    List<PartnerGroupAccessResponse> listActiveForPartner(Long partnerUserId);
 
-    List<PartnerGroupAccessResponse> listHistoryForPartner(String partnerUserId);
+    List<PartnerGroupAccessResponse> listHistoryForPartner(Long partnerUserId);
 }
+
+

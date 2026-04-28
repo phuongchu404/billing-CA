@@ -13,7 +13,10 @@ import java.util.List;
 public interface PasswordHistoryRepository extends JpaRepository<PasswordHistory, Long> {
 
     @Query(value = "SELECT * FROM password_history WHERE user_id = :userId ORDER BY created_at DESC LIMIT :count", nativeQuery = true)
-    List<PasswordHistory> findRecentByUserId(@Param("userId") String userId, @Param("count") int count);
+    List<PasswordHistory> findRecentByUserId(@Param("userId") Long userId, @Param("count") int count);
 
 
 }
+
+
+

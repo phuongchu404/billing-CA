@@ -4,7 +4,9 @@ import com.rs.subscription.security.service.CustomUserDetails;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 
 public final class SecurityUtil {
 
@@ -22,11 +24,19 @@ public final class SecurityUtil {
                 });
     }
 
-    public static Optional<String> getCurrentUserId() {
+    public static Optional<Long> getCurrentUserId() {
         return getCurrentUser().map(CustomUserDetails::getUserId);
     }
 
     public static Optional<String> getCurrentUsername() {
         return getCurrentUser().map(CustomUserDetails::getUsername);
+    }
+
+    public static boolean hasAnyAuthority(String... authorities) {
+        Set<String> required = Set.copyOf(Arrays.asList(authorities));
+        return getCurrentUser()
+            .map(user -> user.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> required.contains(grantedAuthority.getAuthority())))
+            .orElse(false);
     }
 }

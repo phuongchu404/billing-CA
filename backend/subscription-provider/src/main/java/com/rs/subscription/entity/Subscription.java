@@ -20,10 +20,8 @@ public class Subscription {
 
     @Column(nullable = false, length = 20)
     private String subscriberType;
-
-    @Convert(converter = UuidBinaryConverter.class)
-    @Column(columnDefinition = "BINARY(16)")
-    private String userId;
+    @Column
+    private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
@@ -88,3 +86,5 @@ public class Subscription {
     }
 
 }
+
+

@@ -33,10 +33,19 @@ public class AuditLogServiceImpl implements AuditLogService {
         resolveActorFromUserId = true
     )
     public void log(Subscription subscription, String actor, String oldStatus, String newStatus, String reason) {
-        String actorName = userAccountRepository.findById(actor)
+        String actorName = findUserId(actor)
+                .flatMap(userAccountRepository::findById)
                 .map(u -> u.getUsername())
                 .orElse(actor);
         log.info("Audit: subscription={} actor={} {} -> {}", subscription.getSubscriptionId(), actorName, oldStatus, newStatus);
+    }
+
+    private java.util.Optional<Long> findUserId(String value) {
+        try {
+            return java.util.Optional.of(Long.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return java.util.Optional.empty();
+        }
     }
 
     public PagedResponse<AuditLogResponse> getSystemAuditLogs(
@@ -65,3 +74,5 @@ public class AuditLogServiceImpl implements AuditLogService {
         return r;
     }
 }
+
+

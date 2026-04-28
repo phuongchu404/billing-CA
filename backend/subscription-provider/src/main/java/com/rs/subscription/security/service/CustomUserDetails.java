@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @Setter
 public class CustomUserDetails implements UserDetails {
 
-    private String userId;
+    private Long userId;
     private String username;
     private String email;
     private String fullName;
@@ -26,7 +26,7 @@ public class CustomUserDetails implements UserDetails {
 
     private Set<String> authorities;
 
-    public CustomUserDetails(String userId, String username, String email, String fullName,
+    public CustomUserDetails(Long userId, String username, String email, String fullName,
                              String status, String password, Set<String> authorities) {
         this.userId = userId;
         this.username = username;
@@ -74,3 +74,5 @@ public class CustomUserDetails implements UserDetails {
         return "ACTIVE".equals(status);
     }
 }
+
+

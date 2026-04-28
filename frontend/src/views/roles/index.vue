@@ -13,7 +13,7 @@
       <div v-if="!editMode" class="toolbar">
         <el-button type="primary" :icon="Plus" :disabled="!authStore.hasPermission('role:create')" @click="openCreate">{{ t('roles.newRole') }}</el-button>
         <el-tooltip
-          :content="isProtectedRole ? 'Không thể chỉnh sửa vai trò ROLE_ADMIN' : ''"
+          :content="isProtectedRole ? t('roles.cannotEditAdmin') : ''"
           :disabled="!isProtectedRole"
           placement="top"
         >
@@ -24,7 +24,7 @@
           >{{ t('roles.editRole') }}</el-button>
         </el-tooltip>
         <el-tooltip
-          :content="isProtectedRole ? 'Không thể xoá vai trò ROLE_ADMIN' : ''"
+          :content="isProtectedRole ? t('roles.cannotDeleteAdmin') : ''"
           :disabled="!isProtectedRole"
           placement="top"
         >
@@ -35,7 +35,7 @@
             :loading="saving"
             :disabled="!authStore.hasPermission('role:update') || !selectedRoleId || !!selectedRole?.isSystemRole"
             @click="handleDeleteRole"
-          >Xoá vai trò</el-button>
+          >{{ t('roles.deleteRole') }}</el-button>
         </el-tooltip>
       </div>
 
@@ -145,12 +145,12 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">THÊM MỚI VAI TRÒ</span>
+        <span class="dlg-title">{{ t('roles.createRoleTitle') }}</span>
       </template>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" label-position="left">
-        <el-form-item label="Tên vai trò" prop="displayName">
-          <el-input v-model="form.displayName" placeholder="Nhập tên vai trò" />
-          <div class="field-hint">Nhập tên vai trò không trùng với vai trò đã có</div>
+        <el-form-item :label="t('roles.roleName')" prop="displayName">
+          <el-input v-model="form.displayName" :placeholder="t('roles.roleNamePlaceholder')" />
+          <div class="field-hint">{{ t('roles.roleNameHint') }}</div>
         </el-form-item>
       </el-form>
 
@@ -159,8 +159,8 @@
         <table class="perm-select-table">
           <thead>
             <tr>
-              <th class="pst-th-name">Phân quyền</th>
-              <th class="pst-th-check">Quyền</th>
+              <th class="pst-th-name">{{ t('roles.permission') }}</th>
+              <th class="pst-th-check">{{ t('roles.access') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -201,8 +201,8 @@
 
       <template #footer>
         <div class="dlg-footer-right">
-          <el-button type="primary" :loading="saving" @click="handleSave">Xác Nhận</el-button>
-          <el-button @click="dialogVisible = false">Hủy Bỏ</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">{{ t('common.confirm') }}</el-button>
+          <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -263,7 +263,7 @@ function handleEdit() {
     return
   }
   if (isProtectedRole.value) {
-    ElMessage.warning('Không thể chỉnh sửa vai trò ROLE_ADMIN')
+    ElMessage.warning(t('roles.cannotEditAdmin'))
     return
   }
   editPerms.value = new Set(rolePerms.value[selectedRoleId.value] || [])
@@ -280,6 +280,9 @@ async function confirmEdit() {
     rolePerms.value = rp
     ElMessage.success(t('roles.permissionsSaved'))
     editMode.value = false
+  } catch (err: any) {
+    const msg = err?.response?.data?.message ?? t('roles.loadMatrixFailed')
+    ElMessage.error(msg)
   } finally { saving.value = false }
 }
 
@@ -295,14 +298,14 @@ async function handleDeleteRole() {
   const role = selectedRole.value
   if (!role) return
   if (role.isSystemRole) {
-    ElMessage.warning('Không thể xoá vai trò hệ thống')
+    ElMessage.warning(t('roles.cannotDeleteSystemRole'))
     return
   }
   try {
     await ElMessageBox.confirm(
-      `Bạn đang xoá vai trò "${role.displayName}". Hành động này không thể hoàn tác. Xác nhận xoá?`,
-      'Xoá vai trò',
-      { confirmButtonText: 'Xác nhận', cancelButtonText: 'Huỷ', type: 'warning' }
+      t('roles.deleteRoleConfirmMsg', { name: role.displayName }),
+      t('roles.deleteRole'),
+      { confirmButtonText: t('common.confirm'), cancelButtonText: t('common.cancel'), type: 'warning' }
     )
   } catch {
     return
@@ -310,11 +313,11 @@ async function handleDeleteRole() {
   saving.value = true
   try {
     await deleteRole(role.roleId)
-    ElMessage.success(`Đã xoá vai trò "${role.displayName}"`)
+    ElMessage.success(t('roles.deletedMsg'))
     selectedRoleId.value = null
     await load()
   } catch (err: any) {
-    const msg = err?.response?.data?.message ?? 'Xoá vai trò thất bại'
+    const msg = err?.response?.data?.message ?? t('roles.deleteRoleFailed')
     ElMessage.error(msg)
   } finally {
     saving.value = false
@@ -340,7 +343,7 @@ async function load() {
   try {
     const res = await getPermissionMatrix()
     if (res.success && res.data) applyData(res.data)
-    else ElMessage.error(res.message || 'Không tải được ma trận phân quyền')
+    else ElMessage.error(res.message || t('roles.loadMatrixFailed'))
   } catch {
     matrixRoles.value = []
     moduleGroups.value = []

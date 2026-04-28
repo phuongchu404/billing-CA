@@ -109,7 +109,7 @@
 
         <el-table-column prop="status" sortable="custom" width="145">
           <template #header>
-            <div class="col-label">TRẠNG THÁI</div>
+            <div class="col-label">{{ t('common.status').toUpperCase() }}</div>
             <div class="col-filter" @click.stop>
               <el-select
                 v-model="filterStatus"
@@ -118,8 +118,8 @@
                 @change="onFilter"
                 style="width: 100%"
               >
-                <el-option label="Hoạt động" value="ACTIVE" />
-                <el-option label="Đã thu hồi" value="REVOKED" />
+                <el-option :label="t('users.statusActive')" value="ACTIVE" />
+                <el-option :label="t('users.statusRevoked')" value="REVOKED" />
               </el-select>
             </div>
           </template>
@@ -128,14 +128,14 @@
               class="status-badge"
               :class="row.status === 'ACTIVE' ? 'active' : 'revoked'"
             >
-              {{ row.status === "ACTIVE" ? "Hoạt động" : "Đã thu hồi" }}
+              {{ row.status === "ACTIVE" ? t('users.statusActive') : t('users.statusRevoked') }}
             </span>
           </template>
         </el-table-column>
 
         <el-table-column prop="roleName" sortable="custom" min-width="150">
           <template #header>
-            <div class="col-label">VAI TRÒ</div>
+            <div class="col-label">{{ t('users.roles').toUpperCase() }}</div>
             <div class="col-filter" @click.stop>
               <el-select
                 v-model="filterRole"
@@ -157,14 +157,14 @@
 
         <el-table-column prop="fullName" sortable="custom" min-width="170">
           <template #header>
-            <div class="col-label">TÊN NGƯỜI DÙNG</div>
+            <div class="col-label">{{ t('users.fullName').toUpperCase() }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="managerName" sortable="custom" min-width="160">
           <template #header>
-            <div class="col-label">QUẢN LÝ TRỰC TIẾP</div>
+            <div class="col-label">{{ t('users.managerLabel').toUpperCase() }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -182,14 +182,14 @@
 
         <el-table-column prop="createdAt" sortable="custom" width="175">
           <template #header>
-            <div class="col-label">THỜI GIAN TẠO</div>
+            <div class="col-label">{{ t('users.createdAtLabel').toUpperCase() }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column fixed="right" width="320">
           <template #header>
-            <div class="col-label">HÀNH ĐỘNG</div>
+            <div class="col-label">{{ t('common.actions').toUpperCase() }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -200,21 +200,21 @@
                   :icon="EditPen"
                   :disabled="!can('user:update')"
                   @click="openEdit(row)"
-                  >Chỉnh sửa</el-button
+                  >{{ t('users.editAction') }}</el-button
                 >
                 <el-button
                   size="small"
                   :icon="Connection"
                   :disabled="!can('user:update')"
                   @click="openAssignManager(row)"
-                  >Gán quản lý</el-button
+                  >{{ t('users.assignManagerAction') }}</el-button
                 >
                 <el-button
                   size="small"
                   :icon="Key"
                   :disabled="!can('user:update')"
                   @click="openResetPwd(row)"
-                  >Đặt lại mật khẩu</el-button
+                  >{{ t('users.resetPassword') }}</el-button
                 >
                 <el-button
                   size="small"
@@ -223,7 +223,7 @@
                   plain
                   :disabled="!can('user:update')"
                   @click="openDelete(row)"
-                  >Xoá tài khoản</el-button
+                  >{{ t('users.deleteAccountAction') }}</el-button
                 >
               </template>
             </div>
@@ -292,7 +292,7 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">THÊM MỚI TÀI KHOẢN</span>
+        <span class="dlg-title">{{ t('users.createTitle') }}</span>
       </template>
       <el-form
         ref="createFormRef"
@@ -301,56 +301,54 @@
         label-width="130px"
         label-position="left"
       >
-        <el-form-item label="Tên đăng nhập:" prop="username">
+        <el-form-item :label="t('users.username')" prop="username">
           <el-input
             v-model="createForm.username"
-            placeholder="Nhập tên đăng nhập"
+            :placeholder="t('users.usernamePlaceholder')"
           />
-          <div class="field-hint">
-            Nhập tên đăng nhập không trùng với tên đăng nhập đã có
-          </div>
+          <div class="field-hint">{{ t('users.usernameHint') }}</div>
         </el-form-item>
-        <el-form-item label="Tên người dùng:" prop="fullName">
+        <el-form-item :label="t('users.fullName')" prop="fullName">
           <el-input
             v-model="createForm.fullName"
-            placeholder="Nhập tên người dùng"
+            :placeholder="t('users.fullNamePlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="Email" prop="email">
+        <el-form-item :label="t('users.email')" prop="email">
           <el-input
             v-model="createForm.email"
-            placeholder="Nhập email nhận mã xác thực"
+            :placeholder="t('users.emailPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="Mật khẩu:" prop="password">
+        <el-form-item :label="t('users.password')" prop="password">
           <el-input
             v-model="createForm.password"
             type="password"
             show-password
-            placeholder="Nhập mật khẩu"
+            :placeholder="t('users.passwordPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="Nhập lại MK:" prop="confirmPassword">
+        <el-form-item :label="t('users.confirmPasswordLabel')" prop="confirmPassword">
           <el-input
             v-model="createForm.confirmPassword"
             type="password"
             show-password
-            placeholder="Nhập lại mật khẩu"
+            :placeholder="t('users.confirmPasswordPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="Vai trò:" prop="roleName">
+        <el-form-item :label="t('users.roles')" prop="roleId">
           <el-select
-            v-model="createForm.roleName"
-            placeholder="Chọn vai trò"
+            v-model="createForm.roleId"
+            :placeholder="t('users.roleSelectPlaceholder')"
             style="width: 100%"
           >
-            <el-option v-for="r in allRoles" :key="r.roleId" :label="r.displayName" :value="r.displayName" />
+            <el-option v-for="r in allRoles" :key="r.roleId" :label="r.displayName" :value="r.roleId" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Quản lý:">
+        <el-form-item :label="t('users.managerSelectLabel')">
           <el-select
             v-model="createForm.managerUserId"
-            placeholder="Chọn quản lý (không bắt buộc)"
+            :placeholder="t('users.managerSelectPlaceholder')"
             clearable
             filterable
             style="width: 100%"
@@ -366,10 +364,8 @@
       </el-form>
       <template #footer>
         <div class="dlg-footer-right">
-          <el-button type="primary" :loading="saving" @click="handleCreate"
-            >Xác Nhận</el-button
-          >
-          <el-button @click="createVisible = false">Hủy Bỏ</el-button>
+          <el-button type="primary" :loading="saving" @click="handleCreate">{{ t('common.confirm') }}</el-button>
+          <el-button @click="createVisible = false">{{ t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -381,7 +377,7 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">CHỈNH SỬA THÔNG TIN TÀI KHOẢN</span>
+        <span class="dlg-title">{{ t('users.editTitle') }}</span>
       </template>
       <el-form
         ref="editFormRef"
@@ -390,11 +386,11 @@
         label-width="130px"
         label-position="left"
       >
-        <el-form-item label="Tên đăng nhập:" prop="username">
+        <el-form-item :label="t('users.username') + ':'" prop="username">
           <el-input :value="editingUser?.username" disabled />
-          <div class="field-hint">Không thể đổi tên đăng nhập</div>
+          <div class="field-hint">{{ t('users.cannotChangeUsername') }}</div>
         </el-form-item>
-        <el-form-item label="Tên người dùng:" prop="fullName">
+        <el-form-item :label="t('users.fullName') + ':'" prop="fullName">
           <el-input v-model="editForm.fullName" />
         </el-form-item>
         <el-form-item label="Email" prop="email">
@@ -404,13 +400,13 @@
       <template #footer>
         <div class="dlg-footer-split">
           <el-button type="warning" plain @click="openDeleteFromEdit"
-            >Xoá Tài Khoản</el-button
+            >{{ t('users.deleteAccountAction') }}</el-button
           >
           <div class="dlg-footer-right">
             <el-button type="primary" :loading="saving" @click="handleEdit"
-              >Xác Nhận</el-button
+              >{{ t('common.confirm') }}</el-button
             >
-            <el-button @click="editVisible = false">Hủy Bỏ</el-button>
+            <el-button @click="editVisible = false">{{ t('common.cancel') }}</el-button>
           </div>
         </div>
       </template>
@@ -423,20 +419,17 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">XOÁ TÀI KHOẢN</span>
+        <span class="dlg-title">{{ t('users.deleteTitle') }}</span>
       </template>
       <p class="delete-text">
-        Bạn đang xóa tài khoản <strong>{{ deleteTarget?.username }}</strong> -
-        <strong>{{ deleteTarget?.fullName }}</strong
-        >. Hành động này chấm dứt mọi quyền truy cập và không thể hoàn tác. Nhấn
-        "Xác Nhận" để xoá tài khoản.
+        {{ t('users.deleteConfirmText', { username: deleteTarget?.username, fullName: deleteTarget?.fullName }) }}
       </p>
       <template #footer>
         <div class="dlg-footer-right">
           <el-button type="primary" :loading="saving" @click="handleDelete"
-            >Xác Nhận</el-button
+            >{{ t('common.confirm') }}</el-button
           >
-          <el-button @click="deleteVisible = false">Hủy Bỏ</el-button>
+          <el-button @click="deleteVisible = false">{{ t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -444,14 +437,14 @@
     <!-- Assign Manager Dialog -->
     <el-dialog v-model="assignManagerVisible" width="420px" :close-on-click-modal="false">
       <template #header>
-        <span class="dlg-title">GÁN QUẢN LÝ TRỰC TIẾP</span>
+        <span class="dlg-title">{{ t('users.assignManagerTitle') }}</span>
       </template>
       <el-form label-width="130px" label-position="left">
-        <el-form-item label="Tài khoản:">
+        <el-form-item :label="t('users.username') + ':'">
           <span>{{ assignManagerTarget?.fullName }} ({{ assignManagerTarget?.username }})</span>
         </el-form-item>
-        <el-form-item label="Quản lý:">
-          <el-select v-model="assignManagerId" clearable placeholder="Chọn quản lý (để trống = xoá)" style="width:100%">
+        <el-form-item :label="t('users.managerSelectLabel') + ':'">
+          <el-select v-model="assignManagerId" clearable :placeholder="t('users.managerSelectClearPlaceholder')" style="width:100%">
             <el-option
               v-for="u in users.filter(u => u.id !== assignManagerTarget?.id)"
               :key="u.id"
@@ -463,8 +456,8 @@
       </el-form>
       <template #footer>
         <div class="dlg-footer-right">
-          <el-button type="primary" :loading="saving" @click="handleAssignManager">Xác Nhận</el-button>
-          <el-button @click="assignManagerVisible = false">Hủy Bỏ</el-button>
+          <el-button type="primary" :loading="saving" @click="handleAssignManager">{{ t('common.confirm') }}</el-button>
+          <el-button @click="assignManagerVisible = false">{{ t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -476,24 +469,24 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">ĐẶT LẠI MẬT KHẨU</span>
+        <span class="dlg-title">{{ t('users.resetPwdTitle') }}</span>
       </template>
       <el-form label-width="130px" label-position="left">
-        <el-form-item label="Mật khẩu mới:">
+        <el-form-item :label="t('users.newPassword') + ':'">
           <el-input
             v-model="newPassword"
             type="password"
             show-password
-            placeholder="Nhập mật khẩu mới"
+            :placeholder="t('users.newPwdPlaceholder')"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dlg-footer-right">
           <el-button type="primary" :loading="saving" @click="handleResetPwd"
-            >Xác Nhận</el-button
+            >{{ t('common.confirm') }}</el-button
           >
-          <el-button @click="resetPwdVisible = false">Hủy Bỏ</el-button>
+          <el-button @click="resetPwdVisible = false">{{ t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -531,7 +524,7 @@ const { t } = useI18n();
 
 // ── Data model ──
 interface UserRow {
-  id: string;
+  id: number;
   username: string;
   fullName: string;
   email: string;
@@ -668,7 +661,7 @@ async function load() {
       }));
     }
   } catch {
-    ElMessage.error("Không thể tải danh sách người dùng");
+    ElMessage.error(t("users.loadError"));
   } finally {
     loading.value = false;
   }
@@ -683,8 +676,8 @@ const createForm = reactive({
   email: "",
   password: "",
   confirmPassword: "",
-  roleName: "",
-  managerUserId: "",
+  roleId: null as number | null,
+  managerUserId: null as number | null,
 });
 const createRules = computed(() => ({
   username: [{ required: true, message: t("common.required") }],
@@ -695,12 +688,12 @@ const createRules = computed(() => ({
     { required: true, message: t("common.required") },
     {
       validator: (_: any, value: string, callback: Function) => {
-        if (value !== createForm.password) callback(new Error("Mật khẩu nhập lại không khớp"));
+        if (value !== createForm.password) callback(new Error(t("users.passwordMismatch")));
         else callback();
       },
     },
   ],
-  roleName: [{ required: true, message: t("common.required") }],
+  roleId: [{ required: true, message: t("common.required") }],
 }));
 
 function openCreate() {
@@ -710,8 +703,8 @@ function openCreate() {
     email: "",
     password: "",
     confirmPassword: "",
-    roleName: "",
-    managerUserId: "",
+    roleId: null,
+    managerUserId: null,
   });
   createVisible.value = true;
 }
@@ -720,18 +713,15 @@ async function handleCreate() {
   if (!(await createFormRef.value?.validate().catch(() => false))) return;
   saving.value = true;
   try {
-    const roleMatch = allRoles.value.find((r) => r.displayName === createForm.roleName);
-    const res = await createUser({
+    await createUser({
       username: createForm.username,
       email: createForm.email,
       fullName: createForm.fullName,
       password: createForm.password,
       confirmPassword: createForm.confirmPassword,
-      roleIds: roleMatch ? [roleMatch.roleId] : [],
+      roleIds: createForm.roleId ? [createForm.roleId] : [],
+      managerUserId: createForm.managerUserId,
     });
-    if (createForm.managerUserId && res.success && res.data?.userId) {
-      await assignManager(res.data.userId, createForm.managerUserId);
-    }
     ElMessage.success(t("users.createdMsg"));
     createVisible.value = false;
     await load();
@@ -834,11 +824,11 @@ async function handleResetPwd() {
 // ── Assign Manager dialog ──
 const assignManagerVisible = ref(false);
 const assignManagerTarget = ref<UserRow | null>(null);
-const assignManagerId = ref<string>("");
+const assignManagerId = ref<number | null>(null);
 
 function openAssignManager(user: UserRow) {
   assignManagerTarget.value = user;
-  assignManagerId.value = "";
+  assignManagerId.value = null;
   assignManagerVisible.value = true;
 }
 
@@ -847,7 +837,7 @@ async function handleAssignManager() {
   saving.value = true;
   try {
     await assignManager(assignManagerTarget.value.id, assignManagerId.value || null);
-    ElMessage.success("Đã cập nhật quản lý trực tiếp");
+    ElMessage.success(t("users.managerUpdated"));
     assignManagerVisible.value = false;
     await load();
   } finally {
@@ -1002,3 +992,7 @@ onMounted(load);
   margin: 0;
 }
 </style>
+
+
+
+

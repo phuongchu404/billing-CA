@@ -87,7 +87,7 @@ public class GroupCommercialController {
     }
 
     @PostMapping("/plan-assignments/{assignmentId}/review")
-    @PreAuthorize("hasAuthority('group:update')")
+    @PreAuthorize("hasAnyAuthority('group:update','approval:level1','approval:level2','approval:level3')")
     public ApiResponse<GroupPlanAssignmentResponse> reviewAssignment(
         @PathVariable Long assignmentId,
         @Valid @RequestBody ReviewCommercialRequest request

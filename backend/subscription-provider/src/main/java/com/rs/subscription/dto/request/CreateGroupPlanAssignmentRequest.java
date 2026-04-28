@@ -20,6 +20,7 @@ public class CreateGroupPlanAssignmentRequest {
 
     private LocalDate applyFrom;
     private LocalDate applyTo;
+    private Integer approvalLevel = 1;
 
     private String stopReason;
 }

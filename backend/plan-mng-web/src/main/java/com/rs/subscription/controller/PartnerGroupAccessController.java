@@ -6,6 +6,7 @@ import com.rs.subscription.dto.response.PartnerGroupAccessResponse;
 import com.rs.subscription.security.CurrentUser;
 import com.rs.subscription.security.service.CustomUserDetails;
 import com.rs.subscription.service.PartnerGroupAccessService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,13 +15,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Quản lý quyền truy cập báo cáo cho đối tác.
- * Admin cấp / thu hồi quyền cho từng partner trên từng group.
- */
 @RestController
 @RequestMapping("/api/v1/partner-access")
 @RequiredArgsConstructor
+@Tag(name = "Partner Access", description = "Grant and revoke partner report access")
 public class PartnerGroupAccessController {
 
     private final PartnerGroupAccessService partnerGroupAccessService;
@@ -34,7 +32,7 @@ public class PartnerGroupAccessController {
         @CurrentUser CustomUserDetails admin
     ) {
         return ApiResponse.success(
-            partnerGroupAccessService.grant(request, admin.getUserId()),
+            partnerGroupAccessService.grant(request, String.valueOf(admin.getUserId())),
             "Access granted"
         );
     }
@@ -46,7 +44,7 @@ public class PartnerGroupAccessController {
         @PathVariable Long accessId,
         @CurrentUser CustomUserDetails admin
     ) {
-        partnerGroupAccessService.revoke(accessId, admin.getUserId());
+        partnerGroupAccessService.revoke(accessId, String.valueOf(admin.getUserId()));
         return ApiResponse.success("Access revoked");
     }
 
@@ -54,10 +52,11 @@ public class PartnerGroupAccessController {
     @DeleteMapping("/partner/{partnerUserId}/group/{groupId}")
     @PreAuthorize("hasAuthority('partner:access:revoke')")
     public ApiResponse<Void> revokeByPartnerAndGroup(
-        @PathVariable String partnerUserId,
-        @PathVariable Long groupId
+        @PathVariable Long partnerUserId,
+        @PathVariable Long groupId,
+        @CurrentUser CustomUserDetails admin
     ) {
-        partnerGroupAccessService.revokeByPartnerAndGroup(partnerUserId, groupId);
+        partnerGroupAccessService.revokeByPartnerAndGroup(partnerUserId, groupId, String.valueOf(admin.getUserId()));
         return ApiResponse.success("Access revoked");
     }
 
@@ -65,7 +64,7 @@ public class PartnerGroupAccessController {
     @GetMapping("/partner/{partnerUserId}")
     @PreAuthorize("hasAuthority('partner:access:grant') or (isAuthenticated() and #partnerUserId == authentication.principal.userId)")
     public ApiResponse<List<PartnerGroupAccessResponse>> listActive(
-        @PathVariable String partnerUserId
+        @PathVariable Long partnerUserId
     ) {
         return ApiResponse.success(
             partnerGroupAccessService.listActiveForPartner(partnerUserId),
@@ -77,7 +76,7 @@ public class PartnerGroupAccessController {
     @GetMapping("/partner/{partnerUserId}/history")
     @PreAuthorize("hasAuthority('partner:access:grant')")
     public ApiResponse<List<PartnerGroupAccessResponse>> listHistory(
-        @PathVariable String partnerUserId
+        @PathVariable Long partnerUserId
     ) {
         return ApiResponse.success(
             partnerGroupAccessService.listHistoryForPartner(partnerUserId),
@@ -85,3 +84,7 @@ public class PartnerGroupAccessController {
         );
     }
 }
+
+
+
+

@@ -16,9 +16,11 @@ public interface DataScopeService {
 
     List<Long> resolveVisibleGroupIds();
 
-    List<String> resolveVisibleOwnerIds();
+    List<Long> resolveVisibleOwnerIds();
 
-    String currentUserId();
+    Long currentUserId();
 
     boolean canAccessGroup(Long groupId);
 }
+
+

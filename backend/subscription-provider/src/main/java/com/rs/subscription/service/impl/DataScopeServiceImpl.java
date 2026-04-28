@@ -44,11 +44,16 @@ public class DataScopeServiceImpl implements DataScopeService {
         CustomUserDetails user = currentUser();
         if (user == null) return List.of();
 
-        boolean isPartner       = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("report:view:partner"));
+        boolean isPartner       = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PARTNER"));
         boolean viewOwn         = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("group:view:own"));
         boolean viewSubordinates= user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("group:view:subordinates"));
+        boolean isAdmin         = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         // Admin / full-access roles: no filter
+        if (isAdmin) {
+            return null;
+        }
+
         if (!isPartner && !viewOwn && !viewSubordinates) {
             return null;
         }
@@ -58,11 +63,11 @@ public class DataScopeServiceImpl implements DataScopeService {
         }
 
         // viewOwn or viewSubordinates
-        List<String> ownerIds = new ArrayList<>();
+        List<Long> ownerIds = new ArrayList<>();
         ownerIds.add(user.getUserId());
 
         if (viewSubordinates) {
-            List<String> subordinates = userAccountRepository.findAllSubordinateIds(user.getUserId());
+            List<Long> subordinates = userAccountRepository.findAllSubordinateIds(user.getUserId());
             ownerIds.addAll(subordinates);
         }
 
@@ -77,18 +82,20 @@ public class DataScopeServiceImpl implements DataScopeService {
      * Returns null if the user can see all.
      */
     @Transactional(readOnly = true)
-    public List<String> resolveVisibleOwnerIds() {
+    public List<Long> resolveVisibleOwnerIds() {
         CustomUserDetails user = currentUser();
         if (user == null) return List.of();
 
         boolean viewOwn          = hasAuthority(user, "group:view:own");
         boolean viewSubordinates = hasAuthority(user, "group:view:subordinates");
-        boolean isPartner        = hasAuthority(user, "report:view:partner");
+        boolean isPartner        = hasAuthority(user, "ROLE_PARTNER");
+        boolean isAdmin          = hasAuthority(user, "ROLE_ADMIN");
 
+        if (isAdmin) return null;
         if (!viewOwn && !viewSubordinates && !isPartner) return null;
         if (isPartner) return List.of(); // partners don't own groups
 
-        List<String> ids = new ArrayList<>();
+        List<Long> ids = new ArrayList<>();
         ids.add(user.getUserId());
         if (viewSubordinates) {
             ids.addAll(userAccountRepository.findAllSubordinateIds(user.getUserId()));
@@ -97,7 +104,7 @@ public class DataScopeServiceImpl implements DataScopeService {
     }
 
     /** Returns current user's userId. */
-    public String currentUserId() {
+    public Long currentUserId() {
         CustomUserDetails u = currentUser();
         return u != null ? u.getUserId() : null;
     }
@@ -123,3 +130,5 @@ public class DataScopeServiceImpl implements DataScopeService {
         return user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(authority));
     }
 }
+
+

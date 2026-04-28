@@ -76,7 +76,7 @@ public class GroupServiceImpl implements GroupService {
         String groupCode = generateGroupCode();
 
         UserAccount owner = null;
-        if (request.getOwnerUserId() != null && !request.getOwnerUserId().isBlank()) {
+        if (request.getOwnerUserId() != null) {
             owner = userAccountRepository.findById(request.getOwnerUserId())
                 .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
                     "Owner user not found: " + request.getOwnerUserId(), 400));
@@ -108,14 +108,10 @@ public class GroupServiceImpl implements GroupService {
         group.setRefContractNo(request.getRefContractNo());
 
         if (request.getOwnerUserId() != null) {
-            if (request.getOwnerUserId().isBlank()) {
-                group.setOwner(null);
-            } else {
-                UserAccount owner = userAccountRepository.findById(request.getOwnerUserId())
-                    .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
-                        "Owner user not found: " + request.getOwnerUserId(), 400));
-                group.setOwner(owner);
-            }
+            UserAccount owner = userAccountRepository.findById(request.getOwnerUserId())
+                .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Owner user not found: " + request.getOwnerUserId(), 400));
+            group.setOwner(owner);
         }
 
         groupRepository.save(group);
@@ -128,9 +124,9 @@ public class GroupServiceImpl implements GroupService {
     // ASSIGN OWNER (admin gán nhân viên phụ trách)
     // ----------------------------------------------------------------
     @Transactional
-    public GroupDetailResponse assignOwner(Long groupId, String ownerUserId) {
+    public GroupDetailResponse assignOwner(Long groupId, Long ownerUserId) {
         Group group = findEntity(groupId);
-        if (ownerUserId == null || ownerUserId.isBlank()) {
+        if (ownerUserId == null) {
             group.setOwner(null);
         } else {
             UserAccount owner = userAccountRepository.findById(ownerUserId)
@@ -350,3 +346,5 @@ public class GroupServiceImpl implements GroupService {
         return 0;
     }
 }
+
+

@@ -94,7 +94,7 @@ public class JwtService {
             .collect(Collectors.toList());
 
         return Jwts.builder()
-            .subject(user.getUserId())
+            .subject(String.valueOf(user.getUserId()))
             .claim("username", user.getUsername())
             .claim("roles", roles)
             .claim("permissions", permissions)
@@ -117,8 +117,8 @@ public class JwtService {
             .getPayload();
     }
 
-    public String getUserIdFromToken(String token) {
-        return validateAndGetClaims(token).getSubject();
+    public Long getUserIdFromToken(String token) {
+        return Long.valueOf(validateAndGetClaims(token).getSubject());
     }
 
     @SuppressWarnings("unchecked")
@@ -155,3 +155,5 @@ public class JwtService {
         return jwks;
     }
 }
+
+

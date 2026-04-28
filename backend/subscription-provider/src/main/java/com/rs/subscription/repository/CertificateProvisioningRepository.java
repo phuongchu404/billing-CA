@@ -12,26 +12,26 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CertificateProvisioningRepository extends JpaRepository<CertificateProvisioningRecord, Long> {
-    Optional<CertificateProvisioningRecord> findBySubscriptionSubscriptionIdAndUserId(Long subscriptionId, String userId);
+    Optional<CertificateProvisioningRecord> findBySubscriptionSubscriptionIdAndUserId(Long subscriptionId, Long userId);
     List<CertificateProvisioningRecord> findByStatus(String status);
 
     @Query("SELECT c FROM CertificateProvisioningRecord c WHERE c.status = 'FAILED' AND c.retryCount < :maxRetries")
     List<CertificateProvisioningRecord> findRetryEligible(@Param("maxRetries") int maxRetries);
 
-    Optional<CertificateProvisioningRecord> findTopByUserIdOrderByCreatedAtDesc(String userId);
+    Optional<CertificateProvisioningRecord> findTopByUserIdOrderByCreatedAtDesc(Long userId);
     List<CertificateProvisioningRecord> findBySubscriptionSubscriptionId(Long subscriptionId);
     Optional<CertificateProvisioningRecord> findByCertificateId(String certificateId);
 
     @Query(value = "SELECT c FROM CertificateProvisioningRecord c " +
                    "JOIN FETCH c.subscription s JOIN FETCH s.planTemplate p " +
                    "WHERE (:status IS NULL OR c.status = :status) " +
-                   "AND (:userId IS NULL OR c.userId LIKE %:userId%)",
+                   "AND (:userId IS NULL OR c.userId = :userId)",
            countQuery = "SELECT COUNT(c) FROM CertificateProvisioningRecord c " +
                         "WHERE (:status IS NULL OR c.status = :status) " +
-                        "AND (:userId IS NULL OR c.userId LIKE %:userId%)")
+                        "AND (:userId IS NULL OR c.userId = :userId)")
     Page<CertificateProvisioningRecord> findAllWithFilters(
         @Param("status") String status,
-        @Param("userId") String userId,
+        @Param("userId") Long userId,
         Pageable pageable);
 
     @Modifying
@@ -92,3 +92,6 @@ public interface CertificateProvisioningRepository extends JpaRepository<Certifi
         @Param("from") LocalDateTime from,
         @Param("to") LocalDateTime to);
 }
+
+
+

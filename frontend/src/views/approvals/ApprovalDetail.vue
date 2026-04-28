@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="approval-detail-page">
     <div class="page-header">
-      <el-button :icon="ArrowLeft" @click="router.back()" link>Quay lại</el-button>
+      <el-button :icon="ArrowLeft" @click="router.back()" link>Quay láº¡i</el-button>
       <div>
-        <h2>Chi tiết yêu cầu phê duyệt <span class="req-id">#{{ requestId }}</span></h2>
+        <h2>Chi tiáº¿t yÃªu cáº§u phÃª duyá»‡t <span class="req-id">#{{ requestId }}</span></h2>
         <p class="page-subtitle">
-          {{ segmentLabel(data?.customerSegment) }} —
+          {{ segmentLabel(data?.customerSegment) }} â€”
           <el-tag :type="statusType(data?.status)" size="small">{{ statusLabel(data?.status) }}</el-tag>
         </p>
       </div>
@@ -20,7 +20,7 @@
           type="primary"
           :icon="Promotion"
           @click="showSubmitDialog = true"
-        >Gửi yêu cầu duyệt</el-button>
+        >Gá»­i yÃªu cáº§u duyá»‡t</el-button>
 
         <!-- Sale: Resubmit sau revision -->
         <el-button
@@ -28,71 +28,71 @@
           type="warning"
           :icon="Refresh"
           @click="showResubmitDialog = true"
-        >Gửi lại sau chỉnh sửa</el-button>
+        >Gá»­i láº¡i sau chá»‰nh sá»­a</el-button>
 
         <!-- Approver: Approve / Reject / Revision (khi IN_APPROVAL) -->
         <template v-if="data.status === 'IN_APPROVAL'">
-          <el-button type="success" :icon="CircleCheck" @click="showApproveDialog = true">Phê duyệt</el-button>
-          <el-button type="danger" :icon="CircleClose" @click="showRejectDialog = true">Từ chối</el-button>
-          <el-button type="warning" :icon="Edit" @click="showRevisionDialog = true">Yêu cầu chỉnh sửa</el-button>
+          <el-button type="success" :icon="CircleCheck" @click="showApproveDialog = true">PhÃª duyá»‡t</el-button>
+          <el-button type="danger" :icon="CircleClose" @click="showRejectDialog = true">Tá»« chá»‘i</el-button>
+          <el-button type="warning" :icon="Edit" @click="showRevisionDialog = true">YÃªu cáº§u chá»‰nh sá»­a</el-button>
         </template>
       </div>
 
-      <!-- Thông tin chung -->
+      <!-- ThÃ´ng tin chung -->
       <div class="section-card" v-if="data">
         <div class="section-header">
-          <span class="section-title">THÔNG TIN YÊU CẦU</span>
+          <span class="section-title">THÃ”NG TIN YÃŠU Cáº¦U</span>
         </div>
         <div class="info-grid">
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Loại yêu cầu:</span>
+              <span class="info-label">Loáº¡i yÃªu cáº§u:</span>
               <span class="info-value">{{ data.requestType }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Loại khách hàng:</span>
+              <span class="info-label">Loáº¡i khÃ¡ch hÃ ng:</span>
               <span class="info-value">{{ segmentLabel(data.customerSegment) }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Người tạo:</span>
+              <span class="info-label">NgÆ°á»i táº¡o:</span>
               <span class="info-value">{{ data.requestedBy }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Ngày tạo:</span>
+              <span class="info-label">NgÃ y táº¡o:</span>
               <span class="info-value">{{ fmtDate(data.createdAt) }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Giá trị hợp đồng:</span>
-              <span class="info-value">{{ data.contractValue ? formatAmount(data.contractValue) : '—' }}</span>
+              <span class="info-label">GiÃ¡ trá»‹ há»£p Ä‘á»“ng:</span>
+              <span class="info-value">{{ data.contractValue ? formatAmount(data.contractValue) : 'â€”' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Số cấp duyệt:</span>
-              <span class="info-value">{{ data.totalLevels }} cấp</span>
+              <span class="info-label">Sá»‘ cáº¥p duyá»‡t:</span>
+              <span class="info-value">{{ data.totalLevels }} cáº¥p</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item info-item--full">
-              <span class="info-label">Mô tả:</span>
+              <span class="info-label">MÃ´ táº£:</span>
               <span class="info-value">{{ data.description }}</span>
             </div>
           </div>
           <div class="info-row" v-if="data.status === 'NEED_REVISION' && data.reviewNote">
             <div class="info-item info-item--full">
-              <span class="info-label revision-label">Lý do chỉnh sửa:</span>
+              <span class="info-label revision-label">LÃ½ do chá»‰nh sá»­a:</span>
               <span class="info-value revision-note">{{ data.reviewNote }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Timeline duyệt -->
+      <!-- Timeline duyá»‡t -->
       <div class="section-card" v-if="data?.steps?.length">
         <div class="section-header">
-          <span class="section-title">TIẾN TRÌNH PHÊ DUYỆT</span>
+          <span class="section-title">TIáº¾N TRÃŒNH PHÃŠ DUYá»†T</span>
         </div>
         <div class="steps-container">
           <el-steps :active="activeStepIndex" finish-status="success" align-center>
@@ -106,18 +106,18 @@
                 <div class="step-desc">
                   <div v-if="step.status === 'APPROVED'" class="step-meta success">
                     <el-icon><CircleCheck /></el-icon>
-                    <span>{{ step.decidedBy }} — {{ fmtDate(step.decidedAt) }}</span>
+                    <span>{{ step.decidedBy }} â€” {{ fmtDate(step.decidedAt) }}</span>
                   </div>
                   <div v-else-if="step.status === 'REJECTED'" class="step-meta danger">
                     <el-icon><CircleClose /></el-icon>
-                    <span>{{ step.decidedBy }} — {{ fmtDate(step.decidedAt) }}</span>
+                    <span>{{ step.decidedBy }} â€” {{ fmtDate(step.decidedAt) }}</span>
                   </div>
                   <div v-else-if="step.status === 'SKIPPED'" class="step-meta skipped">
-                    <span>Bỏ qua</span>
+                    <span>Bá» qua</span>
                   </div>
                   <div v-else class="step-meta pending">
                     <el-icon><Clock /></el-icon>
-                    <span>Chờ duyệt</span>
+                    <span>Chá» duyá»‡t</span>
                   </div>
                   <div v-if="step.comment" class="step-comment">"{{ step.comment }}"</div>
                 </div>
@@ -130,7 +130,7 @@
       <!-- Payload -->
       <div class="section-card" v-if="data?.payload">
         <div class="section-header" @click="showPayload = !showPayload" style="cursor:pointer">
-          <span class="section-title">DỮ LIỆU YÊU CẦU</span>
+          <span class="section-title">Dá»® LIá»†U YÃŠU Cáº¦U</span>
           <el-icon :class="{ rotated: !showPayload }"><ArrowDown /></el-icon>
         </div>
         <div v-show="showPayload" class="payload-block">
@@ -140,93 +140,109 @@
     </div>
 
     <!-- Dialog: Submit -->
-    <el-dialog v-model="showSubmitDialog" title="GỬI YÊU CẦU PHÊ DUYỆT" width="460px" align-center>
+    <el-dialog v-model="showSubmitDialog" title="Gá»¬I YÃŠU Cáº¦U PHÃŠ DUYá»†T" width="460px" align-center>
       <p class="dlg-body">
-        Request sẽ được gửi cho người phê duyệt cấp 1 (Trưởng phòng).
-        Số cấp duyệt sẽ được tính tự động dựa trên giá trị hợp đồng.
+        Request sáº½ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i phÃª duyá»‡t cáº¥p 1 (TrÆ°á»Ÿng phÃ²ng).
+        Sá»‘ cáº¥p duyá»‡t sáº½ Ä‘Æ°á»£c tÃ­nh tá»± Ä‘á»™ng dá»±a trÃªn giÃ¡ trá»‹ há»£p Ä‘á»“ng.
       </p>
       <el-form label-width="150px" style="margin-top: 12px">
-        <el-form-item label="Giá trị HĐ (VND)">
+        <el-form-item label="GiÃ¡ trá»‹ HÄ (VND)">
           <el-input-number v-model="submitForm.contractValue" :min="0" :precision="0" style="width: 100%" />
         </el-form-item>
       </el-form>
+      <el-form label-width="150px" style="margin-top: 8px">
+        <el-form-item label="Cấp phê duyệt">
+          <el-select v-model="submitForm.approvalLevel" style="width: 100%">
+            <el-option label="Trưởng phòng kinh doanh" :value="1" />
+            <el-option label="CFO (Finance Manager)" :value="2" />
+            <el-option label="CEO" :value="3" />
+          </el-select>
+        </el-form-item>
+      </el-form>
       <template #footer>
-        <el-button type="primary" :loading="actionLoading" @click="doSubmit">Xác nhận gửi</el-button>
-        <el-button @click="showSubmitDialog = false">Huỷ</el-button>
+        <el-button type="primary" :loading="actionLoading" @click="doSubmit">XÃ¡c nháº­n gá»­i</el-button>
+        <el-button @click="showSubmitDialog = false">Huá»·</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Approve -->
-    <el-dialog v-model="showApproveDialog" title="PHÊ DUYỆT" width="460px" align-center>
+    <el-dialog v-model="showApproveDialog" title="PHÃŠ DUYá»†T" width="460px" align-center>
       <p class="dlg-body">
-        Bạn đang phê duyệt cấp <b>{{ data?.currentLevel }}</b>/{{ data?.totalLevels }}
+        Báº¡n Ä‘ang phÃª duyá»‡t cáº¥p <b>{{ data?.currentLevel }}</b>/{{ data?.totalLevels }}
         ({{ data ? levelLabel(currentStepRole) : '' }}).
       </p>
       <el-form label-width="120px" style="margin-top: 12px">
-        <el-form-item label="Người duyệt">
-          <el-input v-model="approveForm.approvedBy" placeholder="Username của bạn" />
+        <el-form-item label="NgÆ°á»i duyá»‡t">
+          <el-input v-model="approveForm.approvedBy" placeholder="Username cá»§a báº¡n" />
         </el-form-item>
-        <el-form-item label="Ghi chú">
-          <el-input v-model="approveForm.comment" type="textarea" :rows="3" placeholder="Ghi chú (tuỳ chọn)" />
+        <el-form-item label="Ghi chÃº">
+          <el-input v-model="approveForm.comment" type="textarea" :rows="3" placeholder="Ghi chÃº (tuá»³ chá»n)" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="success" :loading="actionLoading" @click="doApprove">Phê duyệt</el-button>
-        <el-button @click="showApproveDialog = false">Huỷ</el-button>
+        <el-button type="success" :loading="actionLoading" @click="doApprove">PhÃª duyá»‡t</el-button>
+        <el-button @click="showApproveDialog = false">Huá»·</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Reject -->
-    <el-dialog v-model="showRejectDialog" title="TỪ CHỐI YÊU CẦU" width="460px" align-center>
+    <el-dialog v-model="showRejectDialog" title="Tá»ª CHá»I YÃŠU Cáº¦U" width="460px" align-center>
       <p class="dlg-body dlg-danger">
-        Request sẽ bị từ chối hoàn toàn. Sale sẽ nhận được thông báo qua email.
+        Request sáº½ bá»‹ tá»« chá»‘i hoÃ n toÃ n. Sale sáº½ nháº­n Ä‘Æ°á»£c thÃ´ng bÃ¡o qua email.
       </p>
       <el-form label-width="120px" style="margin-top: 12px">
-        <el-form-item label="Người từ chối" required>
-          <el-input v-model="rejectForm.rejectedBy" placeholder="Username của bạn" />
+        <el-form-item label="NgÆ°á»i tá»« chá»‘i" required>
+          <el-input v-model="rejectForm.rejectedBy" placeholder="Username cá»§a báº¡n" />
         </el-form-item>
-        <el-form-item label="Lý do" required>
-          <el-input v-model="rejectForm.reason" type="textarea" :rows="3" placeholder="Bắt buộc nhập lý do" />
+        <el-form-item label="LÃ½ do" required>
+          <el-input v-model="rejectForm.reason" type="textarea" :rows="3" placeholder="Báº¯t buá»™c nháº­p lÃ½ do" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="danger" :loading="actionLoading" @click="doReject">Xác nhận từ chối</el-button>
-        <el-button @click="showRejectDialog = false">Huỷ</el-button>
+        <el-button type="danger" :loading="actionLoading" @click="doReject">XÃ¡c nháº­n tá»« chá»‘i</el-button>
+        <el-button @click="showRejectDialog = false">Huá»·</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Revision -->
-    <el-dialog v-model="showRevisionDialog" title="YÊU CẦU CHỈNH SỬA" width="460px" align-center>
+    <el-dialog v-model="showRevisionDialog" title="YÃŠU Cáº¦U CHá»ˆNH Sá»¬A" width="460px" align-center>
       <p class="dlg-body">
-        Toàn bộ tiến trình duyệt sẽ reset. Sale sẽ nhận email và cần gửi lại sau khi chỉnh sửa.
+        ToÃ n bá»™ tiáº¿n trÃ¬nh duyá»‡t sáº½ reset. Sale sáº½ nháº­n email vÃ  cáº§n gá»­i láº¡i sau khi chá»‰nh sá»­a.
       </p>
       <el-form label-width="120px" style="margin-top: 12px">
-        <el-form-item label="Người yêu cầu">
-          <el-input v-model="revisionForm.requestedBy" placeholder="Username của bạn" />
+        <el-form-item label="NgÆ°á»i yÃªu cáº§u">
+          <el-input v-model="revisionForm.requestedBy" placeholder="Username cá»§a báº¡n" />
         </el-form-item>
-        <el-form-item label="Lý do" required>
-          <el-input v-model="revisionForm.reason" type="textarea" :rows="3" placeholder="Mô tả nội dung cần chỉnh sửa" />
+        <el-form-item label="LÃ½ do" required>
+          <el-input v-model="revisionForm.reason" type="textarea" :rows="3" placeholder="MÃ´ táº£ ná»™i dung cáº§n chá»‰nh sá»­a" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="warning" :loading="actionLoading" @click="doRevision">Gửi yêu cầu</el-button>
-        <el-button @click="showRevisionDialog = false">Huỷ</el-button>
+        <el-button type="warning" :loading="actionLoading" @click="doRevision">Gá»­i yÃªu cáº§u</el-button>
+        <el-button @click="showRevisionDialog = false">Huá»·</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Resubmit -->
-    <el-dialog v-model="showResubmitDialog" title="GỬI LẠI SAU CHỈNH SỬA" width="460px" align-center>
+    <el-dialog v-model="showResubmitDialog" title="Gá»¬I Láº I SAU CHá»ˆNH Sá»¬A" width="460px" align-center>
       <p class="dlg-body">
-        Request sẽ được reset và gửi lại từ cấp 1. Hãy đảm bảo bạn đã chỉnh sửa nội dung cần thiết.
+        Request sáº½ Ä‘Æ°á»£c reset vÃ  gá»­i láº¡i tá»« cáº¥p 1. HÃ£y Ä‘áº£m báº£o báº¡n Ä‘Ã£ chá»‰nh sá»­a ná»™i dung cáº§n thiáº¿t.
       </p>
       <el-form label-width="150px" style="margin-top: 12px">
-        <el-form-item label="Giá trị HĐ (VND)">
+        <el-form-item label="GiÃ¡ trá»‹ HÄ (VND)">
           <el-input-number v-model="resubmitForm.contractValue" :min="0" :precision="0" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="Cấp phê duyệt">
+          <el-select v-model="resubmitForm.approvalLevel" style="width: 100%">
+            <el-option label="Trưởng phòng kinh doanh" :value="1" />
+            <el-option label="CFO (Finance Manager)" :value="2" />
+            <el-option label="CEO" :value="3" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="warning" :loading="actionLoading" @click="doResubmit">Gửi lại</el-button>
-        <el-button @click="showResubmitDialog = false">Huỷ</el-button>
+        <el-button type="warning" :loading="actionLoading" @click="doResubmit">Gá»­i láº¡i</el-button>
+        <el-button @click="showResubmitDialog = false">Huá»·</el-button>
       </template>
     </el-dialog>
   </div>
@@ -272,11 +288,11 @@ const showRevisionDialog = ref(false)
 const showResubmitDialog = ref(false)
 
 // Forms
-const submitForm = ref({ contractValue: undefined as number | undefined })
+const submitForm = ref({ contractValue: undefined as number | undefined, approvalLevel: 1 as 1 | 2 | 3 })
 const approveForm = ref({ approvedBy: '', comment: '' })
 const rejectForm = ref({ rejectedBy: '', reason: '' })
 const revisionForm = ref({ requestedBy: '', reason: '' })
-const resubmitForm = ref({ contractValue: undefined as number | undefined })
+const resubmitForm = ref({ contractValue: undefined as number | undefined, approvalLevel: 1 as 1 | 2 | 3 })
 
 const activeStepIndex = computed(() => {
   if (!data.value) return 0
@@ -301,7 +317,7 @@ async function load() {
       resubmitForm.value.contractValue = data.value.contractValue
     }
   } catch {
-    ElMessage.error('Không thể tải thông tin yêu cầu')
+    ElMessage.error('KhÃ´ng thá»ƒ táº£i thÃ´ng tin yÃªu cáº§u')
   } finally {
     loading.value = false
   }
@@ -313,12 +329,13 @@ async function doSubmit() {
     const res = await submitApproval(requestId, {
       submittedBy: '',
       contractValue: submitForm.value.contractValue,
+      approvalLevel: submitForm.value.approvalLevel,
     })
     data.value = (res as any).data ?? res
     showSubmitDialog.value = false
-    ElMessage.success('Đã gửi yêu cầu phê duyệt. Email đã được gửi cho người duyệt cấp 1.')
+    ElMessage.success('ÄÃ£ gá»­i yÃªu cáº§u phÃª duyá»‡t. Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i duyá»‡t cáº¥p 1.')
   } catch {
-    ElMessage.error('Gửi yêu cầu thất bại')
+    ElMessage.error('Gá»­i yÃªu cáº§u tháº¥t báº¡i')
   } finally {
     actionLoading.value = false
   }
@@ -326,7 +343,7 @@ async function doSubmit() {
 
 async function doApprove() {
   if (!approveForm.value.approvedBy.trim()) {
-    ElMessage.warning('Vui lòng nhập username người duyệt')
+    ElMessage.warning('Vui lÃ²ng nháº­p username ngÆ°á»i duyá»‡t')
     return
   }
   actionLoading.value = true
@@ -337,9 +354,9 @@ async function doApprove() {
     })
     data.value = (res as any).data ?? res
     showApproveDialog.value = false
-    ElMessage.success('Đã phê duyệt thành công')
+    ElMessage.success('ÄÃ£ phÃª duyá»‡t thÃ nh cÃ´ng')
   } catch {
-    ElMessage.error('Phê duyệt thất bại')
+    ElMessage.error('PhÃª duyá»‡t tháº¥t báº¡i')
   } finally {
     actionLoading.value = false
   }
@@ -347,7 +364,7 @@ async function doApprove() {
 
 async function doReject() {
   if (!rejectForm.value.rejectedBy.trim() || !rejectForm.value.reason.trim()) {
-    ElMessage.warning('Vui lòng nhập đầy đủ thông tin')
+    ElMessage.warning('Vui lÃ²ng nháº­p Ä‘áº§y Ä‘á»§ thÃ´ng tin')
     return
   }
   actionLoading.value = true
@@ -358,9 +375,9 @@ async function doReject() {
     })
     data.value = (res as any).data ?? res
     showRejectDialog.value = false
-    ElMessage.success('Đã từ chối yêu cầu')
+    ElMessage.success('ÄÃ£ tá»« chá»‘i yÃªu cáº§u')
   } catch {
-    ElMessage.error('Từ chối thất bại')
+    ElMessage.error('Tá»« chá»‘i tháº¥t báº¡i')
   } finally {
     actionLoading.value = false
   }
@@ -368,7 +385,7 @@ async function doReject() {
 
 async function doRevision() {
   if (!revisionForm.value.reason.trim()) {
-    ElMessage.warning('Vui lòng nhập lý do chỉnh sửa')
+    ElMessage.warning('Vui lÃ²ng nháº­p lÃ½ do chá»‰nh sá»­a')
     return
   }
   actionLoading.value = true
@@ -379,9 +396,9 @@ async function doRevision() {
     })
     data.value = (res as any).data ?? res
     showRevisionDialog.value = false
-    ElMessage.success('Đã gửi yêu cầu chỉnh sửa. Email thông báo đã được gửi cho người tạo.')
+    ElMessage.success('ÄÃ£ gá»­i yÃªu cáº§u chá»‰nh sá»­a. Email thÃ´ng bÃ¡o Ä‘Ã£ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i táº¡o.')
   } catch {
-    ElMessage.error('Gửi yêu cầu chỉnh sửa thất bại')
+    ElMessage.error('Gá»­i yÃªu cáº§u chá»‰nh sá»­a tháº¥t báº¡i')
   } finally {
     actionLoading.value = false
   }
@@ -393,40 +410,41 @@ async function doResubmit() {
     const res = await resubmitApproval(requestId, {
       submittedBy: '',
       contractValue: resubmitForm.value.contractValue,
+      approvalLevel: resubmitForm.value.approvalLevel,
     })
     data.value = (res as any).data ?? res
     showResubmitDialog.value = false
-    ElMessage.success('Đã gửi lại yêu cầu. Email đã được gửi cho người duyệt cấp 1.')
+    ElMessage.success('ÄÃ£ gá»­i láº¡i yÃªu cáº§u. Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i duyá»‡t cáº¥p 1.')
   } catch {
-    ElMessage.error('Gửi lại thất bại')
+    ElMessage.error('Gá»­i láº¡i tháº¥t báº¡i')
   } finally {
     actionLoading.value = false
   }
 }
 
 function segmentLabel(segment?: CustomerSegment): string {
-  if (segment === 'GROUP') return 'Khách hàng đại lý'
-  return 'Khách hàng phổ thông'
+  if (segment === 'GROUP') return 'KhÃ¡ch hÃ ng Ä‘áº¡i lÃ½'
+  return 'KhÃ¡ch hÃ ng phá»• thÃ´ng'
 }
 
 function statusLabel(status?: MultiApprovalStatus): string {
   const map: Record<string, string> = {
-    DRAFT: 'Bản nháp', IN_APPROVAL: 'Đang duyệt',
-    NEED_REVISION: 'Cần chỉnh sửa', APPROVED: 'Đã duyệt', REJECTED: 'Bị từ chối',
+    DRAFT: 'Báº£n nhÃ¡p', IN_APPROVAL: 'Äang duyá»‡t',
+    NEED_REVISION: 'Cáº§n chá»‰nh sá»­a', APPROVED: 'ÄÃ£ duyá»‡t', REJECTED: 'Bá»‹ tá»« chá»‘i',
   }
   return status ? (map[status] ?? status) : ''
 }
 
-function statusType(status?: MultiApprovalStatus): '' | 'success' | 'warning' | 'danger' | 'info' {
-  const map: Record<string, '' | 'success' | 'warning' | 'danger' | 'info'> = {
-    DRAFT: 'info', IN_APPROVAL: '', NEED_REVISION: 'warning', APPROVED: 'success', REJECTED: 'danger',
+function statusType(status?: MultiApprovalStatus): 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined {
+  const map: Record<string, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
+    DRAFT: 'info', IN_APPROVAL: 'primary', NEED_REVISION: 'warning', APPROVED: 'success', REJECTED: 'danger',
   }
-  return status ? (map[status] ?? '') : ''
+  return status ? map[status] : undefined
 }
 
 function levelLabel(level?: string): string {
   const map: Record<string, string> = {
-    LEVEL_1: 'Trưởng phòng', LEVEL_2: 'Giám đốc', LEVEL_3: 'CFO',
+    LEVEL_1: 'Trưởng phòng kinh doanh', LEVEL_2: 'CFO (Finance Manager)', LEVEL_3: 'CEO',
   }
   return level ? (map[level] ?? level) : ''
 }
@@ -443,7 +461,7 @@ function formatAmount(value: number): string {
 }
 
 function fmtDate(dt?: string): string {
-  if (!dt) return '—'
+  if (!dt) return 'â€”'
   return new Date(dt).toLocaleDateString('vi-VN', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
@@ -460,7 +478,7 @@ onMounted(load)
 
 .action-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 
-/* Section card style — match dự án */
+/* Section card style â€” match dá»± Ã¡n */
 .section-card {
   background: #fff;
   border: 1px solid #e4e7ed;
@@ -511,3 +529,5 @@ onMounted(load)
 .dlg-body { font-size: 14px; color: #303133; line-height: 1.6; margin: 0; }
 .dlg-danger { color: #f56c6c; }
 </style>
+
+

@@ -10,7 +10,7 @@ public class InternalBindCertificateRequest {
     @NotNull(message = "Subscription ID is required")
     private Long subscriptionId;
 
-    private String userId;
+    private Long userId;
 
     @NotBlank(message = "Certificate ID is required")
     private String certificateId;
@@ -21,3 +21,5 @@ public class InternalBindCertificateRequest {
     private LocalDateTime issuedAt;
     private LocalDateTime expiresAt;
 }
+
+

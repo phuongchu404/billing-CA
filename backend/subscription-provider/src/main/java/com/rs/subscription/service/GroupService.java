@@ -35,7 +35,7 @@ public interface GroupService {
 
     GroupDetailResponse update(Long id, UpsertGroupRequest request);
 
-    GroupDetailResponse assignOwner(Long groupId, String ownerUserId);
+    GroupDetailResponse assignOwner(Long groupId, Long ownerUserId);
 
     void suspend(Long id);
 
@@ -45,3 +45,5 @@ public interface GroupService {
 
     Group findEntity(Long id);
 }
+
+

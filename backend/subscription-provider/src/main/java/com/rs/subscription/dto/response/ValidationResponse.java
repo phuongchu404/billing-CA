@@ -5,7 +5,7 @@ import java.time.LocalDate;
 
 @Data
 public class ValidationResponse {
-    private String userId;
+    private Long userId;
     private Long subscriptionId;
     private String status;
     private Integer quotaRemaining;
@@ -18,3 +18,5 @@ public class ValidationResponse {
         private Boolean allowApiAccess;
     }
 }
+
+

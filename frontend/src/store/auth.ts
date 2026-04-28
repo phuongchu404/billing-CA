@@ -40,7 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
         createdAt: '',
       }))
       user.value = {
-        userId: loginData.userId || '',
+        userId: loginData.userId || 0,
         username: loginData.username || '',
         email: loginData.email || '',
         fullName: loginData.fullName || loginData.username || '',
@@ -67,3 +67,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   return { token, user, isLoggedIn, isAdmin, isOperator, isPartner, isManager, userRoles, permissions, hasPermission, hasAnyPermission, doLogin, doLogout }
 })
+
+
+

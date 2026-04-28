@@ -11,10 +11,10 @@ public interface PartnerGroupAccessRepository extends JpaRepository<PartnerGroup
 
     // Lấy tất cả access records còn hiệu lực của một partner
     @Query("SELECT pga FROM PartnerGroupAccess pga WHERE pga.partner.userId = :partnerUserId AND pga.revokedAt IS NULL")
-    List<PartnerGroupAccess> findActiveByPartner(@Param("partnerUserId") String partnerUserId);
+    List<PartnerGroupAccess> findActiveByPartner(@Param("partnerUserId") Long partnerUserId);
 
     // Lấy tất cả access records (kể cả đã thu hồi) — dùng cho audit
-    List<PartnerGroupAccess> findByPartnerUserIdOrderByGrantedAtDesc(String partnerUserId);
+    List<PartnerGroupAccess> findByPartnerUserIdOrderByGrantedAtDesc(Long partnerUserId);
 
     // Kiểm tra partner có quyền xem group cụ thể không
     @Query("""
@@ -24,11 +24,14 @@ public interface PartnerGroupAccessRepository extends JpaRepository<PartnerGroup
           AND pga.revokedAt IS NULL
         """)
     Optional<PartnerGroupAccess> findActiveAccess(
-        @Param("partnerUserId") String partnerUserId,
+        @Param("partnerUserId") Long partnerUserId,
         @Param("groupId") Long groupId
     );
 
     // Lấy danh sách groupId mà partner được xem (dùng để filter report)
     @Query("SELECT pga.group.groupId FROM PartnerGroupAccess pga WHERE pga.partner.userId = :partnerUserId AND pga.revokedAt IS NULL")
-    List<Long> findActiveGroupIdsByPartner(@Param("partnerUserId") String partnerUserId);
+    List<Long> findActiveGroupIdsByPartner(@Param("partnerUserId") Long partnerUserId);
 }
+
+
+

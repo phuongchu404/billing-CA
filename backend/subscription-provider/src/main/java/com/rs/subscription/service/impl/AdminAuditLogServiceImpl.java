@@ -22,26 +22,26 @@ public class AdminAuditLogServiceImpl implements AdminAuditLogService {
     private final AdminAuditLogRepository adminAuditLogRepository;
     private final UserAccountRepository userAccountRepository;
 
-    public void log(String actorUserId, String action, String entityType, String entityId, String details) {
+    public void log(Long actorUserId, String action, String entityType, Object entityId, String details) {
         logByUserId(actorUserId, action, entityType, entityId, details);
     }
 
     /** Save a log when the actor username is already known (e.g. login/logout flows). */
-    public void logDirect(String actorUsername, String action, String entityType, String entityId, String details) {
+    public void logDirect(String actorUsername, String action, String entityType, Object entityId, String details) {
         adminAuditLogRepository.save(AdminAuditLog.builder()
             .actor(actorUsername)
             .action(action)
             .entityType(entityType)
-            .entityId(entityId != null ? entityId : "")
+            .entityId(entityId != null ? String.valueOf(entityId) : "")
             .details(details)
             .build());
     }
 
     /** Save a log when only the userId is available — resolves it to username first. */
-    public void logByUserId(String actorUserId, String action, String entityType, String entityId, String details) {
+    public void logByUserId(Long actorUserId, String action, String entityType, Object entityId, String details) {
         String actor = userAccountRepository.findById(actorUserId)
             .map(u -> u.getUsername())
-            .orElse(actorUserId);
+            .orElse(String.valueOf(actorUserId));
         logDirect(actor, action, entityType, entityId, details);
     }
 
@@ -72,3 +72,6 @@ public class AdminAuditLogServiceImpl implements AdminAuditLogService {
         return r;
     }
 }
+
+
+

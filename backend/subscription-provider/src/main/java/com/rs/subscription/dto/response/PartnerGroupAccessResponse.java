@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 @Data
 public class PartnerGroupAccessResponse {
     private Long id;
-    private String partnerUserId;
+    private Long partnerUserId;
     private String partnerName;
     private Long groupId;
     private String groupCode;
@@ -16,3 +16,5 @@ public class PartnerGroupAccessResponse {
     private LocalDateTime revokedAt;
     private boolean active;
 }
+
+

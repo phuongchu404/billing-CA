@@ -17,9 +17,12 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Query("UPDATE RefreshToken rt SET rt.status = 'EXPIRED' WHERE rt.expiresAt < current_timestamp AND rt.status = 'ACTIVE'")
     int expireOldTokens();
 
-    List<RefreshToken> findByUserUserIdAndStatus(String userId, String status);
+    List<RefreshToken> findByUserUserIdAndStatus(Long userId, String status);
 
     @Modifying
     @Transactional
-    void deleteAllByUserUserId(String userId);
+    void deleteAllByUserUserId(Long userId);
 }
+
+
+

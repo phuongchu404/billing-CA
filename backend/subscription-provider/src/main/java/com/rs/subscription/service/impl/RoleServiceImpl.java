@@ -86,29 +86,7 @@ public class RoleServiceImpl implements RoleService {
     // ── Permission Tree ──
 
     public List<ModuleGroupResponse> listPermissionTree() {
-        List<Permission> allPerms = permissionRepository.findAllByOrderBySortOrderAsc();
-        Map<String, Map<String, List<Permission>>> moduleMap = new LinkedHashMap<>();
-        for (Permission p : allPerms) {
-            moduleMap
-                .computeIfAbsent(p.getModuleGroup(), k -> new LinkedHashMap<>())
-                .computeIfAbsent(p.getGroupName(), k -> new ArrayList<>())
-                .add(p);
-        }
-        List<ModuleGroupResponse> result = new ArrayList<>();
-        for (Map.Entry<String, Map<String, List<Permission>>> moduleEntry : moduleMap.entrySet()) {
-            ModuleGroupResponse module = new ModuleGroupResponse();
-            module.setModuleName(moduleEntry.getKey());
-            List<PermissionGroupResponse> permGroups = new ArrayList<>();
-            for (Map.Entry<String, List<Permission>> groupEntry : moduleEntry.getValue().entrySet()) {
-                PermissionGroupResponse g = new PermissionGroupResponse();
-                g.setGroupName(groupEntry.getKey());
-                g.setPermissions(groupEntry.getValue().stream().map(this::toPermissionResponse).collect(Collectors.toList()));
-                permGroups.add(g);
-            }
-            module.setPermissionGroups(permGroups);
-            result.add(module);
-        }
-        return result;
+        return buildModuleGroups(permissionRepository.findAllByOrderBySortOrderAsc());
     }
 
     // ── Permission Matrix ──
@@ -118,29 +96,7 @@ public class RoleServiceImpl implements RoleService {
         List<Permission> allPerms = permissionRepository.findAllByOrderBySortOrderAsc();
         List<RolePermission> allRolePerms = rolePermissionRepository.findAll();
 
-        // Build 3-level: module -> group -> permissions
-        Map<String, Map<String, List<Permission>>> moduleMap = new LinkedHashMap<>();
-        for (Permission p : allPerms) {
-            moduleMap
-                .computeIfAbsent(p.getModuleGroup(), k -> new LinkedHashMap<>())
-                .computeIfAbsent(p.getGroupName(), k -> new ArrayList<>())
-                .add(p);
-        }
-
-        List<ModuleGroupResponse> moduleGroups = new ArrayList<>();
-        for (Map.Entry<String, Map<String, List<Permission>>> moduleEntry : moduleMap.entrySet()) {
-            ModuleGroupResponse module = new ModuleGroupResponse();
-            module.setModuleName(moduleEntry.getKey());
-            List<PermissionGroupResponse> permGroups = new ArrayList<>();
-            for (Map.Entry<String, List<Permission>> groupEntry : moduleEntry.getValue().entrySet()) {
-                PermissionGroupResponse g = new PermissionGroupResponse();
-                g.setGroupName(groupEntry.getKey());
-                g.setPermissions(groupEntry.getValue().stream().map(this::toPermissionResponse).collect(Collectors.toList()));
-                permGroups.add(g);
-            }
-            module.setPermissionGroups(permGroups);
-            moduleGroups.add(module);
-        }
+        List<ModuleGroupResponse> moduleGroups = buildModuleGroups(allPerms);
 
         // Build roleId -> permissionId list
         Map<Long, List<Long>> rolePermsMap = new HashMap<>();
@@ -194,6 +150,33 @@ public class RoleServiceImpl implements RoleService {
         return rolePermissionRepository.findAllByRoleRoleId(roleId).stream()
             .map(rp -> rp.getPermission().getPermissionId())
             .collect(Collectors.toList());
+    }
+
+    // ── Helpers ──
+
+    private List<ModuleGroupResponse> buildModuleGroups(List<Permission> permissions) {
+        Map<String, Map<String, List<Permission>>> moduleMap = new LinkedHashMap<>();
+        for (Permission p : permissions) {
+            moduleMap
+                .computeIfAbsent(p.getModuleGroup(), k -> new LinkedHashMap<>())
+                .computeIfAbsent(p.getGroupName(), k -> new ArrayList<>())
+                .add(p);
+        }
+        List<ModuleGroupResponse> result = new ArrayList<>();
+        for (Map.Entry<String, Map<String, List<Permission>>> moduleEntry : moduleMap.entrySet()) {
+            ModuleGroupResponse module = new ModuleGroupResponse();
+            module.setModuleName(moduleEntry.getKey());
+            List<PermissionGroupResponse> permGroups = new ArrayList<>();
+            for (Map.Entry<String, List<Permission>> groupEntry : moduleEntry.getValue().entrySet()) {
+                PermissionGroupResponse g = new PermissionGroupResponse();
+                g.setGroupName(groupEntry.getKey());
+                g.setPermissions(groupEntry.getValue().stream().map(this::toPermissionResponse).collect(Collectors.toList()));
+                permGroups.add(g);
+            }
+            module.setPermissionGroups(permGroups);
+            result.add(module);
+        }
+        return result;
     }
 
     // ── Mappers ──

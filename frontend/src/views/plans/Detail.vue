@@ -211,6 +211,7 @@
                   v-if="row.status === 'available'"
                   size="small"
                   type="primary"
+                  :disabled="!can('group:update')"
                   @click="handleRequestApply(row)"
                   >Y/c áp dụng</el-button
                 >
@@ -219,6 +220,7 @@
                   size="small"
                   type="success"
                   :icon="Check"
+                  :disabled="!canApprovePlan"
                   @click="handleApprove(row)"
                   >Duyệt</el-button
                 >
@@ -228,6 +230,7 @@
                   "
                   size="small"
                   type="warning"
+                  :disabled="!can('group:update')"
                   @click="handleStopApply(row)"
                   >Dừng áp dụng</el-button
                 >
@@ -341,6 +344,14 @@
             style="flex: 1"
           />
         </div>
+        <div class="dlg-date-row">
+          <span class="dlg-date-label">Cáº¥p phÃª duyá»‡t</span>
+          <el-select v-model="requestApprovalLevel" style="flex: 1">
+            <el-option label="TrÆ°á»Ÿng phÃ²ng kinh doanh" :value="1" />
+            <el-option label="CFO (Finance Manager)" :value="2" />
+            <el-option label="CEO" :value="3" />
+          </el-select>
+        </div>
         <p class="dlg-note">
           Khi bấm nút Xác Nhận, hệ thống sẽ đưa phiên bản hiện tại sẽ chuyển
           sang trạng thái
@@ -349,7 +360,7 @@
         </p>
       </div>
       <template #footer>
-        <el-button type="primary" @click="confirmRequestApply"
+        <el-button type="primary" :disabled="!can('group:update')" @click="confirmRequestApply"
           >Xác Nhận</el-button
         >
         <el-button @click="requestApplyVisible = false">Hủy Bỏ</el-button>
@@ -404,9 +415,9 @@
       </div>
       <template #footer>
         <div class="dlg-footer-split">
-          <el-button type="warning" @click="confirmReject">Từ Chối</el-button>
+          <el-button type="warning" :disabled="!canApprovePlan" @click="confirmReject">Từ Chối</el-button>
           <div>
-            <el-button type="primary" @click="confirmApprove"
+            <el-button type="primary" :disabled="!canApprovePlan" @click="confirmApprove"
               >Xác Nhận</el-button
             >
             <el-button @click="approveVisible = false">Hủy Bỏ</el-button>
@@ -432,7 +443,7 @@
         </p>
       </div>
       <template #footer>
-        <el-button type="primary" @click="confirmStopApply">Xác Nhận</el-button>
+        <el-button type="primary" :disabled="!can('group:update')" @click="confirmStopApply">Xác Nhận</el-button>
         <el-button @click="stopApplyVisible = false">Hủy Bỏ</el-button>
       </template>
     </el-dialog>
@@ -502,6 +513,7 @@
           <el-button
             v-if="selectedPlan?.status !== 'unavailable'"
             type="warning"
+            :disabled="!can('group:update')"
             @click="openDisableDialog"
             >Vô Hiệu Hoá</el-button
           >
@@ -509,6 +521,7 @@
             <el-button
               v-if="selectedPlan?.status === 'available'"
               type="primary"
+              :disabled="!can('group:update')"
               @click="openRequestFromDetail"
               >Yêu Cầu Áp Dụng</el-button
             >
@@ -591,7 +604,7 @@
         </p>
       </div>
       <template #footer>
-        <el-button type="primary" @click="confirmDisable">Xác Nhận</el-button>
+        <el-button type="primary" :disabled="!can('group:update')" @click="confirmDisable">Xác Nhận</el-button>
         <el-button @click="disableVisible = false">Hủy Bỏ</el-button>
       </template>
     </el-dialog>
@@ -678,6 +691,7 @@ import {
   ArrowRight,
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { usePermission } from "@/composables/usePermission";
 import {
   getGroup,
   updateGroup,
@@ -698,6 +712,7 @@ import type {
 const route = useRoute();
 const router = useRouter();
 const agencyId = Number(route.params.id);
+const { can } = usePermission();
 
 // ---- State ----
 const agency = ref<GroupDetail>({
@@ -718,6 +733,7 @@ const agency = ref<GroupDetail>({
 interface PlanRow {
   id: number;
   planTemplateId: number;
+  approvalRequestId?: number;
   planName: string;
   status: "available" | "unavailable" | "pending" | "approved" | "active";
   applyFrom: string;
@@ -730,10 +746,14 @@ interface PlanRow {
 const plans = ref<PlanRow[]>([]);
 const historyRows = ref<PlanHistory[]>([]);
 const loading = ref(false);
+const canApprovePlan = computed(() =>
+  can("approval:level1") || can("approval:level2") || can("approval:level3")
+);
 
 // ---- Mapping helpers ----
 function mapAssignmentStatus(s: string): PlanRow["status"] {
   const map: Record<string, PlanRow["status"]> = {
+    AVAILABLE: "available",
     REQUESTED: "pending",
     APPROVED: "approved",
     ACTIVE: "active",
@@ -764,6 +784,7 @@ function mapAssignment(a: GroupPlanAssignment): PlanRow {
   return {
     id: a.groupPlanAssignmentId,
     planTemplateId: a.planTemplateId,
+    approvalRequestId: a.approvalRequestId,
     planName: a.planName,
     status: mapAssignmentStatus(a.assignmentStatus),
     applyFrom: formatDate(a.applyFrom),
@@ -829,6 +850,7 @@ const selectedPlan = ref<PlanRow | null>(null);
 
 const requestApplyVisible = ref(false);
 const requestApplyDateRange = ref<[string, string] | null>(null);
+const requestApprovalLevel = ref<1 | 2 | 3>(1);
 
 const approveVisible = ref(false);
 const approveDateRange = ref<[string, string] | null>(null);
@@ -908,21 +930,36 @@ function handleActivate() {
 }
 
 function handleRequestApply(row: PlanRow) {
+  if (!can("group:update")) {
+    ElMessage.warning("Bạn không có quyền yêu cầu áp dụng gói cước");
+    return;
+  }
   selectedPlan.value = row;
-  requestApplyDateRange.value = null;
+  requestApplyDateRange.value =
+    row.rawApplyFrom && row.rawApplyTo
+      ? [row.rawApplyFrom, row.rawApplyTo]
+      : null;
+  requestApprovalLevel.value = 1;
   requestApplyVisible.value = true;
 }
 
 function handleApprove(row: PlanRow) {
-  selectedPlan.value = row;
-  approveDateRange.value =
-    row.rawApplyFrom && row.rawApplyTo
-      ? [row.rawApplyFrom, row.rawApplyTo]
-      : null;
-  approveVisible.value = true;
+  if (!canApprovePlan.value) {
+    ElMessage.warning("Bạn không có quyền duyệt gói cước");
+    return;
+  }
+  if (!row.approvalRequestId) {
+    ElMessage.warning("KhÃ´ng tÃ¬m tháº¥y yÃªu cáº§u phÃª duyá»‡t cá»§a gÃ³i cÆ°á»›c");
+    return;
+  }
+  router.push(`/approvals/${row.approvalRequestId}`);
 }
 
 function handleStopApply(row: PlanRow) {
+  if (!can("group:update")) {
+    ElMessage.warning("Bạn không có quyền dừng áp dụng gói cước");
+    return;
+  }
   selectedPlan.value = row;
   stopApplyVisible.value = true;
 }
@@ -965,22 +1002,38 @@ async function handlePlanDetail(row: PlanRow) {
 }
 
 function openDisableDialog() {
+  if (!can("group:update")) {
+    ElMessage.warning("Bạn không có quyền vô hiệu hoá gói cước");
+    return;
+  }
   planDetailVisible.value = false;
   disableVisible.value = true;
 }
 
 function openRequestFromDetail() {
+  if (!can("group:update")) {
+    ElMessage.warning("Bạn không có quyền yêu cầu áp dụng gói cước");
+    return;
+  }
   planDetailVisible.value = false;
-  requestApplyDateRange.value = null;
+  requestApplyDateRange.value =
+    selectedPlan.value?.rawApplyFrom && selectedPlan.value?.rawApplyTo
+      ? [selectedPlan.value.rawApplyFrom, selectedPlan.value.rawApplyTo]
+      : null;
+  requestApprovalLevel.value = 1;
   requestApplyVisible.value = true;
 }
 
 // ---- Confirm handlers ----
 async function confirmRequestApply() {
   if (!selectedPlan.value) return;
+  if (!can("group:update")) {
+    ElMessage.warning("Bạn không có quyền yêu cầu áp dụng gói cước");
+    return;
+  }
   try {
     const res = await createGroupAssignment(agencyId, {
-      planTemplateId: selectedPlan.value.id,
+      planTemplateId: selectedPlan.value.planTemplateId,
       requestedBy: "system",
       applyFrom: requestApplyDateRange.value
         ? requestApplyDateRange.value[0]
@@ -988,6 +1041,7 @@ async function confirmRequestApply() {
       applyTo: requestApplyDateRange.value
         ? requestApplyDateRange.value[1]
         : null,
+      approvalLevel: requestApprovalLevel.value,
     });
     if (res.success) {
       ElMessage.success("Đã gửi yêu cầu áp dụng");
@@ -1003,6 +1057,10 @@ async function confirmRequestApply() {
 
 async function confirmApprove() {
   if (!selectedPlan.value) return;
+  if (!canApprovePlan.value) {
+    ElMessage.warning("Bạn không có quyền duyệt gói cước");
+    return;
+  }
   try {
     const res = await reviewAssignment(selectedPlan.value.id, {
       decision: "APPROVE",
@@ -1024,6 +1082,10 @@ async function confirmApprove() {
 
 async function confirmReject() {
   if (!selectedPlan.value) return;
+  if (!canApprovePlan.value) {
+    ElMessage.warning("Bạn không có quyền từ chối duyệt gói cước");
+    return;
+  }
   try {
     const res = await reviewAssignment(selectedPlan.value.id, {
       decision: "REJECT",
@@ -1043,6 +1105,10 @@ async function confirmReject() {
 
 async function confirmStopApply() {
   if (!selectedPlan.value) return;
+  if (!can("group:update")) {
+    ElMessage.warning("Bạn không có quyền dừng áp dụng gói cước");
+    return;
+  }
   try {
     const res = await reviewAssignment(selectedPlan.value.id, {
       decision: "STOP",
@@ -1063,6 +1129,10 @@ async function confirmStopApply() {
 
 async function confirmDisable() {
   if (!selectedPlan.value) return;
+  if (!can("group:update")) {
+    ElMessage.warning("Bạn không có quyền vô hiệu hoá gói cước");
+    return;
+  }
   try {
     const res = await reviewAssignment(selectedPlan.value.id, {
       decision: "STOP",

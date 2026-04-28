@@ -17,7 +17,7 @@ import java.util.Properties;
 @Slf4j
 public class MailServiceImpl implements MailService {
 
-    private final MailProperties mailProperties;
+    public final MailProperties mailProperties;
 
     @Override
     public void send(String to, String subject, String body) {
@@ -74,3 +74,5 @@ public class MailServiceImpl implements MailService {
         return sender;
     }
 }
+
+

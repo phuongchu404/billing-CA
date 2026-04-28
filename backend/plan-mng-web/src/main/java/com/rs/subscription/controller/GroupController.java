@@ -48,7 +48,7 @@ public class GroupController {
 
     /** Tạo đại lý + gói cước + gán cùng lúc trong một transaction */
     @PostMapping("/provision")
-    @PreAuthorize("hasAuthority('group:create') and hasAuthority('plan:create')")
+    @PreAuthorize("hasAuthority('group:create')")
     public ApiResponse<ProvisionGroupResponse> provision(@Valid @RequestBody ProvisionGroupRequest request) {
         return ApiResponse.success(groupProvisioningService.provision(request), "Provisioned group with plan");
     }
@@ -96,3 +96,6 @@ public class GroupController {
         return ApiResponse.success(groupService.getPlanHistory(id), "Fetched plan history");
     }
 }
+
+
+

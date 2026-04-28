@@ -11,7 +11,7 @@ public class CreateRuntimeSubscriptionRequest {
     @NotBlank
     private String subscriberType;
 
-    private String userId;
+    private Long userId;
     private Long groupId;
 
     @NotNull
@@ -31,3 +31,5 @@ public class CreateRuntimeSubscriptionRequest {
     private String activatedBy;
     private String paymentReference;
 }
+
+

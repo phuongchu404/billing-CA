@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public interface UserService {
@@ -32,33 +31,35 @@ public interface UserService {
 
     PagedResponse<UserResponse> listUsers(String status, String query, int page, int size);
 
-    UserResponse getUserById(String userId);
+    UserResponse getUserById(Long userId);
 
-    UserResponse updateUser(String userId, UpdateUserRequest req);
+    UserResponse updateUser(Long userId, UpdateUserRequest req);
 
-    void deleteUser(String userId, String requesterId);
+    void deleteUser(Long userId, Long requesterId);
 
-    void deactivateUser(String userId, String requesterId);
+    void deactivateUser(Long userId, Long requesterId);
 
-    void reactivateUser(String userId);
+    void reactivateUser(Long userId);
 
-    void unlockUser(String userId);
+    void unlockUser(Long userId);
 
-    UserResponse assignRoles(String userId, List<Long> roleIds, String assignedBy);
+    UserResponse assignRoles(Long userId, List<Long> roleIds, Long assignedBy);
 
-    void resetPassword(String userId, String newPassword);
+    void resetPassword(Long userId, String newPassword);
 
-    void changePassword(String userId, ChangePasswordRequest req);
+    void changePassword(Long userId, ChangePasswordRequest req);
 
-    UserResponse getMyProfile(String userId);
+    UserResponse getMyProfile(Long userId);
 
-    UserResponse setManager(String userId, String managerUserId);
+    UserResponse setManager(Long userId, Long managerUserId);
 
-    List<String> getSubordinateIds(String managerId);
+    List<Long> getSubordinateIds(Long managerId);
 
-    List<UserResponse> getDirectSubordinates(String managerId);
+    List<UserResponse> getDirectSubordinates(Long managerId);
 
-    UserAccount findById(String userId);
+    UserAccount findById(Long userId);
 
     UserResponse toResponse(UserAccount u);
 }
+
+

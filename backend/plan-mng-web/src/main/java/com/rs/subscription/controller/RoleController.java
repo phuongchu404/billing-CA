@@ -43,9 +43,9 @@ public class RoleController {
     @Operation(summary = "Create custom role")
     public ApiResponse<RoleResponse> create(@Valid @RequestBody CreateRoleRequest req,
                                              @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         RoleResponse role = roleService.createRole(req);
-        auditLogService.log(adminId, "CREATE_ROLE", "ROLE", String.valueOf(role.getRoleId()),
+        auditLogService.log(adminId, "CREATE_ROLE", "ROLE", role.getRoleId(),
                 "Created role '" + role.getRoleName() + "'");
         return ApiResponse.success(role, "Role created successfully");
     }
@@ -56,9 +56,9 @@ public class RoleController {
     public ApiResponse<RoleResponse> update(@PathVariable Long roleId,
                                              @Valid @RequestBody CreateRoleRequest req,
                                              @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         RoleResponse role = roleService.updateRole(roleId, req);
-        auditLogService.log(adminId, "UPDATE_ROLE", "ROLE", String.valueOf(roleId),
+        auditLogService.log(adminId, "UPDATE_ROLE", "ROLE", roleId,
                 "Updated role '" + role.getRoleName() + "'");
         return ApiResponse.success(role, "Role updated successfully");
     }
@@ -68,9 +68,9 @@ public class RoleController {
     @PreAuthorize("hasAuthority('role:update')")
     @Operation(summary = "Delete custom role")
     public void delete(@PathVariable Long roleId, @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         roleService.deleteRole(roleId);
-        auditLogService.log(adminId, "DELETE_ROLE", "ROLE", String.valueOf(roleId), "Deleted role");
+        auditLogService.log(adminId, "DELETE_ROLE", "ROLE", roleId, "Deleted role");
     }
 
     // ── Permissions ──
@@ -95,10 +95,13 @@ public class RoleController {
     public ApiResponse<List<Long>> assignPermissions(@PathVariable Long roleId,
                                                       @Valid @RequestBody AssignPermissionsRequest req,
                                                       @CurrentUser CustomUserDetails admin) {
-        String adminId = admin.getUserId();
+        Long adminId = admin.getUserId();
         roleService.assignPermissions(roleId, req.getPermissionIds());
-        auditLogService.log(adminId, "ASSIGN_ROLE_PERMISSIONS", "ROLE", String.valueOf(roleId),
+        auditLogService.log(adminId, "ASSIGN_ROLE_PERMISSIONS", "ROLE", roleId,
                 "Updated permissions for role, count=" + (req.getPermissionIds() == null ? 0 : req.getPermissionIds().size()));
         return ApiResponse.success(roleService.getRolePermissionIds(roleId), "Permissions updated");
     }
 }
+
+
+

@@ -12,6 +12,10 @@ import java.util.Optional;
 public interface GroupPlanAssignmentRepository extends JpaRepository<GroupPlanAssignment, Long> {
     List<GroupPlanAssignment> findByGroupGroupIdOrderByCreatedAtDesc(Long groupId);
     List<GroupPlanAssignment> findByAssignmentStatusOrderByCreatedAtDesc(String assignmentStatus);
+    Optional<GroupPlanAssignment> findFirstByGroupGroupIdAndPlanTemplatePlanTemplateIdAndAssignmentStatus(
+        Long groupId,
+        Long planTemplateId,
+        String assignmentStatus);
 
     /** Lấy assignment đang ACTIVE của một group (thường chỉ có 1) */
     Optional<GroupPlanAssignment> findFirstByGroupGroupIdAndAssignmentStatusOrderByActivatedAtDesc(Long groupId, String status);

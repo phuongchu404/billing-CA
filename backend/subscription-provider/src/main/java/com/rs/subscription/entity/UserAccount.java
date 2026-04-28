@@ -3,6 +3,7 @@ package com.rs.subscription.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import com.rs.subscription.enums.AuthEnums;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,9 +19,8 @@ import java.util.stream.Collectors;
 public class UserAccount {
 
     @Id
-    @Convert(converter = UuidBinaryConverter.class)
-    @Column(columnDefinition = "BINARY(16)")
-    private String userId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
 
     @Column(unique = true, nullable = false, length = 100)
     private String username;
@@ -95,3 +95,5 @@ public class UserAccount {
         roles.forEach(role -> this.userRoles.add(UserRole.of(this, role)));
     }
 }
+
+

@@ -22,10 +22,8 @@ public class GroupMember {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
     private Group group;
-
-    @Convert(converter = UuidBinaryConverter.class)
-    @Column(nullable = false, columnDefinition = "BINARY(16)")
-    private String userId;
+    @Column(nullable = false)
+    private Long userId;
 
     @Column(nullable = false, length = 30)
     private String role;
@@ -52,3 +50,5 @@ public class GroupMember {
         if (role == null) role = CommercialEnums.MemberRole.MEMBER.name();
     }
 }
+
+

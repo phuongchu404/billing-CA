@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Auditable(entityType = "USER")
@@ -60,7 +59,6 @@ public class UserServiceImpl implements UserService {
         }
 
         UserAccount user = UserAccount.builder()
-            .userId(UUID.randomUUID().toString())
             .username(req.getUsername())
             .email(req.getEmail())
             .fullName(req.getFullName())
@@ -71,6 +69,9 @@ public class UserServiceImpl implements UserService {
             .createdBy(createdBy)
             .build();
         user.setRoles(roles);
+        if (req.getManagerUserId() != null) {
+            user.setManager(findById(req.getManagerUserId()));
+        }
 
         return toResponse(userAccountRepository.save(user));
     }
@@ -96,12 +97,12 @@ public class UserServiceImpl implements UserService {
             .build();
     }
 
-    public UserResponse getUserById(String userId) {
+    public UserResponse getUserById(Long userId) {
         return toResponse(findById(userId));
     }
 
     @Transactional
-    public UserResponse updateUser(String userId, UpdateUserRequest req) {
+    public UserResponse updateUser(Long userId, UpdateUserRequest req) {
         UserAccount user = findById(userId);
         if (req.getEmail() != null && !req.getEmail().equals(user.getEmail())) {
             if (userAccountRepository.existsByEmail(req.getEmail())) {
@@ -114,7 +115,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void deleteUser(String userId, String requesterId) {
+    public void deleteUser(Long userId, Long requesterId) {
         if (userId.equals(requesterId)) {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Cannot delete your own account", 400);
         }
@@ -132,7 +133,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void deactivateUser(String userId, String requesterId) {
+    public void deactivateUser(Long userId, Long requesterId) {
         if (userId.equals(requesterId)) {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Cannot disable your own account", 400);
         }
@@ -142,14 +143,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void reactivateUser(String userId) {
+    public void reactivateUser(Long userId) {
         UserAccount user = findById(userId);
         user.setStatus(AuthEnums.UserStatus.ACTIVE.name());
         userAccountRepository.save(user);
     }
 
     @Transactional
-    public void unlockUser(String userId) {
+    public void unlockUser(Long userId) {
         UserAccount user = findById(userId);
         user.setStatus(AuthEnums.UserStatus.ACTIVE.name());
         user.setFailedLoginAttempts(0);
@@ -158,7 +159,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public UserResponse assignRoles(String userId, List<Long> roleIds, String assignedBy) {
+    public UserResponse assignRoles(Long userId, List<Long> roleIds, Long assignedBy) {
         UserAccount user = findById(userId);
         List<Role> roles = roleIds.stream().map(roleService::findById).collect(Collectors.toList());
         user.setRoles(roles);
@@ -166,7 +167,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void resetPassword(String userId, String newPassword) {
+    public void resetPassword(Long userId, String newPassword) {
         UserAccount user = findById(userId);
         validatePassword(newPassword);
         user.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -174,7 +175,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void changePassword(String userId, ChangePasswordRequest req) {
+    public void changePassword(Long userId, ChangePasswordRequest req) {
         UserAccount user = findById(userId);
         if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPasswordHash())) {
             throw new SmsException(ErrorCodes.UNAUTHORIZED, "Current password is incorrect", 401);
@@ -184,15 +185,15 @@ public class UserServiceImpl implements UserService {
         userAccountRepository.save(user);
     }
 
-    public UserResponse getMyProfile(String userId) {
+    public UserResponse getMyProfile(Long userId) {
         return getUserById(userId);
     }
 
     /** Gán manager trực tiếp cho user. Truyền null để xoá manager. */
     @Transactional
-    public UserResponse setManager(String userId, String managerUserId) {
+    public UserResponse setManager(Long userId, Long managerUserId) {
         UserAccount user = findById(userId);
-        if (managerUserId == null || managerUserId.isBlank()) {
+        if (managerUserId == null) {
             user.setManager(null);
         } else {
             if (userId.equals(managerUserId)) {
@@ -200,7 +201,7 @@ public class UserServiceImpl implements UserService {
             }
             UserAccount manager = findById(managerUserId);
             // Ngăn vòng lặp: managerUserId không được là cấp dưới của userId
-            List<String> subordinates = userAccountRepository.findAllSubordinateIds(userId);
+            List<Long> subordinates = userAccountRepository.findAllSubordinateIds(userId);
             if (subordinates.contains(managerUserId)) {
                 throw new SmsException(ErrorCodes.VALIDATION_FAILED,
                     "Circular hierarchy: the designated manager is already a subordinate", 400);
@@ -212,18 +213,18 @@ public class UserServiceImpl implements UserService {
 
     /** Trả về danh sách userId của tất cả cấp dưới (đệ quy). */
     @Transactional(readOnly = true)
-    public List<String> getSubordinateIds(String managerId) {
+    public List<Long> getSubordinateIds(Long managerId) {
         return userAccountRepository.findAllSubordinateIds(managerId);
     }
 
     /** Trả về danh sách cấp dưới trực tiếp (1 cấp). */
     @Transactional(readOnly = true)
-    public List<UserResponse> getDirectSubordinates(String managerId) {
+    public List<UserResponse> getDirectSubordinates(Long managerId) {
         return userAccountRepository.findDirectSubordinates(managerId)
             .stream().map(this::toResponse).toList();
     }
 
-    public UserAccount findById(String userId) {
+    public UserAccount findById(Long userId) {
         return userAccountRepository.findById(userId)
             .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED, "User not found: " + userId, 404));
     }
@@ -265,3 +266,5 @@ public class UserServiceImpl implements UserService {
         return r;
     }
 }
+
+

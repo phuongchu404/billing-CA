@@ -19,6 +19,8 @@ public class GroupDetailResponse {
     private String createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String ownerUserId;
+    private Long ownerUserId;
     private String ownerName;
 }
+
+

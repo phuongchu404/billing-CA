@@ -203,7 +203,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             .description("Yêu cầu áp dụng gói cước phổ thông: " + template.getPlanName()
                 + " từ " + req.getApplyFrom() + " đến " + req.getApplyUntil())
             .contractValue(contractValue)
-            .totalLevels(1)
+            .totalLevels(normalizeApprovalLevel(req.getApprovalLevel()))
             .currentLevel(0)
             .build();
 
@@ -212,6 +212,14 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         IndividualPlanConfigDetailResponse response = getDetail(id);
         response.setApprovalRequestId(approvalId);
         return response;
+    }
+
+    private int normalizeApprovalLevel(Integer approvalLevel) {
+        if (approvalLevel == null) return 1;
+        if (approvalLevel < 1 || approvalLevel > 3) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "approvalLevel must be between 1 and 3", 400);
+        }
+        return approvalLevel;
     }
 
     @Transactional

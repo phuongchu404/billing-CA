@@ -69,7 +69,7 @@ public class DatabaseAuditAspect {
         String reason = stringValue(evaluate(trackSubscriptionAudit.reason(), joinPoint, result));
         String sourceType = stringValue(evaluate(trackSubscriptionAudit.sourceType(), joinPoint, result));
         if (trackSubscriptionAudit.resolveActorFromUserId() && actor != null && !actor.isBlank()) {
-            actor = userAccountRepository.findById(actor).map(user -> user.getUsername()).orElse(actor);
+            actor = findUserId(actor).flatMap(userAccountRepository::findById).map(user -> user.getUsername()).orElse(actor);
         }
         if (sourceType == null || sourceType.isBlank()) {
             sourceType = subscription.getSourceType();
@@ -141,7 +141,7 @@ public class DatabaseAuditAspect {
 
         String actor = stringValue(evaluate(trackAdminAudit.actor(), joinPoint, result));
         if (trackAdminAudit.resolveActorFromUserId()) {
-            actor = userAccountRepository.findById(actor).map(user -> user.getUsername()).orElse(actor);
+            actor = findUserId(actor).flatMap(userAccountRepository::findById).map(user -> user.getUsername()).orElse(actor);
         }
 
         adminAuditLogRepository.save(AdminAuditLog.builder()
@@ -169,6 +169,14 @@ public class DatabaseAuditAspect {
                 .orElse(null);
         }
         return null;
+    }
+
+    private Optional<Long> findUserId(String value) {
+        try {
+            return Optional.of(Long.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return Optional.empty();
+        }
     }
 
     private Object evaluate(String expression, ProceedingJoinPoint joinPoint, Object result) {
@@ -215,3 +223,5 @@ public class DatabaseAuditAspect {
         return value == null ? null : String.valueOf(value);
     }
 }
+
+

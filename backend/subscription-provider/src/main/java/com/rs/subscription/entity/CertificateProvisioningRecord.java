@@ -28,10 +28,8 @@ public class CertificateProvisioningRecord {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pricing_rule_id")
     private PlanPricingRule pricingRule;
-
-    @Convert(converter = UuidBinaryConverter.class)
-    @Column(nullable = false, columnDefinition = "BINARY(16)")
-    private String userId;
+    @Column(nullable = false)
+    private Long userId;
 
     @Column(unique = true, nullable = false, length = 36)
     private String requestId;
@@ -90,3 +88,5 @@ public class CertificateProvisioningRecord {
         public int getValue() { return value; }
     }
 }
+
+

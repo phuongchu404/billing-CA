@@ -16,6 +16,7 @@ import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.GroupRepository;
 import com.rs.subscription.enums.CommercialEnums;
+import com.rs.subscription.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,32 +32,34 @@ public class GroupProvisioningServiceImpl implements GroupProvisioningService {
 
     @Transactional
     public ProvisionGroupResponse provision(ProvisionGroupRequest req) {
+        String actor = SecurityUtil.getCurrentUsername()
+            .orElse(req.getRequestedBy() != null ? req.getRequestedBy() : "system");
+        Long actorUserId = SecurityUtil.getCurrentUserId().orElse(null);
+
         // 1. Tạo group + lưu contacts (PIC, CONTRACT)
         UpsertGroupRequest groupReq = new UpsertGroupRequest();
         groupReq.setGroupName(req.getGroupName());
         groupReq.setPicEmails(req.getPicEmails());
         groupReq.setContactEmails(req.getContactEmails());
         groupReq.setRefContractNo(req.getRefContractNo());
-        groupReq.setCreatedBy(req.getRequestedBy());
+        groupReq.setCreatedBy(actor);
+        groupReq.setOwnerUserId(actorUserId);
         GroupDetailResponse group = groupService.create(groupReq);
 
         // 2. Tạo plan template, planCode sinh server-side từ groupCode
-        boolean hasDates = req.getEffectiveFrom() != null && req.getEffectiveTo() != null;
         String planCode = "PLN_" + group.getGroupCode() + "_" + System.currentTimeMillis();
         CreatePlanTemplateRequest planReq = new CreatePlanTemplateRequest();
         planReq.setPlanCode(planCode);
         planReq.setPlanName(req.getPlanName());
         planReq.setCustomerSegment(CommercialEnums.CustomerSegment.GROUP.name());
         planReq.setTemplateScope(CommercialEnums.TemplateScope.PARTNER_PRIVATE.name());
-        planReq.setStatus(hasDates
-                ? CommercialEnums.TemplateStatus.DRAFT.name()
-                : CommercialEnums.TemplateStatus.AVAILABLE.name());
+        planReq.setStatus(CommercialEnums.TemplateStatus.AVAILABLE.name());
         planReq.setEffectiveFrom(req.getEffectiveFrom());
         planReq.setEffectiveTo(req.getEffectiveTo());
         planReq.setIsVisible(true);
         planReq.setAllowBulkSigning(false);
         planReq.setAllowApiAccess(false);
-        planReq.setCreatedBy(req.getRequestedBy());
+        planReq.setCreatedBy(actor);
         planReq.setPricingRules(req.getPricingRules());
         PlanTemplateResponse planTemplate = planTemplateService.create(planReq);
 
@@ -64,8 +67,8 @@ public class GroupProvisioningServiceImpl implements GroupProvisioningService {
         CreateGroupPlanAssignmentRequest assignReq = new CreateGroupPlanAssignmentRequest();
         assignReq.setGroupId(group.getGroupId());
         assignReq.setPlanTemplateId(planTemplate.getPlanTemplateId());
-        assignReq.setAssignmentStatus(CommercialEnums.AssignmentStatus.REQUESTED.name());
-        assignReq.setRequestedBy(req.getRequestedBy());
+        assignReq.setAssignmentStatus(CommercialEnums.AssignmentStatus.AVAILABLE.name());
+        assignReq.setRequestedBy(actor);
         assignReq.setApplyFrom(req.getEffectiveFrom());
         assignReq.setApplyTo(req.getEffectiveTo());
         GroupPlanAssignmentResponse assignment = groupPlanAssignmentService.create(assignReq);
@@ -79,10 +82,12 @@ public class GroupProvisioningServiceImpl implements GroupProvisioningService {
 
     @Transactional
     public GroupPlanAssignmentResponse addPlanToGroup(Long groupId, AddGroupPlanRequest req) {
+        String actor = SecurityUtil.getCurrentUsername()
+            .orElse(req.getRequestedBy() != null ? req.getRequestedBy() : "system");
+
         Group group = groupRepository.findById(groupId)
             .orElseThrow(() -> new SmsException(ErrorCodes.GROUP_NOT_FOUND, "Group not found: " + groupId, 404));
 
-        boolean hasDates = req.getApplyFrom() != null && req.getApplyTo() != null;
         String planCode = "PLN_" + group.getGroupCode() + "_" + System.currentTimeMillis();
 
         CreatePlanTemplateRequest planReq = new CreatePlanTemplateRequest();
@@ -90,23 +95,21 @@ public class GroupProvisioningServiceImpl implements GroupProvisioningService {
         planReq.setPlanName(req.getPlanName());
         planReq.setCustomerSegment(CommercialEnums.CustomerSegment.GROUP.name());
         planReq.setTemplateScope(CommercialEnums.TemplateScope.PARTNER_PRIVATE.name());
-        planReq.setStatus(hasDates
-            ? CommercialEnums.TemplateStatus.DRAFT.name()
-            : CommercialEnums.TemplateStatus.AVAILABLE.name());
+        planReq.setStatus(CommercialEnums.TemplateStatus.AVAILABLE.name());
         planReq.setEffectiveFrom(req.getApplyFrom());
         planReq.setEffectiveTo(req.getApplyTo());
         planReq.setIsVisible(true);
         planReq.setAllowBulkSigning(false);
         planReq.setAllowApiAccess(false);
-        planReq.setCreatedBy(req.getRequestedBy());
+        planReq.setCreatedBy(actor);
         planReq.setPricingRules(req.getPricingRules());
         PlanTemplateResponse planTemplate = planTemplateService.create(planReq);
 
         CreateGroupPlanAssignmentRequest assignReq = new CreateGroupPlanAssignmentRequest();
         assignReq.setGroupId(groupId);
         assignReq.setPlanTemplateId(planTemplate.getPlanTemplateId());
-        assignReq.setAssignmentStatus(CommercialEnums.AssignmentStatus.REQUESTED.name());
-        assignReq.setRequestedBy(req.getRequestedBy());
+        assignReq.setAssignmentStatus(CommercialEnums.AssignmentStatus.AVAILABLE.name());
+        assignReq.setRequestedBy(actor);
         assignReq.setApplyFrom(req.getApplyFrom());
         assignReq.setApplyTo(req.getApplyTo());
         return groupPlanAssignmentService.create(assignReq);

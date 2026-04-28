@@ -28,11 +28,10 @@ public class UpsertGroupRequest {
     @Size(max = 200)
     private String refContractNo;
 
-    /** Người tạo — nếu null thì mặc định "system" */
+    /** Người tạo - nếu null thì mặc định "system" */
     @Size(max = 100)
     private String createdBy;
 
     /** userId của nhân viên nội bộ phụ trách group này (nullable) */
-    @Size(max = 36)
-    private String ownerUserId;
+    private Long ownerUserId;
 }

@@ -27,6 +27,7 @@ export interface MultiLevelApprovalResponse {
   entityId: string
   description: string
   contractValue?: number
+  reviewNote?: string
   totalLevels: number
   currentLevel: number
   payload?: Record<string, unknown>
@@ -48,6 +49,7 @@ export interface ApprovalLevelConfigResponse {
 export interface SubmitApprovalRequest {
   submittedBy: string
   contractValue?: number
+  approvalLevel?: 1 | 2 | 3
 }
 
 export interface ApproveStepRequest {
@@ -98,3 +100,5 @@ export const resubmitApproval = (id: number, data: SubmitApprovalRequest) =>
 // GET /api/v1/approval-requests/level-configs
 export const listLevelConfigs = () =>
   request.get<ApprovalLevelConfigResponse[]>('/api/v1/approval-requests/level-configs')
+
+

@@ -16,6 +16,7 @@ import com.rs.subscription.entity.ApprovalRequest;
 import com.rs.subscription.entity.ApprovalRequestStep;
 import com.rs.subscription.entity.GroupPlanAssignment;
 import com.rs.subscription.entity.RetailPlanSchedule;
+import com.rs.subscription.entity.UserAccount;
 import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
@@ -24,6 +25,8 @@ import com.rs.subscription.repository.ApprovalRequestRepository;
 import com.rs.subscription.repository.ApprovalRequestStepRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
 import com.rs.subscription.repository.RetailPlanScheduleRepository;
+import com.rs.subscription.repository.UserAccountRepository;
+import com.rs.subscription.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,12 +46,14 @@ import java.util.Map;
 public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService {
 
     private static final String[] LEVEL_ROLES = {"LEVEL_1", "LEVEL_2", "LEVEL_3"};
+    private static final String[] LEVEL_PERMISSION_KEYS = {"approval:level1", "approval:level2", "approval:level3"};
 
     private final ApprovalRequestRepository approvalRequestRepository;
     private final ApprovalRequestStepRepository stepRepository;
     private final ApprovalLevelConfigRepository levelConfigRepository;
     private final GroupPlanAssignmentRepository groupPlanAssignmentRepository;
     private final RetailPlanScheduleRepository retailPlanScheduleRepository;
+    private final UserAccountRepository userAccountRepository;
     private final ApprovalNotificationService notificationService;
     private final ObjectMapper objectMapper;
 
@@ -87,7 +92,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
             : (approval.getContractValue() != null ? approval.getContractValue() : BigDecimal.ZERO);
 
         approval.setContractValue(contractValue);
-        int levels = resolveRequiredLevels(approval.getCustomerSegment(), contractValue);
+        int levels = resolveRequestedLevels(request.getApprovalLevel(), approval.getTotalLevels());
         approval.setTotalLevels(levels);
         approval.setCurrentLevel(1);
         approval.setStatus(CommercialEnums.MultiApprovalRequestStatus.IN_APPROVAL.name());
@@ -108,8 +113,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     public Long createAndSubmit(ApprovalRequest draft) {
         ApprovalRequest saved = approvalRequestRepository.save(draft);
 
-        BigDecimal contractValue = saved.getContractValue() != null ? saved.getContractValue() : BigDecimal.ZERO;
-        int levels = resolveRequiredLevels(saved.getCustomerSegment(), contractValue);
+        int levels = resolveRequestedLevels(saved.getTotalLevels(), 1);
         saved.setTotalLevels(levels);
         saved.setCurrentLevel(1);
         saved.setStatus(CommercialEnums.MultiApprovalRequestStatus.IN_APPROVAL.name());
@@ -128,14 +132,16 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
         ApprovalRequest approval = findRequest(id);
         validateInApproval(approval);
 
-        if (approval.getRequestedBy().equals(request.getApprovedBy())) {
+        String actor = SecurityUtil.getCurrentUsername().orElse(request.getApprovedBy());
+        if (approval.getRequestedBy().equals(actor)) {
             throw new SmsException(ErrorCodes.APPROVAL_SELF_APPROVE,
                 "Không được tự duyệt request của mình", 403);
         }
 
         ApprovalRequestStep currentStep = findCurrentStep(approval);
+        validateCurrentApprover(approval, currentStep, actor);
         currentStep.setStatus(CommercialEnums.ApprovalStepStatus.APPROVED.name());
-        currentStep.setDecidedBy(request.getApprovedBy());
+        currentStep.setDecidedBy(actor);
         currentStep.setComment(request.getComment());
         currentStep.setDecidedAt(LocalDateTime.now());
         stepRepository.save(currentStep);
@@ -146,7 +152,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
             approvalRequestRepository.save(approval);
             notificationService.notifyStepApproved(approval, nextLevel);
         } else {
-            finalizeApproval(approval, request.getApprovedBy(), request.getComment());
+            finalizeApproval(approval, actor, request.getComment());
             notificationService.notifyFullyApproved(approval);
         }
 
@@ -159,10 +165,12 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     public MultiLevelApprovalResponse reject(Long id, RejectApprovalRequest request) {
         ApprovalRequest approval = findRequest(id);
         validateInApproval(approval);
+        String actor = SecurityUtil.getCurrentUsername().orElse(request.getRejectedBy());
 
         ApprovalRequestStep currentStep = findCurrentStep(approval);
+        validateCurrentApprover(approval, currentStep, actor);
         currentStep.setStatus(CommercialEnums.ApprovalStepStatus.REJECTED.name());
-        currentStep.setDecidedBy(request.getRejectedBy());
+        currentStep.setDecidedBy(actor);
         currentStep.setComment(request.getReason());
         currentStep.setDecidedAt(LocalDateTime.now());
         stepRepository.save(currentStep);
@@ -176,13 +184,13 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
             });
 
         approval.setStatus(CommercialEnums.MultiApprovalRequestStatus.REJECTED.name());
-        approval.setReviewedBy(request.getRejectedBy());
+        approval.setReviewedBy(actor);
         approval.setReviewNote(request.getReason());
         approval.setReviewedAt(LocalDateTime.now());
         approvalRequestRepository.save(approval);
 
         notificationService.notifyRejected(approval, currentStep);
-        propagateRejection(approval, request.getRejectedBy(), request.getReason());
+        propagateRejection(approval, actor, request.getReason());
 
         return toResponse(approval);
     }
@@ -193,6 +201,9 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     public MultiLevelApprovalResponse requestRevision(Long id, RevisionApprovalRequest request) {
         ApprovalRequest approval = findRequest(id);
         validateInApproval(approval);
+        String actor = SecurityUtil.getCurrentUsername().orElse(request.getRequestedBy());
+        ApprovalRequestStep currentStep = findCurrentStep(approval);
+        validateCurrentApprover(approval, currentStep, actor);
 
         stepRepository.findByApprovalRequestIdOrderByStepLevelAsc(id).forEach(s -> {
             s.setStatus(CommercialEnums.ApprovalStepStatus.PENDING.name());
@@ -222,10 +233,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
 
         if (request.getContractValue() != null) approval.setContractValue(request.getContractValue());
 
-        int levels = resolveRequiredLevels(
-            approval.getCustomerSegment(),
-            approval.getContractValue() != null ? approval.getContractValue() : BigDecimal.ZERO
-        );
+        int levels = resolveRequestedLevels(request.getApprovalLevel(), approval.getTotalLevels());
         approval.setTotalLevels(levels);
         approval.setCurrentLevel(1);
         approval.setStatus(CommercialEnums.MultiApprovalRequestStatus.IN_APPROVAL.name());
@@ -246,6 +254,14 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
             .findMatchingConfig(customerSegment, contractValue)
             .map(ApprovalLevelConfig::getRequiredLevels)
             .orElseGet(() -> fallbackLevels(customerSegment, contractValue));
+    }
+
+    private int resolveRequestedLevels(Integer requestedLevel, Integer fallbackLevel) {
+        int levels = requestedLevel != null ? requestedLevel : (fallbackLevel != null ? fallbackLevel : 1);
+        if (levels < 1 || levels > LEVEL_ROLES.length) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "approvalLevel must be between 1 and 3", 400);
+        }
+        return levels;
     }
 
     private int fallbackLevels(String customerSegment, BigDecimal value) {
@@ -283,6 +299,38 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
             throw new SmsException(ErrorCodes.APPROVAL_NOT_IN_PROGRESS,
                 "Request không ở trạng thái IN_APPROVAL", 409);
         }
+    }
+
+    private void validateCurrentApprover(ApprovalRequest approval, ApprovalRequestStep currentStep, String actor) {
+        String permissionKey = permissionKeyForStep(currentStep);
+        List<UserAccount> managerApprovers = userAccountRepository
+            .findActiveManagersByUsernameAndPermissionKey(approval.getRequestedBy(), permissionKey);
+
+        if (!managerApprovers.isEmpty()) {
+            boolean inManagerApprovalChain = managerApprovers.stream()
+                .anyMatch(user -> actor.equals(user.getUsername()));
+            if (!inManagerApprovalChain) {
+                throw new SmsException(ErrorCodes.APPROVAL_WRONG_LEVEL,
+                    "Only an approver in the requester's management chain can approve this step", 403);
+            }
+            return;
+        }
+
+        boolean hasLevelPermission = userAccountRepository.findActiveUsersByPermissionKey(permissionKey).stream()
+            .anyMatch(user -> actor.equals(user.getUsername()));
+        if (!hasLevelPermission) {
+            throw new SmsException(ErrorCodes.APPROVAL_WRONG_LEVEL,
+                "User does not have required permission for approval step: " + permissionKey, 403);
+        }
+    }
+
+    private String permissionKeyForStep(ApprovalRequestStep step) {
+        int level = step.getStepLevel() != null ? step.getStepLevel() : 0;
+        if (level < 1 || level > LEVEL_PERMISSION_KEYS.length) {
+            throw new SmsException(ErrorCodes.APPROVAL_WRONG_LEVEL,
+                "Unsupported approval step level: " + level, 400);
+        }
+        return LEVEL_PERMISSION_KEYS[level - 1];
     }
 
     private void finalizeApproval(ApprovalRequest approval, String approvedBy, String note) {
@@ -325,7 +373,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
         if ("GROUP_PLAN_ASSIGNMENT".equals(approval.getEntityType())) {
             groupPlanAssignmentRepository.findById(Long.valueOf(approval.getEntityId()))
                 .ifPresent(gpa -> {
-                    gpa.setAssignmentStatus(CommercialEnums.AssignmentStatus.REJECTED.name());
+                    gpa.setAssignmentStatus(CommercialEnums.AssignmentStatus.AVAILABLE.name());
                     gpa.setRejectedBy(actor);
                     gpa.setRejectedAt(LocalDateTime.now());
                     gpa.setStopReason(reason);

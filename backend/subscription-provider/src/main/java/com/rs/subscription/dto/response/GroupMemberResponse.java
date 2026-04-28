@@ -8,10 +8,12 @@ import java.time.LocalDateTime;
 public class GroupMemberResponse {
     private Long id;
     private Long groupId;
-    private String userId;
+    private Long userId;
     private String role;
     private LocalDateTime joinedAt;
     private String addedBy;
     private LocalDate memberStartDate;
     private LocalDate memberEndDate;
 }
+
+

@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 public class CertificateUsageResponse {
     private Long id;
     private String certificateId;
-    private String userId;
+    private Long userId;
     private LocalDateTime usedAt;
 }
+
+

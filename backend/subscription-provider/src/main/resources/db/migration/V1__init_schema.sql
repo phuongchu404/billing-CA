@@ -5,11 +5,7 @@
 -- Không cần chạy V5/V7/V8 — đã gộp vào file này.
 -- Tùy chọn: chạy V6 (partition) để tối ưu bảng volume cao.
 --
--- user_id dùng BINARY(16) thay vì VARCHAR(36):
---   - 16 bytes vs 36 bytes → index nhỏ hơn, join nhanh hơn
---   - Java converter: UuidBinaryConverter (UNHEX/HEX tự động)
---   - Insert: UNHEX(REPLACE('uuid-string', '-', ''))
---   - Query:  BIN_TO_UUID(user_id) để đọc dưới dạng string
+-- user_id dung BIGINT AUTO_INCREMENT cho khoa chinh va cac FK lien quan.
 -- ============================================================
 
 SET NAMES utf8mb4;
@@ -19,7 +15,7 @@ SET NAMES utf8mb4;
 -- ============================================================
 
 CREATE TABLE user_accounts (
-    user_id                BINARY(16)   NOT NULL,
+    user_id                BIGINT       NOT NULL AUTO_INCREMENT,
     username               VARCHAR(100) NOT NULL,
     email                  VARCHAR(200) NOT NULL,
     full_name              VARCHAR(200) NOT NULL,
@@ -30,7 +26,7 @@ CREATE TABLE user_accounts (
     locked_until           DATETIME     NULL,
     last_login_at          DATETIME     NULL,
     created_by             VARCHAR(36)  NULL     COMMENT 'Username hoặc SYSTEM — không phải FK',
-    manager_user_id        BINARY(16)   NULL     COMMENT 'Manager trực tiếp (null = top-level)',
+    manager_user_id        BIGINT   NULL     COMMENT 'Manager trực tiếp (null = top-level)',
     created_at             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id),
@@ -66,7 +62,7 @@ CREATE TABLE permissions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE user_roles (
-    user_id    BINARY(16) NOT NULL,
+    user_id                BIGINT     NOT NULL,
     role_id    BIGINT     NOT NULL,
     created_at DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, role_id),
@@ -87,7 +83,7 @@ CREATE TABLE role_permissions (
 CREATE TABLE refresh_tokens (
     id         BIGINT       NOT NULL AUTO_INCREMENT,
     token      VARCHAR(36)  NOT NULL,
-    user_id    BINARY(16)   NOT NULL,
+    user_id                BIGINT       NOT NULL,
     status     VARCHAR(30)  NOT NULL DEFAULT 'ACTIVE',
     expires_at DATETIME     NOT NULL,
     issued_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -102,7 +98,7 @@ CREATE TABLE refresh_tokens (
 
 CREATE TABLE password_history (
     id            BIGINT       NOT NULL AUTO_INCREMENT,
-    user_id       BINARY(16)   NOT NULL,
+    user_id                BIGINT       NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -112,7 +108,7 @@ CREATE TABLE password_history (
 CREATE TABLE password_reset_tokens (
     id         BIGINT      NOT NULL AUTO_INCREMENT,
     token      VARCHAR(36) NOT NULL,
-    user_id    BINARY(16)  NOT NULL,
+    user_id                BIGINT      NOT NULL,
     used       TINYINT(1)  NOT NULL DEFAULT 0,
     expires_at DATETIME    NOT NULL,
     created_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -161,7 +157,7 @@ CREATE TABLE `groups` (
     ref_contract_no VARCHAR(200) NULL,
     status          VARCHAR(30)  NOT NULL DEFAULT 'ACTIVE',
     created_by      VARCHAR(100) NOT NULL,
-    owner_user_id   BINARY(16)   NULL     COMMENT 'Nhân viên kinh doanh phụ trách',
+    owner_user_id   BIGINT   NULL     COMMENT 'Nhân viên kinh doanh phụ trách',
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (group_id),
@@ -175,7 +171,7 @@ CREATE TABLE `groups` (
 
 CREATE TABLE partner_group_access (
     id              BIGINT      NOT NULL AUTO_INCREMENT,
-    partner_user_id BINARY(16)  NOT NULL COMMENT 'User có role ROLE_PARTNER',
+    partner_user_id BIGINT  NOT NULL COMMENT 'User có role ROLE_PARTNER',
     group_id        BIGINT      NOT NULL COMMENT 'Group được phép xem báo cáo',
     granted_by      VARCHAR(36) NOT NULL COMMENT 'Username của admin cấp quyền',
     granted_at      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -299,7 +295,7 @@ CREATE TABLE retail_plan_schedules (
 CREATE TABLE group_members (
     id                   BIGINT      NOT NULL AUTO_INCREMENT,
     group_id             BIGINT      NOT NULL,
-    user_id              BINARY(16)  NOT NULL,
+    user_id                BIGINT      NOT NULL,
     role                 VARCHAR(30) NOT NULL DEFAULT 'MEMBER',
     joined_at            DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     added_by             VARCHAR(100) NOT NULL,
@@ -382,7 +378,7 @@ CREATE TABLE approval_request_steps (
 CREATE TABLE subscriptions (
     subscription_id          BIGINT        NOT NULL AUTO_INCREMENT,
     subscriber_type          VARCHAR(30)   NOT NULL,
-    user_id                  BINARY(16)    NULL,
+    user_id                  BIGINT    NULL,
     group_id                 BIGINT        NULL,
     plan_template_id         BIGINT        NOT NULL,
     pricing_rule_id          BIGINT        NULL,
@@ -419,7 +415,7 @@ CREATE TABLE certificate_provisioning_records (
     subscription_id          BIGINT       NOT NULL,
     group_plan_assignment_id BIGINT       NULL,
     pricing_rule_id          BIGINT       NULL,
-    user_id                  BINARY(16)   NOT NULL,
+    user_id                BIGINT       NOT NULL,
     request_id               VARCHAR(36)  NOT NULL,
     status                   VARCHAR(30)  NOT NULL DEFAULT 'PENDING',
     cert_type                TINYINT      NOT NULL DEFAULT 1 COMMENT '1=INDIVIDUAL 2=INDIVIDUAL_OF_ORG 3=ORGANIZATION',
@@ -449,7 +445,7 @@ CREATE TABLE certificate_provisioning_records (
 CREATE TABLE certificate_usage_records (
     id                       BIGINT       NOT NULL AUTO_INCREMENT,
     certificate_id           VARCHAR(200) NOT NULL,
-    user_id                  BINARY(16)   NOT NULL,
+    user_id                BIGINT       NOT NULL,
     subscription_id          BIGINT       NULL,
     group_plan_assignment_id BIGINT       NULL,
     usage_type               VARCHAR(30)  NOT NULL DEFAULT 'SIGNING',
@@ -690,11 +686,13 @@ INSERT INTO role_permissions (role_id, permission_id) VALUES
 -- Mật khẩu: Admin@123 (BCrypt cost=12)
 INSERT INTO user_accounts (user_id, username, email, full_name, password_hash, auth_provider, status, failed_login_attempts, created_by)
 VALUES (
-    UNHEX(REPLACE('00000000-0000-0000-0000-000000000001', '-', '')),
+    1,
     'admin', 'admin@rs.local', 'System Administrator',
     '$2a$12$u2sex9JV2pkYdLErDN64juv.4ACIftHIswis0HSwZHAL2vWR5F1Si',
     'LOCAL', 'ACTIVE', 0, 'SYSTEM'
 );
 
 INSERT INTO user_roles (user_id, role_id)
-VALUES (UNHEX(REPLACE('00000000-0000-0000-0000-000000000001', '-', '')), 1);
+VALUES (1, 1);
+
+

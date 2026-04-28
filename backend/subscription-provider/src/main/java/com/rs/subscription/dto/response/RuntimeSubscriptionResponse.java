@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class RuntimeSubscriptionResponse {
     private Long subscriptionId;
     private String subscriberType;
-    private String userId;
+    private Long userId;
     private Long groupId;
     private Long planTemplateId;
     private String planCode;
@@ -29,3 +29,5 @@ public class RuntimeSubscriptionResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
+
+

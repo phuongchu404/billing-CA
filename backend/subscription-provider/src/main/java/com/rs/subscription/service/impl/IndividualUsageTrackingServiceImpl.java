@@ -60,7 +60,7 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
     private IndividualUsageRowResponse toRow(Subscription sub) {
         IndividualUsageRowResponse row = new IndividualUsageRowResponse();
         row.setId(sub.getSubscriptionId());
-        row.setAccount(sub.getUserId());
+        row.setAccount(sub.getUserId() != null ? String.valueOf(sub.getUserId()) : null);
         row.setPurchasedAt(sub.getCreatedAt() != null ? sub.getCreatedAt().format(DATETIME_FMT) : null);
 
         if (sub.getPricingRule() != null) {
@@ -91,3 +91,5 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
         };
     }
 }
+
+

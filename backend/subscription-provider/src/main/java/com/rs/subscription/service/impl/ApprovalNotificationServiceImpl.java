@@ -27,7 +27,7 @@ import java.util.List;
 @Slf4j
 public class ApprovalNotificationServiceImpl implements ApprovalNotificationService {
 
-    private static final String[] LEVEL_ROLE_NAMES = {"APPROVAL_L1", "APPROVAL_L2", "APPROVAL_L3"};
+    private static final String[] LEVEL_PERMISSION_KEYS = {"approval:level1", "approval:level2", "approval:level3"};
     private static final String[] LEVEL_DISPLAY = {"Trưởng phòng", "Giám đốc", "CFO"};
 
     private final MailService mailService;
@@ -99,13 +99,19 @@ public class ApprovalNotificationServiceImpl implements ApprovalNotificationServ
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private void sendToApproversAtLevel(ApprovalRequest approval, int level) {
-        if (level < 1 || level > LEVEL_ROLE_NAMES.length) return;
+        if (level < 1 || level > LEVEL_PERMISSION_KEYS.length) return;
 
-        String roleName = LEVEL_ROLE_NAMES[level - 1];
-        List<UserAccount> approvers = userAccountRepository.findActiveUsersByRoleName(roleName);
+        String permissionKey = LEVEL_PERMISSION_KEYS[level - 1];
+        List<UserAccount> approvers = userAccountRepository
+            .findActiveManagersByUsernameAndPermissionKey(approval.getRequestedBy(), permissionKey);
+        if (approvers.isEmpty()) {
+            log.warn("Không tìm thấy approver cấp {} trong tuyến quản lý của user {}, fallback theo permission {} cho approval request #{}",
+                level, approval.getRequestedBy(), permissionKey, approval.getId());
+            approvers = userAccountRepository.findActiveUsersByPermissionKey(permissionKey);
+        }
 
         if (approvers.isEmpty()) {
-            log.warn("Không tìm thấy approver nào có role {} cho approval request #{}", roleName, approval.getId());
+            log.warn("Không tìm thấy approver nào có permission {} cho approval request #{}", permissionKey, approval.getId());
             return;
         }
 

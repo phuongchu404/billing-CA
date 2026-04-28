@@ -8,10 +8,13 @@ import java.util.Optional;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
     List<GroupMember> findByGroupGroupId(Long groupId);
-    List<GroupMember> findByUserId(String userId);
-    Optional<GroupMember> findByGroupGroupIdAndUserId(Long groupId, String userId);
-    boolean existsByGroupGroupIdAndUserId(Long groupId, String userId);
+    List<GroupMember> findByUserId(Long userId);
+    Optional<GroupMember> findByGroupGroupIdAndUserId(Long groupId, Long userId);
+    boolean existsByGroupGroupIdAndUserId(Long groupId, Long userId);
     @Transactional
-    void deleteByGroupGroupIdAndUserId(Long groupId, String userId);
+    void deleteByGroupGroupIdAndUserId(Long groupId, Long userId);
     long countByGroupGroupId(Long groupId);
 }
+
+
+

@@ -11,7 +11,7 @@ export interface GroupListItem {
   signingUsed: number | null
   signingUsedPct: string | null
   updatedAt: string | null    // LocalDateTime → ISO string
-  ownerUserId: string | null
+  ownerUserId: number | null
   ownerName: string | null
 }
 
@@ -27,7 +27,7 @@ export interface GroupDetail {
   createdBy: string | null
   createdAt: string | null
   updatedAt: string | null
-  ownerUserId: string | null
+  ownerUserId: number | null
   ownerName: string | null
 }
 
@@ -37,13 +37,13 @@ export interface UpsertGroupRequest {
   picEmails: string[]
   contactEmails: string[]
   refContractNo?: string
-  ownerUserId?: string | null
+  ownerUserId?: number | null
 }
 
 /** Quyền truy cập báo cáo của đối tác */
 export interface PartnerGroupAccess {
   id: number
-  partnerUserId: string
+  partnerUserId: number
   partnerName: string
   groupId: number
   groupCode: string
@@ -71,9 +71,10 @@ export interface GroupPlanAssignment {
   groupPlanAssignmentId: number
   groupId: number
   planTemplateId: number
+  approvalRequestId?: number
   planCode: string
   planName: string
-  assignmentStatus: 'REQUESTED' | 'APPROVED' | 'ACTIVE' | 'REJECTED' | 'STOPPED' | 'EXPIRED'
+  assignmentStatus: 'AVAILABLE' | 'REQUESTED' | 'APPROVED' | 'ACTIVE' | 'REJECTED' | 'STOPPED' | 'EXPIRED'
   requestedBy: string | null
   requestedAt: string | null
   approvedBy: string | null
@@ -91,6 +92,7 @@ export interface CreateGroupPlanAssignmentRequest {
   requestedBy: string
   applyFrom?: string | null
   applyTo?: string | null
+  approvalLevel?: 1 | 2 | 3
 }
 
 /** Request review (approve/reject/stop) */

@@ -41,6 +41,7 @@ export interface IndividualPlanConfigDetail {
   id: number
   name: string
   status: IndividualPlanStatus
+  approvalRequestId?: number
   applyFrom: string | null
   applyUntil: string | null
   applyHistory: string | null
@@ -73,6 +74,7 @@ export interface IndividualRequestApplyRequest {
   applyFrom: string
   applyUntil: string
   requestedBy?: string
+  approvalLevel?: 1 | 2 | 3
 }
 
 export interface IndividualApproveRequest {
@@ -109,3 +111,5 @@ export interface IndividualUsageTrackingResponse {
   list: IndividualUsageRow[]
   lastUpdated: string | null
 }
+
+

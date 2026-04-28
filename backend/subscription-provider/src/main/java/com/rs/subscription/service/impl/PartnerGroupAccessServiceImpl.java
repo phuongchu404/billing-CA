@@ -66,30 +66,32 @@ public class PartnerGroupAccessServiceImpl implements PartnerGroupAccessService 
                 "Access has already been revoked", 400);
         }
         access.setRevokedAt(LocalDateTime.now());
+        access.setRevokedBy(revokedBy);
         partnerGroupAccessRepository.save(access);
     }
 
     /** Thu hồi theo partner + group (tiện dụng hơn cho UI). */
     @Transactional
-    public void revokeByPartnerAndGroup(String partnerUserId, Long groupId) {
+    public void revokeByPartnerAndGroup(Long partnerUserId, Long groupId, String revokedBy) {
         PartnerGroupAccess access = partnerGroupAccessRepository
             .findActiveAccess(partnerUserId, groupId)
             .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
                 "No active access found for this partner/group combination", 404));
         access.setRevokedAt(LocalDateTime.now());
+        access.setRevokedBy(revokedBy);
         partnerGroupAccessRepository.save(access);
     }
 
     /** Danh sách groups mà partner được xem (còn hiệu lực). */
     @Transactional(readOnly = true)
-    public List<PartnerGroupAccessResponse> listActiveForPartner(String partnerUserId) {
+    public List<PartnerGroupAccessResponse> listActiveForPartner(Long partnerUserId) {
         return partnerGroupAccessRepository.findActiveByPartner(partnerUserId)
             .stream().map(this::toResponse).toList();
     }
 
     /** Toàn bộ lịch sử cấp quyền cho partner (kể cả đã thu hồi). */
     @Transactional(readOnly = true)
-    public List<PartnerGroupAccessResponse> listHistoryForPartner(String partnerUserId) {
+    public List<PartnerGroupAccessResponse> listHistoryForPartner(Long partnerUserId) {
         return partnerGroupAccessRepository.findByPartnerUserIdOrderByGrantedAtDesc(partnerUserId)
             .stream().map(this::toResponse).toList();
     }
@@ -109,3 +111,5 @@ public class PartnerGroupAccessServiceImpl implements PartnerGroupAccessService 
         return r;
     }
 }
+
+

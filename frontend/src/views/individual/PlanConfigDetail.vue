@@ -210,6 +210,13 @@
             style="width: 100%"
           />
         </el-form-item>
+        <el-form-item label="Cáº¥p phÃª duyá»‡t">
+          <el-select v-model="requestApprovalLevel" style="width: 100%">
+            <el-option label="TrÆ°á»Ÿng phÃ²ng kinh doanh" :value="1" />
+            <el-option label="CFO (Finance Manager)" :value="2" />
+            <el-option label="CEO" :value="3" />
+          </el-select>
+        </el-form-item>
       </el-form>
       <p class="dlg-note">
         Khi bấm nút Xác Nhận, hệ thống sẽ tự động tạo yêu cầu phê duyệt nhiều cấp và gửi email thông báo
@@ -290,6 +297,7 @@ const TABS: { key: TabKey; label: string }[] = [
 // Dialog state
 const requestApplyVisible = ref(false)
 const requestApplyDateRange = ref<[Date, Date] | null>(null)
+const requestApprovalLevel = ref<1 | 2 | 3>(1)
 const requestApplyLoading = ref(false)
 const approvalSuccessVisible = ref(false)
 const lastApprovalId = ref<number | null>(null)
@@ -376,7 +384,11 @@ async function confirmRequestApply() {
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
   requestApplyLoading.value = true
   try {
-    const res = await requestApplyPlanConfig(planId, { applyFrom: fmt(from), applyUntil: fmt(to) })
+    const res = await requestApplyPlanConfig(planId, {
+      applyFrom: fmt(from),
+      applyUntil: fmt(to),
+      approvalLevel: requestApprovalLevel.value,
+    })
     if (res.data?.approvalRequestId) {
       lastApprovalId.value = res.data.approvalRequestId
     }

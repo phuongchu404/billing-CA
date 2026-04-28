@@ -10,4 +10,5 @@ public class IndividualRequestApplyRequest {
     @NotBlank(message = "Ngày kết thúc không được để trống")
     private String applyUntil;
     private String requestedBy;
+    private Integer approvalLevel = 1;
 }

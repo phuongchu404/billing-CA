@@ -9,7 +9,11 @@
         <span
           >SL đại lý đang hoạt động: <b>{{ activeCount }}</b></span
         >
-        <el-button type="primary" :icon="Plus" :disabled="!can('group:create')" @click="handleAddNew"
+        <el-button
+          type="primary"
+          :icon="Plus"
+          :disabled="!can('group:create')"
+          @click="handleAddNew"
           >Thêm Mới</el-button
         >
         <el-button :icon="Download" @click="handleExport"
@@ -182,7 +186,7 @@
           <template #default="{ row }">{{ row.updatedAt ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column fixed="right" width="195">
+        <el-table-column fixed="right" width="330">
           <template #header>
             <div class="col-label">HÀNH ĐỘNG</div>
             <div class="col-filter"></div>
@@ -193,9 +197,9 @@
                 >Chi tiết</el-button
               >
               <el-button
-                v-if="can('group:assign:owner')"
                 size="small"
                 :icon="UserFilled"
+                :disabled="!canAssignOwner"
                 @click.stop="openAssignOwner(row)"
                 >Phụ trách</el-button
               >
@@ -237,16 +241,27 @@
     </el-card>
 
     <!-- Assign Owner Dialog -->
-    <el-dialog v-model="assignOwnerVisible" width="420px" :close-on-click-modal="false">
+    <el-dialog
+      v-model="assignOwnerVisible"
+      width="420px"
+      :close-on-click-modal="false"
+    >
       <template #header>
-        <span style="font-size:15px;font-weight:700;">GÁN NHÂN VIÊN PHỤ TRÁCH</span>
+        <span style="font-size: 15px; font-weight: 700"
+          >GÁN NHÂN VIÊN PHỤ TRÁCH</span
+        >
       </template>
       <el-form label-width="130px" label-position="left">
         <el-form-item label="Đại lý:">
           <span>{{ assignOwnerTarget?.groupName }}</span>
         </el-form-item>
         <el-form-item label="Nhân viên:">
-          <el-select v-model="assignOwnerUserId" clearable placeholder="Chọn nhân viên" style="width:100%">
+          <el-select
+            v-model="assignOwnerUserId"
+            clearable
+            placeholder="Chọn nhân viên"
+            style="width: 100%"
+          >
             <el-option
               v-for="u in allStaffUsers"
               :key="u.userId"
@@ -257,8 +272,13 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <div style="display:flex;justify-content:flex-end;gap:8px">
-          <el-button type="primary" :loading="savingOwner" @click="handleAssignOwner">Xác Nhận</el-button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <el-button
+            type="primary"
+            :loading="savingOwner"
+            @click="handleAssignOwner"
+            >Xác Nhận</el-button
+          >
           <el-button @click="assignOwnerVisible = false">Hủy</el-button>
         </div>
       </template>
@@ -303,6 +323,7 @@ const pageSize = ref(10);
 const activeCount = computed(
   () => list.value.filter((r) => r.status === "ACTIVE").length,
 );
+const canAssignOwner = computed(() => can("group:assign:owner"));
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
@@ -392,13 +413,14 @@ function handleExportRow(_row: AgencyRow) {
 // ── Assign owner dialog ──
 const assignOwnerVisible = ref(false);
 const assignOwnerTarget = ref<AgencyRow | null>(null);
-const assignOwnerUserId = ref<string>("");
+const assignOwnerUserId = ref<number | null>(null);
 const allStaffUsers = ref<UserAccount[]>([]);
 const savingOwner = ref(false);
 
 async function openAssignOwner(row: AgencyRow) {
+  if (!canAssignOwner.value) return;
   assignOwnerTarget.value = row;
-  assignOwnerUserId.value = row.ownerUserId ?? "";
+  assignOwnerUserId.value = row.ownerUserId ?? null;
   assignOwnerVisible.value = true;
   if (!allStaffUsers.value.length) {
     const res = await listUsers({ page: 0, size: 200 });
@@ -412,7 +434,7 @@ async function handleAssignOwner() {
   try {
     const res = await assignGroupOwner(
       assignOwnerTarget.value.groupId,
-      assignOwnerUserId.value || null
+      assignOwnerUserId.value || null,
     );
     if (res.success) {
       ElMessage.success("Đã cập nhật nhân viên phụ trách");

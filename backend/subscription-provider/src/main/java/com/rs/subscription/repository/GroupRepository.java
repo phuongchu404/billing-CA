@@ -16,16 +16,16 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     List<Group> findByStatusOrderByGroupId(String status);
 
     // Phase 1: lấy groups theo owner (nhân viên phụ trách)
-    List<Group> findByOwnerUserIdOrderByGroupId(String ownerUserId);
-    List<Group> findByOwnerUserIdAndStatusOrderByGroupId(String ownerUserId, String status);
+    List<Group> findByOwnerUserIdOrderByGroupId(Long ownerUserId);
+    List<Group> findByOwnerUserIdAndStatusOrderByGroupId(Long ownerUserId, String status);
 
     // Phase 2: lấy groups của nhiều owners (manager xem groups của cấp dưới)
     @Query("SELECT g FROM Group g WHERE g.owner.userId IN :ownerIds ORDER BY g.groupId")
-    List<Group> findByOwnerUserIdInOrderByGroupId(@Param("ownerIds") Collection<String> ownerIds);
+    List<Group> findByOwnerUserIdInOrderByGroupId(@Param("ownerIds") Collection<Long> ownerIds);
 
     @Query("SELECT g FROM Group g WHERE g.owner.userId IN :ownerIds AND g.status = :status ORDER BY g.groupId")
     List<Group> findByOwnerUserIdInAndStatusOrderByGroupId(
-        @Param("ownerIds") Collection<String> ownerIds,
+        @Param("ownerIds") Collection<Long> ownerIds,
         @Param("status") String status
     );
 
@@ -37,5 +37,8 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
           AND pga.revokedAt IS NULL
         ORDER BY g.groupId
         """)
-    List<Group> findAccessibleByPartner(@Param("partnerUserId") String partnerUserId);
+    List<Group> findAccessibleByPartner(@Param("partnerUserId") Long partnerUserId);
 }
+
+
+

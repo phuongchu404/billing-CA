@@ -51,12 +51,8 @@
       </el-form>
       <div class="plan-notes">
         <p>
-          Nếu chọn thời gian áp dụng, hệ thống sẽ đưa gói cước sang trạng thái <b>"Chờ duyệt"</b>.
-          Sau khi được duyệt, bảng gói cước sẽ được áp dụng từ 00:00:00 ngày bắt đầu đến 23:59:59 ngày kết thúc.
-        </p>
-        <p>
-          Nếu không chọn thời gian áp dụng, hệ thống sẽ đưa gói cước sang trạng thái <b>"Khả dụng"</b>
-          và cho phép Yêu cầu áp dụng.
+          Gói cước mới sẽ được tạo ở trạng thái <b>"Khả dụng"</b> và cho phép Yêu cầu áp dụng.
+          Hệ thống chỉ gửi yêu cầu duyệt khi bấm Yêu cầu áp dụng.
         </p>
       </div>
     </el-card>
@@ -355,13 +351,8 @@ async function handleSubmit() {
 
     const res = await addGroupPlan(agencyId, req)
     if (res.success) {
-      if (res.data?.approvalRequestId) {
-        lastApprovalId.value = res.data.approvalRequestId
-        approvalSuccessVisible.value = true
-      } else {
-        ElMessage.success('Tạo gói cước thành công!')
-        router.push('/plans/' + agencyId)
-      }
+      ElMessage.success('Tạo gói cước thành công!')
+      router.push('/plans/' + agencyId)
     } else {
       ElMessage.error(res.message || 'Không thể tạo gói cước')
     }
