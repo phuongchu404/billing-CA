@@ -65,7 +65,7 @@ public class GroupCommercialController {
     }
 
     @GetMapping("/plan-assignments/{assignmentId}")
-    @PreAuthorize("hasAuthority('group:view')")
+    @PreAuthorize("hasAnyAuthority('group:view','approval:level1','approval:level2','approval:level3')")
     public ApiResponse<GroupPlanAssignmentResponse> getAssignment(@PathVariable Long assignmentId) {
         return ApiResponse.success(groupPlanAssignmentService.getById(assignmentId), "Fetched group plan assignment");
     }

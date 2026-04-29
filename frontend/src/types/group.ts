@@ -1,9 +1,11 @@
+import type { AssignmentStatus, GroupStatus, ReviewDecision } from './enums'
+
 /** Một dòng trong bảng danh sách đại lý (index.vue) */
 export interface GroupListItem {
   groupId: number
   groupCode: string
   groupName: string
-  status: 'ACTIVE' | 'INACTIVE'
+  status: GroupStatus
   currentPlan: string | null
   applyUntil: string | null   // LocalDate → "YYYY-MM-DD"
   ctsCreated: number | null
@@ -20,7 +22,7 @@ export interface GroupDetail {
   groupId: number
   groupCode: string
   groupName: string
-  status: 'ACTIVE' | 'INACTIVE'
+  status: GroupStatus
   picEmails: string[]
   contactEmails: string[]
   refContractNo: string | null
@@ -74,7 +76,7 @@ export interface GroupPlanAssignment {
   approvalRequestId?: number
   planCode: string
   planName: string
-  assignmentStatus: 'AVAILABLE' | 'REQUESTED' | 'APPROVED' | 'ACTIVE' | 'REJECTED' | 'STOPPED' | 'EXPIRED'
+  assignmentStatus: AssignmentStatus
   requestedBy: string | null
   requestedAt: string | null
   approvedBy: string | null
@@ -97,7 +99,7 @@ export interface CreateGroupPlanAssignmentRequest {
 
 /** Request review (approve/reject/stop) */
 export interface ReviewAssignmentRequest {
-  decision: 'APPROVE' | 'REJECT' | 'STOP' | 'ACTIVATE'
+  decision: ReviewDecision
   actor: string
   note?: string
   applyFrom?: string | null

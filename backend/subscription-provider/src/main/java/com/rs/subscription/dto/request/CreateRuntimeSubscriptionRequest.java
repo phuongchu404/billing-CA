@@ -1,5 +1,7 @@
 package com.rs.subscription.dto.request;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -21,9 +23,9 @@ public class CreateRuntimeSubscriptionRequest {
     private Long groupPlanAssignmentId;
     private Long retailPlanScheduleId;
 
-    private String sourceType = "MANUAL";
+    private String sourceType = CommercialEnums.SubscriptionSourceType.MANUAL.name();
     private Long sourceId;
-    private String status = "PENDING";
+    private String status = CommercialEnums.SubscriptionStatus.PENDING.name();
     private LocalDate startDate;
     private LocalDate endDate;
     private Integer signingQuotaTotal;

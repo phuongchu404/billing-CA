@@ -107,7 +107,7 @@ public class DatabaseAuditAspect {
         String actionValue = stringValue(evaluate(trackAssignmentAudit.action(), joinPoint, result));
         String action = CommercialEnums.normalize(actionValue, CommercialEnums.AuditAction.class, "action");
 
-        if ("GROUP_PLAN".equals(assignmentType)) {
+        if (CommercialEnums.AssignmentType.GROUP_PLAN.name().equals(assignmentType)) {
             groupPlanAssignmentRepository.findById(entityId).ifPresent(entity ->
                 assignmentAuditRepository.save(AssignmentAudit.builder()
                     .groupPlanAssignment(entity)
@@ -119,7 +119,7 @@ public class DatabaseAuditAspect {
                     .note(note)
                     .build())
             );
-        } else if ("RETAIL_PLAN".equals(assignmentType)) {
+        } else if (CommercialEnums.AssignmentType.RETAIL_PLAN.name().equals(assignmentType)) {
             retailPlanScheduleRepository.findById(entityId).ifPresent(entity ->
                 assignmentAuditRepository.save(AssignmentAudit.builder()
                     .retailPlanSchedule(entity)
@@ -158,12 +158,12 @@ public class DatabaseAuditAspect {
         if (entityId == null) {
             return null;
         }
-        if ("GROUP_PLAN".equals(assignmentType)) {
+        if (CommercialEnums.AssignmentType.GROUP_PLAN.name().equals(assignmentType)) {
             return groupPlanAssignmentRepository.findById(entityId)
                 .map(GroupPlanAssignment::getAssignmentStatus)
                 .orElse(null);
         }
-        if ("RETAIL_PLAN".equals(assignmentType)) {
+        if (CommercialEnums.AssignmentType.RETAIL_PLAN.name().equals(assignmentType)) {
             return retailPlanScheduleRepository.findById(entityId)
                 .map(RetailPlanSchedule::getScheduleStatus)
                 .orElse(null);

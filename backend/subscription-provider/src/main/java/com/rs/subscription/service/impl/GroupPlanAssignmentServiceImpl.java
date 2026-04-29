@@ -55,9 +55,9 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
 
     @Transactional
     @TrackAssignmentAudit(
-        assignmentType = "GROUP_PLAN",
+        assignmentType = CommercialEnums.ASSIGNMENT_TYPE_GROUP_PLAN,
         entityId = "#result.groupPlanAssignmentId",
-        action = "REQUEST",
+        action = CommercialEnums.AUDIT_ACTION_REQUEST,
         actor = "#p0.requestedBy",
         note = "#p0.stopReason"
     )
@@ -114,7 +114,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
 
     @Transactional
     @TrackAssignmentAudit(
-        assignmentType = "GROUP_PLAN",
+        assignmentType = CommercialEnums.ASSIGNMENT_TYPE_GROUP_PLAN,
         entityId = "#p0",
         action = "#p1.decision.toUpperCase()",
         actor = "#p1.actor",
@@ -122,28 +122,30 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
     )
     public GroupPlanAssignmentResponse review(Long id, ReviewCommercialRequest request) {
         GroupPlanAssignment entity = findEntity(id);
-        String decision = request.getDecision().toUpperCase();
+        String decision = CommercialEnums.normalize(request.getDecision(), CommercialEnums.ReviewDecision.class, "decision");
         validateReviewPermission(decision);
-        if ("APPROVE".equals(decision)) {
+        if (CommercialEnums.ReviewDecision.APPROVE.name().equals(decision)) {
             if (request.getApplyFrom() != null) entity.setApplyFrom(request.getApplyFrom());
             if (request.getApplyTo() != null) entity.setApplyTo(request.getApplyTo());
-            entity.setAssignmentStatus("APPROVED");
+            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.APPROVED.name());
             entity.setApprovedBy(request.getActor());
             entity.setApprovedAt(LocalDateTime.now());
-        } else if ("REJECT".equals(decision)) {
-            entity.setAssignmentStatus("AVAILABLE");
+        } else if (CommercialEnums.ReviewDecision.REJECT.name().equals(decision)) {
+            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.AVAILABLE.name());
             entity.setRejectedBy(request.getActor());
             entity.setRejectedAt(LocalDateTime.now());
-        } else if ("ACTIVATE".equals(decision)) {
-            entity.setAssignmentStatus("ACTIVE");
+        } else if (CommercialEnums.ReviewDecision.ACTIVATE.name().equals(decision)) {
+            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.ACTIVE.name());
             entity.setActivatedAt(LocalDateTime.now());
-        } else if ("STOP".equals(decision)) {
+        } else if (CommercialEnums.ReviewDecision.STOP.name().equals(decision)) {
             String current = entity.getAssignmentStatus();
-            if ("STOPPED".equals(current) || "REJECTED".equals(current) || "EXPIRED".equals(current)) {
+            if (CommercialEnums.AssignmentStatus.STOPPED.name().equals(current)
+                || CommercialEnums.AssignmentStatus.REJECTED.name().equals(current)
+                || CommercialEnums.AssignmentStatus.EXPIRED.name().equals(current)) {
                 throw new SmsException(ErrorCodes.VALIDATION_FAILED,
                     "Cannot stop assignment in status: " + current, 400);
             }
-            entity.setAssignmentStatus("STOPPED");
+            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.STOPPED.name());
             entity.setStoppedAt(LocalDateTime.now());
             entity.setStopReason(request.getNote());
         } else {
@@ -154,15 +156,20 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
     }
 
     private void validateReviewPermission(String decision) {
-        boolean allowed = switch (decision) {
-            case "APPROVE", "REJECT" -> SecurityUtil.hasAnyAuthority(
+        boolean allowed;
+        if (CommercialEnums.ReviewDecision.APPROVE.name().equals(decision)
+            || CommercialEnums.ReviewDecision.REJECT.name().equals(decision)) {
+            allowed = SecurityUtil.hasAnyAuthority(
                 "*",
                 "approval:level1",
                 "approval:level2",
                 "approval:level3");
-            case "ACTIVATE", "STOP" -> SecurityUtil.hasAnyAuthority("*", "group:update");
-            default -> true;
-        };
+        } else if (CommercialEnums.ReviewDecision.ACTIVATE.name().equals(decision)
+            || CommercialEnums.ReviewDecision.STOP.name().equals(decision)) {
+            allowed = SecurityUtil.hasAnyAuthority("*", "group:update");
+        } else {
+            allowed = true;
+        }
         if (!allowed) {
             throw new SmsException(ErrorCodes.FORBIDDEN, "You do not have permission to perform decision: " + decision, 403);
         }
@@ -220,7 +227,11 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
             .stream()
             .findFirst()
             .ifPresent(approval -> {
-                approval.setStatus("APPROVE".equals(decision) ? "APPROVED" : "REJECT".equals(decision) ? "REJECTED" : approval.getStatus());
+                approval.setStatus(CommercialEnums.ReviewDecision.APPROVE.name().equals(decision)
+                    ? CommercialEnums.MultiApprovalRequestStatus.APPROVED.name()
+                    : CommercialEnums.ReviewDecision.REJECT.name().equals(decision)
+                        ? CommercialEnums.MultiApprovalRequestStatus.REJECTED.name()
+                        : approval.getStatus());
                 approval.setReviewedBy(actor);
                 approval.setReviewNote(note);
                 approval.setReviewedAt(LocalDateTime.now());

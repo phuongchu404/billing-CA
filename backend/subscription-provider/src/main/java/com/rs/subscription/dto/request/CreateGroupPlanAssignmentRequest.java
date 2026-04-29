@@ -1,5 +1,7 @@
 package com.rs.subscription.dto.request;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -13,7 +15,7 @@ public class CreateGroupPlanAssignmentRequest {
     @NotNull
     private Long planTemplateId;
 
-    private String assignmentStatus = "REQUESTED";
+    private String assignmentStatus = CommercialEnums.AssignmentStatus.REQUESTED.name();
 
     @NotBlank
     private String requestedBy;

@@ -38,7 +38,8 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
         if (!CommercialEnums.ApprovalStatus.PENDING.name().equals(approval.getStatus())) {
             throw new SmsException(ErrorCodes.APPROVAL_ALREADY_REVIEWED, "Approval request already reviewed", 409);
         }
-        approval.setStatus("APPROVE".equalsIgnoreCase(request.getDecision())
+        String decision = CommercialEnums.normalize(request.getDecision(), CommercialEnums.ReviewDecision.class, "decision");
+        approval.setStatus(CommercialEnums.ReviewDecision.APPROVE.name().equals(decision)
             ? CommercialEnums.ApprovalStatus.APPROVED.name()
             : CommercialEnums.ApprovalStatus.DENIED.name());
         approval.setReviewedBy(request.getActor());

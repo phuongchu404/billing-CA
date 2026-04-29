@@ -58,15 +58,17 @@ public class CommercialOrchestrationServiceImpl implements CommercialOrchestrati
     public CommercialFlowResponse executeGroupAssignmentFlow(Long assignmentId, ExecuteGroupAssignmentFlowRequest request) {
         GroupPlanAssignment assignment = groupPlanAssignmentService.findEntity(assignmentId);
 
-        if (Boolean.TRUE.equals(request.getApproveNow()) && "REQUESTED".equals(assignment.getAssignmentStatus())) {
-            groupPlanAssignmentService.review(assignmentId, reviewRequest(request.getActor(), "APPROVE", request.getNote()));
+        if (Boolean.TRUE.equals(request.getApproveNow())
+            && CommercialEnums.AssignmentStatus.REQUESTED.name().equals(assignment.getAssignmentStatus())) {
+            groupPlanAssignmentService.review(assignmentId, reviewRequest(request.getActor(), CommercialEnums.ReviewDecision.APPROVE.name(), request.getNote()));
             assignment = groupPlanAssignmentService.findEntity(assignmentId);
         }
-        if (Boolean.TRUE.equals(request.getActivateNow()) && "APPROVED".equals(assignment.getAssignmentStatus())) {
-            groupPlanAssignmentService.review(assignmentId, reviewRequest(request.getActor(), "ACTIVATE", request.getNote()));
+        if (Boolean.TRUE.equals(request.getActivateNow())
+            && CommercialEnums.AssignmentStatus.APPROVED.name().equals(assignment.getAssignmentStatus())) {
+            groupPlanAssignmentService.review(assignmentId, reviewRequest(request.getActor(), CommercialEnums.ReviewDecision.ACTIVATE.name(), request.getNote()));
             assignment = groupPlanAssignmentService.findEntity(assignmentId);
         }
-        if (!"ACTIVE".equals(assignment.getAssignmentStatus())
+        if (!CommercialEnums.AssignmentStatus.ACTIVE.name().equals(assignment.getAssignmentStatus())
             && Boolean.TRUE.equals(request.getIssueSubscription())) {
             throw new SmsException(
                 ErrorCodes.INVALID_STATUS_TRANSITION,
@@ -93,16 +95,17 @@ public class CommercialOrchestrationServiceImpl implements CommercialOrchestrati
         RetailPlanSchedule schedule = retailPlanScheduleService.findEntity(scheduleId);
 
         if (Boolean.TRUE.equals(request.getApproveNow())
-            && !"APPROVED".equals(schedule.getScheduleStatus())
-            && !"ACTIVE".equals(schedule.getScheduleStatus())) {
-            retailPlanScheduleService.review(scheduleId, reviewRequest(request.getActor(), "APPROVE", request.getNote()));
+            && !CommercialEnums.ScheduleStatus.APPROVED.name().equals(schedule.getScheduleStatus())
+            && !CommercialEnums.ScheduleStatus.ACTIVE.name().equals(schedule.getScheduleStatus())) {
+            retailPlanScheduleService.review(scheduleId, reviewRequest(request.getActor(), CommercialEnums.ReviewDecision.APPROVE.name(), request.getNote()));
             schedule = retailPlanScheduleService.findEntity(scheduleId);
         }
-        if (Boolean.TRUE.equals(request.getActivateNow()) && "APPROVED".equals(schedule.getScheduleStatus())) {
-            retailPlanScheduleService.review(scheduleId, reviewRequest(request.getActor(), "ACTIVATE", request.getNote()));
+        if (Boolean.TRUE.equals(request.getActivateNow())
+            && CommercialEnums.ScheduleStatus.APPROVED.name().equals(schedule.getScheduleStatus())) {
+            retailPlanScheduleService.review(scheduleId, reviewRequest(request.getActor(), CommercialEnums.ReviewDecision.ACTIVATE.name(), request.getNote()));
             schedule = retailPlanScheduleService.findEntity(scheduleId);
         }
-        if (!"ACTIVE".equals(schedule.getScheduleStatus())
+        if (!CommercialEnums.ScheduleStatus.ACTIVE.name().equals(schedule.getScheduleStatus())
             && Boolean.TRUE.equals(request.getIssueSubscription())) {
             throw new SmsException(
                 ErrorCodes.INVALID_STATUS_TRANSITION,
@@ -116,7 +119,7 @@ public class CommercialOrchestrationServiceImpl implements CommercialOrchestrati
             : null;
 
         CommercialFlowResponse response = new CommercialFlowResponse();
-        response.setFlowType("RETAIL_PLAN");
+        response.setFlowType(CommercialEnums.AssignmentType.RETAIL_PLAN.name());
         response.setEntityId(scheduleId);
         response.setFinalStatus(retailPlanScheduleService.getById(scheduleId).getScheduleStatus());
         response.setRetailPlanSchedule(retailPlanScheduleService.getById(scheduleId));
@@ -196,8 +199,8 @@ public class CommercialOrchestrationServiceImpl implements CommercialOrchestrati
             assignment.getGroupPlanAssignmentId()
         );
         if (existing != null
-            && !"CANCELLED".equals(existing.getStatus())
-            && !"EXPIRED".equals(existing.getStatus())) {
+            && !CommercialEnums.SubscriptionStatus.CANCELLED.name().equals(existing.getStatus())
+            && !CommercialEnums.SubscriptionStatus.EXPIRED.name().equals(existing.getStatus())) {
             return runtimeSubscriptionService.getById(existing.getSubscriptionId());
         }
 
@@ -230,8 +233,8 @@ public class CommercialOrchestrationServiceImpl implements CommercialOrchestrati
             request.getUserId()
         );
         if (existing != null
-            && !"CANCELLED".equals(existing.getStatus())
-            && !"EXPIRED".equals(existing.getStatus())) {
+            && !CommercialEnums.SubscriptionStatus.CANCELLED.name().equals(existing.getStatus())
+            && !CommercialEnums.SubscriptionStatus.EXPIRED.name().equals(existing.getStatus())) {
             return runtimeSubscriptionService.getById(existing.getSubscriptionId());
         }
 
@@ -305,23 +308,23 @@ public class CommercialOrchestrationServiceImpl implements CommercialOrchestrati
 
         for (CertificateUsageRecord record : usageRecords) {
             int quantity = record.getQuantity() == null ? 0 : record.getQuantity();
-            if ("SIGNING".equals(record.getUsageType())) {
+            if (CommercialEnums.UsageType.SIGNING.name().equals(record.getUsageType())) {
                 totalSignings += quantity;
             }
-            if ("CERTIFICATE_CREATED".equals(record.getUsageType())
-                || "CERTIFICATE_RENEWED".equals(record.getUsageType())) {
+            if (CommercialEnums.UsageType.CERTIFICATE_CREATED.name().equals(record.getUsageType())
+                || CommercialEnums.UsageType.CERTIFICATE_RENEWED.name().equals(record.getUsageType())) {
                 totalCertificates += quantity;
             }
 
             PlanPricingRule pricingRule = record.getSubscription() != null ? record.getSubscription().getPricingRule() : null;
             if (pricingRule != null) {
                 currency = pricingRule.getCurrency();
-                if ("SIGNING".equals(record.getUsageType())
+                if (CommercialEnums.UsageType.SIGNING.name().equals(record.getUsageType())
                     && CommercialEnums.PricingMetric.SIGNING_COUNT.name().equals(pricingRule.getPricingMetric())) {
                     totalAmount = totalAmount.add(pricingRule.getUnitPrice().multiply(BigDecimal.valueOf(quantity)));
                 }
-                if (("CERTIFICATE_CREATED".equals(record.getUsageType())
-                    || "CERTIFICATE_RENEWED".equals(record.getUsageType()))
+                if ((CommercialEnums.UsageType.CERTIFICATE_CREATED.name().equals(record.getUsageType())
+                    || CommercialEnums.UsageType.CERTIFICATE_RENEWED.name().equals(record.getUsageType()))
                     && CommercialEnums.PricingMetric.CERTIFICATE_COUNT.name().equals(pricingRule.getPricingMetric())) {
                     totalAmount = totalAmount.add(pricingRule.getUnitPrice().multiply(BigDecimal.valueOf(quantity)));
                 }

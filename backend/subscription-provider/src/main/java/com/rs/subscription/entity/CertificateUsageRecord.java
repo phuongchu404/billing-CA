@@ -1,5 +1,7 @@
 package com.rs.subscription.entity;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -43,7 +45,7 @@ public class CertificateUsageRecord {
     @PrePersist
     void onCreate() {
         if (usedAt == null) usedAt = LocalDateTime.now();
-        if (usageType == null) usageType = "SIGNING";
+        if (usageType == null) usageType = CommercialEnums.UsageType.SIGNING.name();
         if (quantity == null) quantity = 1;
     }
 }

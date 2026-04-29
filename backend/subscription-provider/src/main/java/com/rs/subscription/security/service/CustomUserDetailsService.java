@@ -1,6 +1,7 @@
 package com.rs.subscription.security.service;
 
 import com.rs.subscription.entity.UserAccount;
+import com.rs.subscription.repository.PermissionRepository;
 import com.rs.subscription.repository.RolePermissionRepository;
 import com.rs.subscription.repository.UserAccountRepository;
 import com.rs.subscription.repository.UserRoleRepository;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -21,6 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserAccountRepository userAccountRepository;
     private final UserRoleRepository userRoleRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final PermissionRepository permissionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -31,7 +34,15 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         Set<String> authorities = new LinkedHashSet<>();
         authorities.addAll(userRoleRepository.findRoleNamesByUserId(user.getUserId()));
-        authorities.addAll(rolePermissionRepository.findPermissionKeysByUserId(user.getUserId()));
+
+        List<String> permissionKeys = rolePermissionRepository.findPermissionKeysByUserId(user.getUserId());
+        if (permissionKeys.contains("*")) {
+            // Wildcard: nạp toàn bộ permission keys — admin xem được mọi dữ liệu
+            permissionRepository.findAllByOrderBySortOrderAsc()
+                .forEach(p -> authorities.add(p.getPermissionKey()));
+        } else {
+            authorities.addAll(permissionKeys);
+        }
 
         return new CustomUserDetails(
                 user.getUserId(),

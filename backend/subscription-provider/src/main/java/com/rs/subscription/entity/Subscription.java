@@ -1,5 +1,7 @@
 package com.rs.subscription.entity;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -77,7 +79,7 @@ public class Subscription {
     void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
         if (signingQuotaUsed == null) signingQuotaUsed = 0;
-        if (sourceType == null) sourceType = "MANUAL";
+        if (sourceType == null) sourceType = CommercialEnums.SubscriptionSourceType.MANUAL.name();
     }
 
     @PreUpdate

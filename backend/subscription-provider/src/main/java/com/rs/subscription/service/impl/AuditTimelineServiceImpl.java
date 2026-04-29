@@ -306,14 +306,13 @@ public class AuditTimelineServiceImpl implements AuditTimelineService {
     }
 
     private String resolveAssignmentTitle(AssignmentAudit audit) {
-        return switch (audit.getAction()) {
-            case "REQUEST" -> "Assignment requested";
-            case "APPROVE" -> "Assignment approved";
-            case "REJECT" -> "Assignment rejected";
-            case "ACTIVATE" -> "Assignment activated";
-            case "STOP" -> "Assignment stopped";
-            case "EXPIRE" -> "Assignment expired";
-            default -> "Assignment updated";
-        };
+        String action = audit.getAction();
+        if (CommercialEnums.AuditAction.REQUEST.name().equals(action)) return "Assignment requested";
+        if (CommercialEnums.AuditAction.APPROVE.name().equals(action)) return "Assignment approved";
+        if (CommercialEnums.AuditAction.REJECT.name().equals(action)) return "Assignment rejected";
+        if (CommercialEnums.AuditAction.ACTIVATE.name().equals(action)) return "Assignment activated";
+        if (CommercialEnums.AuditAction.STOP.name().equals(action)) return "Assignment stopped";
+        if (CommercialEnums.AuditAction.EXPIRE.name().equals(action)) return "Assignment expired";
+        return "Assignment updated";
     }
 }

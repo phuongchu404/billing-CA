@@ -9,6 +9,7 @@ import com.rs.subscription.entity.CertificateProvisioningRecord.CertType;
 import com.rs.subscription.entity.Group;
 import com.rs.subscription.entity.GroupPlanAssignment;
 import com.rs.subscription.entity.UsageAggregate;
+import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.repository.CertificateProvisioningRepository;
 import com.rs.subscription.repository.CertificateUsageRecordRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
@@ -60,11 +61,11 @@ public class ReportServiceImpl implements ReportService {
         List<Long> visibleIds = dataScopeService.resolveVisibleGroupIds();
         List<Group> activeGroups;
         if (visibleIds == null) {
-            activeGroups = groupRepository.findByStatusOrderByGroupId("ACTIVE");
+            activeGroups = groupRepository.findByStatusOrderByGroupId(CommercialEnums.GroupStatus.ACTIVE.name());
         } else if (visibleIds.isEmpty()) {
             return emptyGroupReport();
         } else {
-            activeGroups = groupRepository.findByStatusOrderByGroupId("ACTIVE").stream()
+            activeGroups = groupRepository.findByStatusOrderByGroupId(CommercialEnums.GroupStatus.ACTIVE.name()).stream()
                 .filter(g -> visibleIds.contains(g.getGroupId()))
                 .collect(Collectors.toList());
         }
@@ -88,7 +89,7 @@ public class ReportServiceImpl implements ReportService {
 
         // ── Query 4: tất cả ACTIVE assignments của tất cả groups (batch) ──
         List<GroupPlanAssignment> allAssignments = assignmentRepository
-                .findByGroupIdsAndStatus(groupIds, "ACTIVE");
+                .findByGroupIdsAndStatus(groupIds, CommercialEnums.AssignmentStatus.ACTIVE.name());
 
         // assignmentId → groupId (để map kết quả cert count về đúng group)
         Map<Long, Long> assignmentToGroup = allAssignments.stream()

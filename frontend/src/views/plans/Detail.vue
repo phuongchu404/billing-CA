@@ -345,9 +345,9 @@
           />
         </div>
         <div class="dlg-date-row">
-          <span class="dlg-date-label">Cáº¥p phÃª duyá»‡t</span>
+          <span class="dlg-date-label">Cấp phê duyệt</span>
           <el-select v-model="requestApprovalLevel" style="flex: 1">
-            <el-option label="TrÆ°á»Ÿng phÃ²ng kinh doanh" :value="1" />
+            <el-option label="Trưởng phòng kinh doanh" :value="1" />
             <el-option label="CFO (Finance Manager)" :value="2" />
             <el-option label="CEO" :value="3" />
           </el-select>
@@ -949,7 +949,7 @@ function handleApprove(row: PlanRow) {
     return;
   }
   if (!row.approvalRequestId) {
-    ElMessage.warning("KhÃ´ng tÃ¬m tháº¥y yÃªu cáº§u phÃª duyá»‡t cá»§a gÃ³i cÆ°á»›c");
+    ElMessage.warning("Không tìm thấy yêu cầu phê duyệt của gói cước");
     return;
   }
   router.push(`/approvals/${row.approvalRequestId}`);

@@ -5,9 +5,12 @@ import com.rs.subscription.service.*;
 import com.rs.subscription.entity.ApprovalRequest;
 import com.rs.subscription.entity.ApprovalRequestStep;
 import com.rs.subscription.entity.UserAccount;
+import com.rs.subscription.enums.AuthEnums;
+import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +32,9 @@ public class ApprovalNotificationServiceImpl implements ApprovalNotificationServ
 
     private static final String[] LEVEL_PERMISSION_KEYS = {"approval:level1", "approval:level2", "approval:level3"};
     private static final String[] LEVEL_DISPLAY = {"Trưởng phòng", "Giám đốc", "CFO"};
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     private final MailService mailService;
     private final UserAccountRepository userAccountRepository;
@@ -132,7 +138,7 @@ public class ApprovalNotificationServiceImpl implements ApprovalNotificationServ
 
     private String resolveRequesterEmail(String username) {
         return userAccountRepository
-            .findByUsernameAndStatus(username, "ACTIVE")
+            .findByUsernameAndStatus(username, AuthEnums.UserStatus.ACTIVE.name())
             .map(UserAccount::getEmail)
             .orElseGet(() -> {
                 log.warn("Không tìm thấy email cho user: {}", username);
@@ -141,7 +147,9 @@ public class ApprovalNotificationServiceImpl implements ApprovalNotificationServ
     }
 
     private String buildBody(String message, ApprovalRequest approval) {
+        String detailUrl = frontendUrl + "/approvals/" + approval.getId();
         return message + "\n\n"
+            + "👉 Xem chi tiết và xử lý tại: " + detailUrl + "\n\n"
             + "─────────────────────────────\n"
             + "Thông tin request:\n"
             + "  Mã request  : #" + approval.getId() + "\n"
@@ -155,7 +163,7 @@ public class ApprovalNotificationServiceImpl implements ApprovalNotificationServ
     }
 
     private String segmentLabel(String segment) {
-        if ("GROUP".equals(segment)) return "Khách hàng đại lý";
+        if (CommercialEnums.CustomerSegment.GROUP.name().equals(segment)) return "Khách hàng đại lý";
         return "Khách hàng phổ thông";
     }
 

@@ -43,9 +43,9 @@ public class RetailPlanScheduleServiceImpl implements RetailPlanScheduleService 
 
     @Transactional
     @TrackAssignmentAudit(
-        assignmentType = "RETAIL_PLAN",
+        assignmentType = CommercialEnums.ASSIGNMENT_TYPE_RETAIL_PLAN,
         entityId = "#result.retailPlanScheduleId",
-        action = "REQUEST",
+        action = CommercialEnums.AUDIT_ACTION_REQUEST,
         actor = "#p0.requestedBy"
     )
     public RetailPlanScheduleResponse create(CreateRetailPlanScheduleRequest request) {
@@ -73,7 +73,7 @@ public class RetailPlanScheduleServiceImpl implements RetailPlanScheduleService 
 
     @Transactional
     @TrackAssignmentAudit(
-        assignmentType = "RETAIL_PLAN",
+        assignmentType = CommercialEnums.ASSIGNMENT_TYPE_RETAIL_PLAN,
         entityId = "#p0",
         action = "#p1.decision.toUpperCase()",
         actor = "#p1.actor",
@@ -81,17 +81,17 @@ public class RetailPlanScheduleServiceImpl implements RetailPlanScheduleService 
     )
     public RetailPlanScheduleResponse review(Long id, ReviewCommercialRequest request) {
         RetailPlanSchedule entity = findEntity(id);
-        String decision = request.getDecision().toUpperCase();
-        if ("APPROVE".equals(decision)) {
-            entity.setScheduleStatus("APPROVED");
+        String decision = CommercialEnums.normalize(request.getDecision(), CommercialEnums.ReviewDecision.class, "decision");
+        if (CommercialEnums.ReviewDecision.APPROVE.name().equals(decision)) {
+            entity.setScheduleStatus(CommercialEnums.ScheduleStatus.APPROVED.name());
             entity.setApprovedBy(request.getActor());
             entity.setApprovedAt(LocalDateTime.now());
-        } else if ("ACTIVATE".equals(decision)) {
-            entity.setScheduleStatus("ACTIVE");
-        } else if ("STOP".equals(decision)) {
-            entity.setScheduleStatus("INACTIVE");
-        } else if ("REJECT".equals(decision)) {
-            entity.setScheduleStatus("INACTIVE");
+        } else if (CommercialEnums.ReviewDecision.ACTIVATE.name().equals(decision)) {
+            entity.setScheduleStatus(CommercialEnums.ScheduleStatus.ACTIVE.name());
+        } else if (CommercialEnums.ReviewDecision.STOP.name().equals(decision)) {
+            entity.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
+        } else if (CommercialEnums.ReviewDecision.REJECT.name().equals(decision)) {
+            entity.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
         } else {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Unsupported decision: " + request.getDecision(), 400);
         }
@@ -107,7 +107,11 @@ public class RetailPlanScheduleServiceImpl implements RetailPlanScheduleService 
     private void updateApproval(RetailPlanSchedule entity, String decision, String actor, String note) {
         approvalRequestRepository.findByEntityTypeAndEntityId("RETAIL_PLAN_SCHEDULE", String.valueOf(entity.getRetailPlanScheduleId()))
             .ifPresent(approval -> {
-                approval.setStatus("APPROVE".equals(decision) ? "APPROVED" : "REJECT".equals(decision) ? "DENIED" : approval.getStatus());
+                approval.setStatus(CommercialEnums.ReviewDecision.APPROVE.name().equals(decision)
+                    ? CommercialEnums.ApprovalStatus.APPROVED.name()
+                    : CommercialEnums.ReviewDecision.REJECT.name().equals(decision)
+                        ? CommercialEnums.ApprovalStatus.DENIED.name()
+                        : approval.getStatus());
                 approval.setReviewedBy(actor);
                 approval.setReviewNote(note);
                 approval.setReviewedAt(LocalDateTime.now());

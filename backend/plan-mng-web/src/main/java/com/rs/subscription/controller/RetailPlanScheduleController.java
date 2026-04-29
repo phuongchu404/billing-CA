@@ -26,7 +26,7 @@ public class RetailPlanScheduleController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('plan:view')")
+    @PreAuthorize("hasAnyAuthority('plan:view','approval:level1','approval:level2','approval:level3')")
     public ApiResponse<RetailPlanScheduleResponse> get(@PathVariable Long id) {
         return ApiResponse.success(retailPlanScheduleService.getById(id), "Fetched retail plan schedule");
     }

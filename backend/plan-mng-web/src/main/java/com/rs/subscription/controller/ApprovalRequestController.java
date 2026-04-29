@@ -49,7 +49,7 @@ public class ApprovalRequestController {
      * Danh sách tất cả approval requests (multi-level view).
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('subscription:view')")
+    @PreAuthorize("hasAnyAuthority('subscription:view','approval:level1','approval:level2','approval:level3')")
     public ApiResponse<List<MultiLevelApprovalResponse>> list() {
         return ApiResponse.success(multiLevelApprovalService.listAll(), "Fetched approval requests");
     }
@@ -59,7 +59,7 @@ public class ApprovalRequestController {
      * Chi tiết approval request kèm danh sách steps.
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('subscription:view')")
+    @PreAuthorize("hasAnyAuthority('subscription:view','approval:level1','approval:level2','approval:level3')")
     public ApiResponse<MultiLevelApprovalResponse> getById(@PathVariable Long id) {
         return ApiResponse.success(multiLevelApprovalService.getById(id), "Fetched approval request");
     }

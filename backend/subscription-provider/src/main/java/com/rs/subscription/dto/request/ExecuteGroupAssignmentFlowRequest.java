@@ -1,5 +1,7 @@
 package com.rs.subscription.dto.request;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -15,7 +17,7 @@ public class ExecuteGroupAssignmentFlowRequest {
     private Boolean activateNow = true;
     private Boolean issueSubscription = true;
     private Long pricingRuleId;
-    private String subscriptionStatus = "ACTIVE";
+    private String subscriptionStatus = CommercialEnums.SubscriptionStatus.ACTIVE.name();
     private LocalDate startDate;
     private LocalDate endDate;
     private Integer signingQuotaTotal;

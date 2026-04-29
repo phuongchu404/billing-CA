@@ -1,14 +1,12 @@
-﻿<template>
+<template>
   <div class="approval-detail-page">
     <div class="page-header">
-      <el-button :icon="ArrowLeft" @click="router.back()" link>Quay láº¡i</el-button>
-      <div>
-        <h2>Chi tiáº¿t yÃªu cáº§u phÃª duyá»‡t <span class="req-id">#{{ requestId }}</span></h2>
-        <p class="page-subtitle">
-          {{ segmentLabel(data?.customerSegment) }} â€”
-          <el-tag :type="statusType(data?.status)" size="small">{{ statusLabel(data?.status) }}</el-tag>
-        </p>
-      </div>
+      <el-button class="back-btn" :icon="ArrowLeft" @click="router.back()" link>Quay lại</el-button>
+      <h2>Chi tiết yêu cầu phê duyệt <span class="req-id">#{{ requestId }}</span></h2>
+      <p class="page-subtitle">
+        {{ segmentLabel(data?.customerSegment) }} —
+        <el-tag :type="statusType(data?.status)" size="small">{{ statusLabel(data?.status) }}</el-tag>
+      </p>
     </div>
 
     <div v-loading="loading">
@@ -20,7 +18,7 @@
           type="primary"
           :icon="Promotion"
           @click="showSubmitDialog = true"
-        >Gá»­i yÃªu cáº§u duyá»‡t</el-button>
+        >Gửi yêu cầu duyệt</el-button>
 
         <!-- Sale: Resubmit sau revision -->
         <el-button
@@ -28,125 +26,183 @@
           type="warning"
           :icon="Refresh"
           @click="showResubmitDialog = true"
-        >Gá»­i láº¡i sau chá»‰nh sá»­a</el-button>
+        >Gửi lại sau chỉnh sửa</el-button>
 
         <!-- Approver: Approve / Reject / Revision (khi IN_APPROVAL) -->
         <template v-if="data.status === 'IN_APPROVAL'">
-          <el-button type="success" :icon="CircleCheck" @click="showApproveDialog = true">PhÃª duyá»‡t</el-button>
-          <el-button type="danger" :icon="CircleClose" @click="showRejectDialog = true">Tá»« chá»‘i</el-button>
-          <el-button type="warning" :icon="Edit" @click="showRevisionDialog = true">YÃªu cáº§u chá»‰nh sá»­a</el-button>
+          <el-button type="success" :icon="CircleCheck" @click="showApproveDialog = true">Phê duyệt</el-button>
+          <el-button type="danger" :icon="CircleClose" @click="showRejectDialog = true">Từ chối</el-button>
+          <el-button type="warning" :icon="Edit" @click="showRevisionDialog = true">Yêu cầu chỉnh sửa</el-button>
         </template>
       </div>
 
-      <!-- ThÃ´ng tin chung -->
+      <!-- Thông tin chung -->
       <div class="section-card" v-if="data">
         <div class="section-header">
-          <span class="section-title">THÃ”NG TIN YÃŠU Cáº¦U</span>
+          <span class="section-title">THÔNG TIN YÊU CẦU</span>
         </div>
         <div class="info-grid">
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Loáº¡i yÃªu cáº§u:</span>
+              <span class="info-label">Loại yêu cầu:</span>
               <span class="info-value">{{ data.requestType }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Loáº¡i khÃ¡ch hÃ ng:</span>
+              <span class="info-label">Loại khách hàng:</span>
               <span class="info-value">{{ segmentLabel(data.customerSegment) }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">NgÆ°á»i táº¡o:</span>
+              <span class="info-label">Người tạo:</span>
               <span class="info-value">{{ data.requestedBy }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">NgÃ y táº¡o:</span>
+              <span class="info-label">Ngày tạo:</span>
               <span class="info-value">{{ fmtDate(data.createdAt) }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">GiÃ¡ trá»‹ há»£p Ä‘á»“ng:</span>
-              <span class="info-value">{{ data.contractValue ? formatAmount(data.contractValue) : 'â€”' }}</span>
+              <span class="info-label">Giá trị hợp đồng:</span>
+              <span class="info-value">{{ data.contractValue ? formatAmount(data.contractValue) : '—' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Sá»‘ cáº¥p duyá»‡t:</span>
-              <span class="info-value">{{ data.totalLevels }} cáº¥p</span>
+              <span class="info-label">Số cấp duyệt:</span>
+              <span class="info-value">{{ data.totalLevels }} cấp</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item info-item--full">
-              <span class="info-label">MÃ´ táº£:</span>
+              <span class="info-label">Mô tả:</span>
               <span class="info-value">{{ data.description }}</span>
             </div>
           </div>
           <div class="info-row" v-if="data.status === 'NEED_REVISION' && data.reviewNote">
             <div class="info-item info-item--full">
-              <span class="info-label revision-label">LÃ½ do chá»‰nh sá»­a:</span>
+              <span class="info-label revision-label">Lý do chỉnh sửa:</span>
               <span class="info-value revision-note">{{ data.reviewNote }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Timeline duyá»‡t -->
-      <div class="section-card" v-if="data?.steps?.length">
+      <!-- Chi tiết gói cước -->
+      <div class="section-card" v-if="entityDetail">
         <div class="section-header">
-          <span class="section-title">TIáº¾N TRÃŒNH PHÃŠ DUYá»†T</span>
+          <span class="section-title">CHI TIẾT GÓI CƯỚC</span>
         </div>
-        <div class="steps-container">
-          <el-steps :active="activeStepIndex" finish-status="success" align-center>
-            <el-step
-              v-for="step in data.steps"
-              :key="step.id"
-              :title="levelLabel(step.requiredApprovalLevel)"
-              :status="stepStatus(step)"
-            >
-              <template #description>
-                <div class="step-desc">
-                  <div v-if="step.status === 'APPROVED'" class="step-meta success">
-                    <el-icon><CircleCheck /></el-icon>
-                    <span>{{ step.decidedBy }} â€” {{ fmtDate(step.decidedAt) }}</span>
-                  </div>
-                  <div v-else-if="step.status === 'REJECTED'" class="step-meta danger">
-                    <el-icon><CircleClose /></el-icon>
-                    <span>{{ step.decidedBy }} â€” {{ fmtDate(step.decidedAt) }}</span>
-                  </div>
-                  <div v-else-if="step.status === 'SKIPPED'" class="step-meta skipped">
-                    <span>Bá» qua</span>
-                  </div>
-                  <div v-else class="step-meta pending">
-                    <el-icon><Clock /></el-icon>
-                    <span>Chá» duyá»‡t</span>
-                  </div>
-                  <div v-if="step.comment" class="step-comment">"{{ step.comment }}"</div>
-                </div>
+        <div class="info-grid">
+          <div class="info-row" v-if="entityDetail.groupName">
+            <div class="info-item">
+              <span class="info-label">Tên đại lý:</span>
+              <span class="info-value">{{ entityDetail.groupName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Mã đại lý:</span>
+              <span class="info-value">{{ entityDetail.groupCode }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">Tên gói cước:</span>
+              <span class="info-value plan-name">{{ entityDetail.planName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Mã gói cước:</span>
+              <span class="info-value">{{ entityDetail.planCode }}</span>
+            </div>
+          </div>
+          <div class="info-row" v-if="entityDetail.applyFrom || entityDetail.applyTo">
+            <div class="info-item">
+              <span class="info-label">Áp dụng từ:</span>
+              <span class="info-value">{{ entityDetail.applyFrom ?? '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Áp dụng đến:</span>
+              <span class="info-value">{{ entityDetail.applyTo ?? '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bảng cấu hình giá -->
+        <div class="pricing-section" v-if="pricingRules.length">
+          <div class="pricing-title">Cấu hình bảng giá</div>
+          <el-table :data="pricingRules" border size="small" class="pricing-table">
+            <el-table-column label="Đối tượng" width="160">
+              <template #default="{ row }">{{ subjectLabel(row.subjectType) }}</template>
+            </el-table-column>
+            <el-table-column label="Hiệu lực chứng thư" width="160">
+              <template #default="{ row }">
+                {{ row.certificateValidityValue }} {{ validityUnitLabel(row.certificateValidityUnit) }}
               </template>
-            </el-step>
-          </el-steps>
+            </el-table-column>
+            <el-table-column label="Tính phí theo" width="140">
+              <template #default="{ row }">{{ metricLabel(row.pricingMetric) }}</template>
+            </el-table-column>
+            <el-table-column label="Khoảng" width="130">
+              <template #default="{ row }">
+                {{ row.rangeMin }} — {{ row.rangeMax ?? '∞' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="Đơn giá" min-width="130" align="right">
+              <template #default="{ row }">
+                <span class="price-value">{{ formatAmount(row.unitPrice) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Quota tổng" width="110" align="right">
+              <template #default="{ row }">{{ row.quotaTotal ?? '—' }}</template>
+            </el-table-column>
+          </el-table>
         </div>
       </div>
 
-      <!-- Payload -->
-      <div class="section-card" v-if="data?.payload">
-        <div class="section-header" @click="showPayload = !showPayload" style="cursor:pointer">
-          <span class="section-title">Dá»® LIá»†U YÃŠU Cáº¦U</span>
-          <el-icon :class="{ rotated: !showPayload }"><ArrowDown /></el-icon>
+      <!-- Timeline duyệt -->
+      <div class="section-card" v-if="data?.steps?.length">
+        <div class="section-header">
+          <span class="section-title">TIẾN TRÌNH PHÊ DUYỆT</span>
         </div>
-        <div v-show="showPayload" class="payload-block">
-          <pre>{{ JSON.stringify(data.payload, null, 2) }}</pre>
+        <div class="steps-container">
+          <div
+            v-for="step in data.steps"
+            :key="step.id"
+            class="step-row"
+            :class="'step-row--' + step.status.toLowerCase()"
+          >
+            <div class="step-indicator">
+              <el-icon v-if="step.status === 'APPROVED'" class="icon-approved"><CircleCheck /></el-icon>
+              <el-icon v-else-if="step.status === 'REJECTED'" class="icon-rejected"><CircleClose /></el-icon>
+              <el-icon v-else-if="step.status === 'SKIPPED'" class="icon-skipped"><Clock /></el-icon>
+              <span v-else class="step-level-badge">{{ step.stepLevel }}</span>
+            </div>
+            <div class="step-body">
+              <div class="step-header-row">
+                <span class="step-level-name">{{ levelLabel(step.requiredApprovalLevel) }}</span>
+                <el-tag :type="stepTagType(step.status)" size="small">{{ stepStatusLabel(step.status) }}</el-tag>
+              </div>
+              <div v-if="step.status === 'APPROVED' || step.status === 'REJECTED'" class="step-decision">
+                <span class="step-actor">{{ step.decidedBy }}</span>
+                <span class="step-dot">·</span>
+                <span class="step-time">{{ fmtDate(step.decidedAt) }}</span>
+              </div>
+              <div v-else-if="step.status === 'PENDING'" class="step-decision step-decision--pending">
+                Đang chờ phê duyệt
+              </div>
+              <div v-if="step.comment" class="step-comment">"{{ step.comment }}"</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Dialog: Submit -->
-    <el-dialog v-model="showSubmitDialog" title="Gá»¬I YÃŠU Cáº¦U PHÃŠ DUYá»†T" width="460px" align-center>
+    <el-dialog v-model="showSubmitDialog" title="GỬI YÊU CẦU PHÊ DUYỆT" width="460px" align-center>
       <p class="dlg-body">
-        Request sáº½ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i phÃª duyá»‡t cáº¥p 1 (TrÆ°á»Ÿng phÃ²ng).
-        Sá»‘ cáº¥p duyá»‡t sáº½ Ä‘Æ°á»£c tÃ­nh tá»± Ä‘á»™ng dá»±a trÃªn giÃ¡ trá»‹ há»£p Ä‘á»“ng.
+        Request sẽ được gửi cho người phê duyệt cấp 1 (Trưởng phòng).
+        Số cấp duyệt sẽ được tính tự động dựa trên giá trị hợp đồng.
       </p>
       <el-form label-width="150px" style="margin-top: 12px">
-        <el-form-item label="GiÃ¡ trá»‹ HÄ (VND)">
+        <el-form-item label="Giá trị HĐ (VND)">
           <el-input-number v-model="submitForm.contractValue" :min="0" :precision="0" style="width: 100%" />
         </el-form-item>
       </el-form>
@@ -160,76 +216,67 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="primary" :loading="actionLoading" @click="doSubmit">XÃ¡c nháº­n gá»­i</el-button>
-        <el-button @click="showSubmitDialog = false">Huá»·</el-button>
+        <el-button type="primary" :loading="actionLoading" @click="doSubmit">Xác nhận gửi</el-button>
+        <el-button @click="showSubmitDialog = false">Huỷ</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Approve -->
-    <el-dialog v-model="showApproveDialog" title="PHÃŠ DUYá»†T" width="460px" align-center>
+    <el-dialog v-model="showApproveDialog" title="PHÊ DUYỆT" width="460px" align-center>
       <p class="dlg-body">
-        Báº¡n Ä‘ang phÃª duyá»‡t cáº¥p <b>{{ data?.currentLevel }}</b>/{{ data?.totalLevels }}
+        Bạn đang phê duyệt cấp <b>{{ data?.currentLevel }}</b>/{{ data?.totalLevels }}
         ({{ data ? levelLabel(currentStepRole) : '' }}).
       </p>
-      <el-form label-width="120px" style="margin-top: 12px">
-        <el-form-item label="NgÆ°á»i duyá»‡t">
-          <el-input v-model="approveForm.approvedBy" placeholder="Username cá»§a báº¡n" />
-        </el-form-item>
-        <el-form-item label="Ghi chÃº">
-          <el-input v-model="approveForm.comment" type="textarea" :rows="3" placeholder="Ghi chÃº (tuá»³ chá»n)" />
+      <el-form label-width="80px" style="margin-top: 12px">
+        <el-form-item label="Ghi chú">
+          <el-input v-model="approveForm.comment" type="textarea" :rows="3" placeholder="Ghi chú (tùy chọn)" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="success" :loading="actionLoading" @click="doApprove">PhÃª duyá»‡t</el-button>
-        <el-button @click="showApproveDialog = false">Huá»·</el-button>
+        <el-button type="success" :loading="actionLoading" @click="doApprove">Phê duyệt</el-button>
+        <el-button @click="showApproveDialog = false">Huỷ</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Reject -->
-    <el-dialog v-model="showRejectDialog" title="Tá»ª CHá»I YÃŠU Cáº¦U" width="460px" align-center>
+    <el-dialog v-model="showRejectDialog" title="TỪ CHỐI YÊU CẦU" width="460px" align-center>
       <p class="dlg-body dlg-danger">
-        Request sáº½ bá»‹ tá»« chá»‘i hoÃ n toÃ n. Sale sáº½ nháº­n Ä‘Æ°á»£c thÃ´ng bÃ¡o qua email.
+        Request sẽ bị từ chối hoàn toàn. Sale sẽ nhận được thông báo qua email.
       </p>
-      <el-form label-width="120px" style="margin-top: 12px">
-        <el-form-item label="NgÆ°á»i tá»« chá»‘i" required>
-          <el-input v-model="rejectForm.rejectedBy" placeholder="Username cá»§a báº¡n" />
-        </el-form-item>
-        <el-form-item label="LÃ½ do" required>
-          <el-input v-model="rejectForm.reason" type="textarea" :rows="3" placeholder="Báº¯t buá»™c nháº­p lÃ½ do" />
+      <el-form label-width="80px" style="margin-top: 12px">
+        <el-form-item label="Lý do" required>
+          <el-input v-model="rejectForm.reason" type="textarea" :rows="3" placeholder="Bắt buộc nhập lý do" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="danger" :loading="actionLoading" @click="doReject">XÃ¡c nháº­n tá»« chá»‘i</el-button>
-        <el-button @click="showRejectDialog = false">Huá»·</el-button>
+        <el-button type="danger" :loading="actionLoading" @click="doReject">Xác nhận từ chối</el-button>
+        <el-button @click="showRejectDialog = false">Huỷ</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Revision -->
-    <el-dialog v-model="showRevisionDialog" title="YÃŠU Cáº¦U CHá»ˆNH Sá»¬A" width="460px" align-center>
+    <el-dialog v-model="showRevisionDialog" title="YÊU CẦU CHỈNH SỬA" width="460px" align-center>
       <p class="dlg-body">
-        ToÃ n bá»™ tiáº¿n trÃ¬nh duyá»‡t sáº½ reset. Sale sáº½ nháº­n email vÃ  cáº§n gá»­i láº¡i sau khi chá»‰nh sá»­a.
+        Toàn bộ tiến trình duyệt sẽ reset. Sale sẽ nhận email và cần gửi lại sau khi chỉnh sửa.
       </p>
-      <el-form label-width="120px" style="margin-top: 12px">
-        <el-form-item label="NgÆ°á»i yÃªu cáº§u">
-          <el-input v-model="revisionForm.requestedBy" placeholder="Username cá»§a báº¡n" />
-        </el-form-item>
-        <el-form-item label="LÃ½ do" required>
-          <el-input v-model="revisionForm.reason" type="textarea" :rows="3" placeholder="MÃ´ táº£ ná»™i dung cáº§n chá»‰nh sá»­a" />
+      <el-form label-width="80px" style="margin-top: 12px">
+        <el-form-item label="Lý do" required>
+          <el-input v-model="revisionForm.reason" type="textarea" :rows="3" placeholder="Mô tả nội dung cần chỉnh sửa" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="warning" :loading="actionLoading" @click="doRevision">Gá»­i yÃªu cáº§u</el-button>
-        <el-button @click="showRevisionDialog = false">Huá»·</el-button>
+        <el-button type="warning" :loading="actionLoading" @click="doRevision">Gửi yêu cầu</el-button>
+        <el-button @click="showRevisionDialog = false">Huỷ</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Resubmit -->
-    <el-dialog v-model="showResubmitDialog" title="Gá»¬I Láº I SAU CHá»ˆNH Sá»¬A" width="460px" align-center>
+    <el-dialog v-model="showResubmitDialog" title="GỬI LẠI SAU CHỈNH SỬA" width="460px" align-center>
       <p class="dlg-body">
-        Request sáº½ Ä‘Æ°á»£c reset vÃ  gá»­i láº¡i tá»« cáº¥p 1. HÃ£y Ä‘áº£m báº£o báº¡n Ä‘Ã£ chá»‰nh sá»­a ná»™i dung cáº§n thiáº¿t.
+        Request sẽ được reset và gửi lại từ cấp 1. Hãy đảm bảo bạn đã chỉnh sửa nội dung cần thiết.
       </p>
       <el-form label-width="150px" style="margin-top: 12px">
-        <el-form-item label="GiÃ¡ trá»‹ HÄ (VND)">
+        <el-form-item label="Giá trị HĐ (VND)">
           <el-input-number v-model="resubmitForm.contractValue" :min="0" :precision="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="Cấp phê duyệt">
@@ -241,8 +288,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="warning" :loading="actionLoading" @click="doResubmit">Gá»­i láº¡i</el-button>
-        <el-button @click="showResubmitDialog = false">Huá»·</el-button>
+        <el-button type="warning" :loading="actionLoading" @click="doResubmit">Gửi lại</el-button>
+        <el-button @click="showResubmitDialog = false">Huỷ</el-button>
       </template>
     </el-dialog>
   </div>
@@ -263,7 +310,11 @@ import {
   rejectRequest,
   requestRevision,
   resubmitApproval,
+  getRetailPlanSchedule,
 } from '@/api/approvals'
+import { getGroupAssignment } from '@/api/groups'
+import { getPlanTemplate } from '@/api/planTemplates'
+import type { PlanPricingRule } from '@/types/planTemplate'
 import type {
   MultiLevelApprovalResponse,
   MultiApprovalStatus,
@@ -278,7 +329,8 @@ const requestId = Number(route.params.id)
 const loading = ref(false)
 const actionLoading = ref(false)
 const data = ref<MultiLevelApprovalResponse | null>(null)
-const showPayload = ref(false)
+const entityDetail = ref<{ planName: string; planCode: string; planTemplateId?: number; groupName?: string; groupCode?: string; applyFrom?: string; applyTo?: string } | null>(null)
+const pricingRules = ref<PlanPricingRule[]>([])
 
 // Dialogs
 const showSubmitDialog = ref(false)
@@ -289,9 +341,9 @@ const showResubmitDialog = ref(false)
 
 // Forms
 const submitForm = ref({ contractValue: undefined as number | undefined, approvalLevel: 1 as 1 | 2 | 3 })
-const approveForm = ref({ approvedBy: '', comment: '' })
-const rejectForm = ref({ rejectedBy: '', reason: '' })
-const revisionForm = ref({ requestedBy: '', reason: '' })
+const approveForm = ref({ comment: '' })
+const rejectForm = ref({ reason: '' })
+const revisionForm = ref({ reason: '' })
 const resubmitForm = ref({ contractValue: undefined as number | undefined, approvalLevel: 1 as 1 | 2 | 3 })
 
 const activeStepIndex = computed(() => {
@@ -316,10 +368,52 @@ async function load() {
       submitForm.value.contractValue = data.value.contractValue
       resubmitForm.value.contractValue = data.value.contractValue
     }
+    await loadEntityDetail(data.value)
   } catch {
-    ElMessage.error('KhÃ´ng thá»ƒ táº£i thÃ´ng tin yÃªu cáº§u')
+    ElMessage.error('Không thể tải thông tin yêu cầu')
   } finally {
     loading.value = false
+  }
+}
+
+async function loadEntityDetail(approval: MultiLevelApprovalResponse | null) {
+  if (!approval?.entityId) return
+  const id = Number(approval.entityId)
+  try {
+    let planTemplateId: number | undefined
+    if (approval.entityType === 'GROUP_PLAN_ASSIGNMENT') {
+      const res = await getGroupAssignment(id)
+      const d = (res as any).data ?? res
+      planTemplateId = d.planTemplateId
+      entityDetail.value = {
+        planName: d.planName,
+        planCode: d.planCode,
+        planTemplateId: d.planTemplateId,
+        groupName: d.groupName,
+        groupCode: d.groupCode,
+        applyFrom: d.applyFrom,
+        applyTo: d.applyTo,
+      }
+    } else if (approval.entityType === 'RETAIL_PLAN_SCHEDULE') {
+      const res = await getRetailPlanSchedule(id)
+      const d = (res as any).data ?? res
+      planTemplateId = d.planTemplateId
+      entityDetail.value = {
+        planName: d.planName,
+        planCode: d.planCode,
+        planTemplateId: d.planTemplateId,
+        applyFrom: d.applyFrom,
+        applyTo: d.applyTo,
+      }
+    }
+
+    if (planTemplateId) {
+      const tmplRes = await getPlanTemplate(planTemplateId)
+      const tmpl = (tmplRes as any).data ?? tmplRes
+      pricingRules.value = (tmpl.pricingRules ?? []).filter((r: PlanPricingRule) => r.isActive !== false)
+    }
+  } catch {
+    // không bắt buộc — nếu không fetch được thì ẩn section
   }
 }
 
@@ -333,51 +427,47 @@ async function doSubmit() {
     })
     data.value = (res as any).data ?? res
     showSubmitDialog.value = false
-    ElMessage.success('ÄÃ£ gá»­i yÃªu cáº§u phÃª duyá»‡t. Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i duyá»‡t cáº¥p 1.')
+    ElMessage.success('Đã gửi yêu cầu phê duyệt. Email đã được gửi cho người duyệt cấp 1.')
   } catch {
-    ElMessage.error('Gá»­i yÃªu cáº§u tháº¥t báº¡i')
+    ElMessage.error('Gửi yêu cầu thất bại')
   } finally {
     actionLoading.value = false
   }
 }
 
 async function doApprove() {
-  if (!approveForm.value.approvedBy.trim()) {
-    ElMessage.warning('Vui lÃ²ng nháº­p username ngÆ°á»i duyá»‡t')
-    return
-  }
   actionLoading.value = true
   try {
     const res = await approveStep(requestId, {
-      approvedBy: approveForm.value.approvedBy,
+      approvedBy: '',
       comment: approveForm.value.comment,
     })
     data.value = (res as any).data ?? res
     showApproveDialog.value = false
-    ElMessage.success('ÄÃ£ phÃª duyá»‡t thÃ nh cÃ´ng')
+    ElMessage.success('Đã phê duyệt thành công')
   } catch {
-    ElMessage.error('PhÃª duyá»‡t tháº¥t báº¡i')
+    ElMessage.error('Phê duyệt thất bại')
   } finally {
     actionLoading.value = false
   }
 }
 
 async function doReject() {
-  if (!rejectForm.value.rejectedBy.trim() || !rejectForm.value.reason.trim()) {
-    ElMessage.warning('Vui lÃ²ng nháº­p Ä‘áº§y Ä‘á»§ thÃ´ng tin')
+  if (!rejectForm.value.reason.trim()) {
+    ElMessage.warning('Vui lòng nhập lý do từ chối')
     return
   }
   actionLoading.value = true
   try {
     const res = await rejectRequest(requestId, {
-      rejectedBy: rejectForm.value.rejectedBy,
+      rejectedBy: '',
       reason: rejectForm.value.reason,
     })
     data.value = (res as any).data ?? res
     showRejectDialog.value = false
-    ElMessage.success('ÄÃ£ tá»« chá»‘i yÃªu cáº§u')
+    ElMessage.success('Đã từ chối yêu cầu')
   } catch {
-    ElMessage.error('Tá»« chá»‘i tháº¥t báº¡i')
+    ElMessage.error('Từ chối thất bại')
   } finally {
     actionLoading.value = false
   }
@@ -385,20 +475,20 @@ async function doReject() {
 
 async function doRevision() {
   if (!revisionForm.value.reason.trim()) {
-    ElMessage.warning('Vui lÃ²ng nháº­p lÃ½ do chá»‰nh sá»­a')
+    ElMessage.warning('Vui lòng nhập lý do chỉnh sửa')
     return
   }
   actionLoading.value = true
   try {
     const res = await requestRevision(requestId, {
-      requestedBy: revisionForm.value.requestedBy,
+      requestedBy: '',
       reason: revisionForm.value.reason,
     })
     data.value = (res as any).data ?? res
     showRevisionDialog.value = false
-    ElMessage.success('ÄÃ£ gá»­i yÃªu cáº§u chá»‰nh sá»­a. Email thÃ´ng bÃ¡o Ä‘Ã£ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i táº¡o.')
+    ElMessage.success('Đã gửi yêu cầu chỉnh sửa. Email thông báo đã được gửi cho người tạo.')
   } catch {
-    ElMessage.error('Gá»­i yÃªu cáº§u chá»‰nh sá»­a tháº¥t báº¡i')
+    ElMessage.error('Gửi yêu cầu chỉnh sửa thất bại')
   } finally {
     actionLoading.value = false
   }
@@ -414,23 +504,23 @@ async function doResubmit() {
     })
     data.value = (res as any).data ?? res
     showResubmitDialog.value = false
-    ElMessage.success('ÄÃ£ gá»­i láº¡i yÃªu cáº§u. Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i cho ngÆ°á»i duyá»‡t cáº¥p 1.')
+    ElMessage.success('Đã gửi lại yêu cầu. Email đã được gửi cho người duyệt cấp 1.')
   } catch {
-    ElMessage.error('Gá»­i láº¡i tháº¥t báº¡i')
+    ElMessage.error('Gửi lại thất bại')
   } finally {
     actionLoading.value = false
   }
 }
 
 function segmentLabel(segment?: CustomerSegment): string {
-  if (segment === 'GROUP') return 'KhÃ¡ch hÃ ng Ä‘áº¡i lÃ½'
-  return 'KhÃ¡ch hÃ ng phá»• thÃ´ng'
+  if (segment === 'GROUP') return 'Khách hàng đại lý'
+  return 'Khách hàng phổ thông'
 }
 
 function statusLabel(status?: MultiApprovalStatus): string {
   const map: Record<string, string> = {
-    DRAFT: 'Báº£n nhÃ¡p', IN_APPROVAL: 'Äang duyá»‡t',
-    NEED_REVISION: 'Cáº§n chá»‰nh sá»­a', APPROVED: 'ÄÃ£ duyá»‡t', REJECTED: 'Bá»‹ tá»« chá»‘i',
+    DRAFT: 'Bản nháp', IN_APPROVAL: 'Đang duyệt',
+    NEED_REVISION: 'Cần chỉnh sửa', APPROVED: 'Đã duyệt', REJECTED: 'Bị từ chối',
   }
   return status ? (map[status] ?? status) : ''
 }
@@ -456,29 +546,70 @@ function stepStatus(step: ApprovalStepResponse): 'process' | 'finish' | 'error' 
   return 'process'
 }
 
+function stepStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    APPROVED: 'Đã duyệt',
+    REJECTED: 'Từ chối',
+    SKIPPED: 'Bỏ qua',
+    PENDING: 'Chờ duyệt',
+  }
+  return map[status] ?? status
+}
+
+function stepTagType(status: string): 'success' | 'danger' | 'info' | 'warning' {
+  if (status === 'APPROVED') return 'success'
+  if (status === 'REJECTED') return 'danger'
+  if (status === 'SKIPPED') return 'info'
+  return 'warning'
+}
+
 function formatAmount(value: number): string {
   return new Intl.NumberFormat('vi-VN').format(value) + ' VND'
 }
 
 function fmtDate(dt?: string): string {
-  if (!dt) return 'â€”'
+  if (!dt) return '—'
   return new Date(dt).toLocaleDateString('vi-VN', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function subjectLabel(type: string): string {
+  const map: Record<string, string> = {
+    INDIVIDUAL: 'Cá nhân',
+    ORGANIZATION: 'Tổ chức',
+    INDIVIDUAL_OF_ORG: 'Cá nhân thuộc tổ chức',
+  }
+  return map[type] ?? type
+}
+
+function validityUnitLabel(unit: string): string {
+  const map: Record<string, string> = { DAY: 'ngày', MONTH: 'tháng', YEAR: 'năm' }
+  return map[unit] ?? unit
+}
+
+function metricLabel(metric: string): string {
+  const map: Record<string, string> = {
+    SIGNING_COUNT: 'Lượt ký',
+    CERTIFICATE_COUNT: 'Chứng thư',
+  }
+  return map[metric] ?? metric
 }
 
 onMounted(load)
 </script>
 
 <style scoped>
-.page-header { margin-bottom: 16px; display: flex; flex-direction: column; gap: 4px; }
-.page-header h2 { margin: 0; }
+/* ── Page header ── */
+.page-header { margin-bottom: 20px; }
+.back-btn { padding: 0; margin-bottom: 8px; font-size: 13px; }
+.page-header h2 { margin: 0 0 4px; font-size: 20px; }
 .req-id { color: #409eff; }
-.page-subtitle { margin: 4px 0 0; color: #909399; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.page-subtitle { margin: 0; color: #909399; font-size: 13px; display: flex; align-items: center; gap: 8px; }
 
 .action-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 
-/* Section card style â€” match dá»± Ã¡n */
+/* ── Section card ── */
 .section-card {
   background: #fff;
   border: 1px solid #e4e7ed;
@@ -491,9 +622,11 @@ onMounted(load)
   align-items: center;
   gap: 8px;
   padding: 14px 20px;
+  border-bottom: 1px solid #f0f0f0;
 }
 .section-title { font-weight: 700; font-size: 14px; color: #1B60CB; letter-spacing: 0.3px; }
 
+/* ── Info grid ── */
 .info-grid { padding: 4px 20px 20px; }
 .info-row { display: flex; gap: 24px; margin-top: 12px; }
 .info-item { flex: 1; display: flex; gap: 4px; font-size: 14px; color: #303133; line-height: 1.6; }
@@ -502,32 +635,84 @@ onMounted(load)
 .info-value { color: #303133; }
 .revision-label { color: #e6a23c; font-weight: 600; }
 .revision-note { color: #e6a23c; }
+.plan-name { font-weight: 600; color: #1B60CB; }
 
-/* Steps timeline */
-.steps-container { padding: 20px 32px 28px; }
-.step-desc { margin-top: 6px; font-size: 12px; }
-.step-meta { display: flex; align-items: center; gap: 4px; }
-.step-meta.success { color: #67c23a; }
-.step-meta.danger { color: #f56c6c; }
-.step-meta.skipped { color: #909399; }
-.step-meta.pending { color: #909399; }
-.step-comment { font-style: italic; color: #606266; margin-top: 4px; }
-
-/* Payload */
-.payload-block { padding: 12px 20px 20px; }
-.payload-block pre {
-  background: #f5f7fa;
-  border-radius: 4px;
-  padding: 12px;
-  font-size: 12px;
-  overflow-x: auto;
-  margin: 0;
+/* ── Pricing table ── */
+.pricing-section { padding: 0 20px 20px; }
+.pricing-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 10px;
+  padding-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
-.rotated { transform: rotate(-90deg); transition: transform 0.2s; }
+.pricing-table { width: 100%; }
+.price-value { font-weight: 600; color: #303133; }
 
-/* Dialogs */
+/* ── Steps timeline ── */
+.steps-container { padding: 8px 20px 20px; }
+
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+.step-row:last-child { border-bottom: none; }
+
+.step-indicator {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: #f5f7fa;
+}
+.step-row--approved .step-indicator { background: #f0f9eb; }
+.step-row--rejected .step-indicator { background: #fef0f0; }
+.step-row--pending  .step-indicator { background: #fdf6ec; }
+.step-row--skipped  .step-indicator { background: #f4f4f5; }
+
+.icon-approved { color: #67c23a; }
+.icon-rejected { color: #f56c6c; }
+.icon-skipped  { color: #909399; }
+
+.step-level-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e6a23c;
+}
+
+.step-body { flex: 1; }
+
+.step-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.step-level-name { font-size: 14px; font-weight: 600; color: #303133; }
+
+.step-decision {
+  font-size: 13px;
+  color: #606266;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.step-decision--pending { color: #e6a23c; font-style: italic; }
+.step-actor { font-weight: 500; color: #303133; }
+.step-dot { color: #c0c4cc; }
+.step-time { color: #909399; }
+.step-comment { font-style: italic; color: #909399; font-size: 12px; margin-top: 4px; }
+
+/* ── Dialogs ── */
 .dlg-body { font-size: 14px; color: #303133; line-height: 1.6; margin: 0; }
 .dlg-danger { color: #f56c6c; }
 </style>
-
-

@@ -1,5 +1,7 @@
 package com.rs.subscription.entity;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -75,7 +77,7 @@ public class GroupPlanAssignment {
     @PrePersist
     void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
-        if (assignmentStatus == null) assignmentStatus = "REQUESTED";
+        if (assignmentStatus == null) assignmentStatus = CommercialEnums.AssignmentStatus.REQUESTED.name();
         if (requestedAt == null && requestedBy != null) requestedAt = LocalDateTime.now();
     }
 

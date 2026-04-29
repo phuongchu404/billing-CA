@@ -139,14 +139,30 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
         }
 
         ApprovalRequestStep currentStep = findCurrentStep(approval);
-        validateCurrentApprover(approval, currentStep, actor);
+
+        boolean isAdmin = SecurityUtil.hasAnyAuthority("ROLE_ADMIN");
+        if (!isAdmin) {
+            validateCurrentApprover(approval, currentStep, actor);
+        }
+
         currentStep.setStatus(CommercialEnums.ApprovalStepStatus.APPROVED.name());
         currentStep.setDecidedBy(actor);
         currentStep.setComment(request.getComment());
         currentStep.setDecidedAt(LocalDateTime.now());
         stepRepository.save(currentStep);
 
-        if (approval.getCurrentLevel() < approval.getTotalLevels()) {
+        if (isAdmin) {
+            // Admin bypass: skip toàn bộ các level còn lại và approve ngay
+            stepRepository.findByApprovalRequestIdOrderByStepLevelAsc(id).stream()
+                .filter(s -> s.getStepLevel() > approval.getCurrentLevel()
+                          && CommercialEnums.ApprovalStepStatus.PENDING.name().equals(s.getStatus()))
+                .forEach(s -> {
+                    s.setStatus(CommercialEnums.ApprovalStepStatus.SKIPPED.name());
+                    stepRepository.save(s);
+                });
+            finalizeApproval(approval, actor, request.getComment());
+            notificationService.notifyFullyApproved(approval);
+        } else if (approval.getCurrentLevel() < approval.getTotalLevels()) {
             int nextLevel = approval.getCurrentLevel() + 1;
             approval.setCurrentLevel(nextLevel);
             approvalRequestRepository.save(approval);

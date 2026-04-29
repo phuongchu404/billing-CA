@@ -1,5 +1,7 @@
 package com.rs.subscription.dto.request;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -14,7 +16,7 @@ public class CreateSettlementStatementRequest {
 
     private LocalDate fromDate;
     private LocalDate toDate;
-    private String status = "DRAFT";
+    private String status = CommercialEnums.StatementStatus.DRAFT.name();
     private Integer totalCertificates = 0;
     private Integer totalSignings = 0;
     private BigDecimal totalAmount = BigDecimal.ZERO;

@@ -1,5 +1,7 @@
 package com.rs.subscription.entity;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -69,8 +71,8 @@ public class PlanPricingRule {
     @PrePersist
     void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
-        if (certificateValidityUnit == null) certificateValidityUnit = "MONTH";
-        if (pricingMetric == null) pricingMetric = "CERTIFICATE_COUNT";
+        if (certificateValidityUnit == null) certificateValidityUnit = CommercialEnums.ValidityUnit.MONTH.name();
+        if (pricingMetric == null) pricingMetric = CommercialEnums.PricingMetric.CERTIFICATE_COUNT.name();
         if (currency == null) currency = "VND";
         if (sortOrder == null) sortOrder = 0;
         if (isActive == null) isActive = true;

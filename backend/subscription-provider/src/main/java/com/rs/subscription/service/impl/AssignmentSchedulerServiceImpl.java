@@ -4,6 +4,7 @@ import com.rs.subscription.service.*;
 
 import com.rs.subscription.entity.AssignmentAudit;
 import com.rs.subscription.entity.GroupPlanAssignment;
+import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.repository.AssignmentAuditRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,10 +39,10 @@ public class AssignmentSchedulerServiceImpl implements AssignmentSchedulerServic
         log.info("[Scheduler] Kích hoạt {} assignment(s) sang ACTIVE tại {}", readyList.size(), today);
         for (GroupPlanAssignment entity : readyList) {
             String oldStatus = entity.getAssignmentStatus();
-            entity.setAssignmentStatus("ACTIVE");
+            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.ACTIVE.name());
             entity.setActivatedAt(LocalDateTime.now());
             assignmentRepository.save(entity);
-            saveAudit(entity, oldStatus, "ACTIVE", "ACTIVATE", "scheduler", null);
+            saveAudit(entity, oldStatus, CommercialEnums.AssignmentStatus.ACTIVE.name(), CommercialEnums.AuditAction.ACTIVATE.name(), "scheduler", null);
         }
     }
 
@@ -59,10 +60,10 @@ public class AssignmentSchedulerServiceImpl implements AssignmentSchedulerServic
         log.info("[Scheduler] Hết hạn {} assignment(s) sang EXPIRED tại {}", expiredList.size(), today);
         for (GroupPlanAssignment entity : expiredList) {
             String oldStatus = entity.getAssignmentStatus();
-            entity.setAssignmentStatus("EXPIRED");
+            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.EXPIRED.name());
             entity.setStoppedAt(LocalDateTime.now());
             assignmentRepository.save(entity);
-            saveAudit(entity, oldStatus, "EXPIRED", "EXPIRE", "scheduler", "Tự động hết hạn theo applyTo");
+            saveAudit(entity, oldStatus, CommercialEnums.AssignmentStatus.EXPIRED.name(), CommercialEnums.AuditAction.EXPIRE.name(), "scheduler", "T? d?ng h?t h?n theo applyTo");
         }
     }
 
@@ -70,7 +71,7 @@ public class AssignmentSchedulerServiceImpl implements AssignmentSchedulerServic
                            String action, String actor, String note) {
         AssignmentAudit audit = new AssignmentAudit();
         audit.setGroupPlanAssignment(entity);
-        audit.setAssignmentType("GROUP_PLAN");
+        audit.setAssignmentType(CommercialEnums.AssignmentType.GROUP_PLAN.name());
         audit.setAction(action);
         audit.setOldStatus(oldStatus);
         audit.setNewStatus(newStatus);

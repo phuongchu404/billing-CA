@@ -58,4 +58,8 @@ export const provisionGroup = (data: ProvisionGroupRequest) =>
 export const assignGroupOwner = (groupId: number, ownerUserId: number | null) =>
   request.patch<any, ApiResponse<GroupDetail>>(`/api/v1/groups/${groupId}/owner`, { ownerUserId })
 
+// ---- Single assignment (dùng trong ApprovalDetail) ----
+export const getGroupAssignment = (assignmentId: number) =>
+  request.get<any, ApiResponse<GroupPlanAssignment>>(`/api/v1/groups/plan-assignments/${assignmentId}`)
+
 

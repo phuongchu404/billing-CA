@@ -1,8 +1,6 @@
-export type IndividualPlanStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'PENDING' | 'APPROVED' | 'APPLYING'
+import type { IndividualCtsStatus, IndividualPlanStatus, PricingMetric, SubjectType } from './enums'
 
-export type IndividualSubjectType = 'INDIVIDUAL' | 'ORGANIZATION' | 'INDIVIDUAL_OF_ORG'
-
-export type IndividualCtsStatus = 'ACTIVE' | 'PENDING_ACTIVATE' | 'PENDING_APPROVE' | 'REVOKED' | 'EXPIRED'
+export type IndividualSubjectType = SubjectType
 
 export interface IndividualPlanConfigListItem {
   id: number
@@ -24,7 +22,7 @@ export interface IndividualPricingRuleRow {
   id: number
   subject: IndividualSubjectType
   durationMonths: number
-  condition: 'SIGNING_COUNT' | 'CERTIFICATE_COUNT'
+  condition: PricingMetric
   minValue: number
   maxValue: number | null
   fee: number

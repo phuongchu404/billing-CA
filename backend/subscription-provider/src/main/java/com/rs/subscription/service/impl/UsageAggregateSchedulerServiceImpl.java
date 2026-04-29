@@ -4,6 +4,7 @@ import com.rs.subscription.service.*;
 
 import com.rs.subscription.entity.UsageAggregate;
 import com.rs.subscription.entity.UsageAggregateRollupLog;
+import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.repository.UsageAggregateRepository;
 import com.rs.subscription.repository.UsageAggregateRollupLogRepository;
 import jakarta.persistence.EntityManager;
@@ -100,10 +101,11 @@ public class UsageAggregateSchedulerServiceImpl implements UsageAggregateSchedul
                 FROM certificate_provisioning_records cpr
                 JOIN group_plan_assignments gpa
                     ON gpa.group_plan_assignment_id = cpr.group_plan_assignment_id
-                WHERE cpr.status = 'COMPLETED'
+                WHERE cpr.status = :completedStatus
                   AND cpr.issued_at >= :from AND cpr.issued_at < :to
                 GROUP BY gpa.group_id
                 """)
+                .setParameter("completedStatus", CommercialEnums.ProvisioningStatus.COMPLETED.name())
                 .setParameter("from", fromDt)
                 .setParameter("to", toDt)
                 .getResultList();
@@ -119,10 +121,11 @@ public class UsageAggregateSchedulerServiceImpl implements UsageAggregateSchedul
                 FROM certificate_usage_records cur
                 JOIN group_plan_assignments gpa
                     ON gpa.group_plan_assignment_id = cur.group_plan_assignment_id
-                WHERE cur.usage_type = 'SIGNING'
+                WHERE cur.usage_type = :usageType
                   AND cur.used_at >= :from AND cur.used_at < :to
                 GROUP BY gpa.group_id
                 """)
+                .setParameter("usageType", CommercialEnums.UsageType.SIGNING.name())
                 .setParameter("from", fromDt)
                 .setParameter("to", toDt)
                 .getResultList();
@@ -145,12 +148,12 @@ public class UsageAggregateSchedulerServiceImpl implements UsageAggregateSchedul
 
             UsageAggregate agg = usageAggregateRepository
                     .findByAggregateScopeAndScopeIdAndPeriodTypeAndPeriodKey(
-                            "GROUP", groupId, "MONTH", periodKey)
+                            CommercialEnums.AggregateScope.GROUP.name(), groupId, CommercialEnums.PeriodType.MONTH.name(), periodKey)
                     .orElseGet(UsageAggregate::new);
 
-            agg.setAggregateScope("GROUP");
+            agg.setAggregateScope(CommercialEnums.AggregateScope.GROUP.name());
             agg.setScopeId(groupId);
-            agg.setPeriodType("MONTH");
+            agg.setPeriodType(CommercialEnums.PeriodType.MONTH.name());
             agg.setPeriodKey(periodKey);
             agg.setCertificatesCreated(certs);
             agg.setSigningUsed(signings);
@@ -177,7 +180,7 @@ public class UsageAggregateSchedulerServiceImpl implements UsageAggregateSchedul
                 .periodKey(periodKey)
                 .runAt(LocalDateTime.now())
                 .groupsUpdated(groupsUpdated)
-                .status(errorMsg == null ? "SUCCESS" : "ERROR")
+                .status(errorMsg == null ? CommercialEnums.RollupStatus.SUCCESS.name() : CommercialEnums.RollupStatus.ERROR.name())
                 .errorMsg(errorMsg)
                 .build();
         rollupLogRepository.save(log);

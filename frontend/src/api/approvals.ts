@@ -1,15 +1,13 @@
 import request from '@/utils/request'
+import type { ApprovalLevel, ApprovalStepStatus, CustomerSegment, MultiApprovalStatus } from '@/types/enums'
+export type { CustomerSegment, MultiApprovalStatus } from '@/types/enums'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type MultiApprovalStatus = 'DRAFT' | 'IN_APPROVAL' | 'NEED_REVISION' | 'APPROVED' | 'REJECTED'
-export type ApprovalStepStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED'
-export type CustomerSegment = 'INDIVIDUAL' | 'GROUP'
 
 export interface ApprovalStepResponse {
   id: number
   stepLevel: number
-  requiredApprovalLevel: 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3'
+  requiredApprovalLevel: ApprovalLevel
   status: ApprovalStepStatus
   decidedBy?: string
   comment?: string
@@ -100,5 +98,9 @@ export const resubmitApproval = (id: number, data: SubmitApprovalRequest) =>
 // GET /api/v1/approval-requests/level-configs
 export const listLevelConfigs = () =>
   request.get<ApprovalLevelConfigResponse[]>('/api/v1/approval-requests/level-configs')
+
+// GET /api/v1/retail-plan-schedules/{id}
+export const getRetailPlanSchedule = (id: number) =>
+  request.get<any>(`/api/v1/retail-plan-schedules/${id}`)
 
 

@@ -1,5 +1,7 @@
 package com.rs.subscription.dto.request;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -21,8 +23,8 @@ public class CreatePlanTemplateRequest {
     @NotBlank
     private String customerSegment;
 
-    private String templateScope = "PUBLIC";
-    private String status = "DRAFT";
+    private String templateScope = CommercialEnums.TemplateScope.PUBLIC.name();
+    private String status = CommercialEnums.TemplateStatus.DRAFT.name();
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private Boolean isVisible = true;

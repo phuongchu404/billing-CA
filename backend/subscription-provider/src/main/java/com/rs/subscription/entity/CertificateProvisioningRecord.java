@@ -1,5 +1,7 @@
 package com.rs.subscription.entity;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -72,7 +74,7 @@ public class CertificateProvisioningRecord {
         createdAt = updatedAt = LocalDateTime.now();
         if (retryCount == null) retryCount = 0;
         if (usageCount == null) usageCount = 0;
-        if (status == null) status = "PENDING";
+        if (status == null) status = CommercialEnums.ProvisioningStatus.PENDING.name();
         if (certType == null) certType = CertType.INDIVIDUAL;
     }
 

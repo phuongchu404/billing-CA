@@ -1,5 +1,6 @@
 import request from '@/utils/request'
 import type { ApiResponse, PagedResponse, Subscription } from '@/types'
+import { SubscriptionStatus } from '@/types/enums'
 
 // Backend: RuntimeSubscriptionController @ /api/v1/runtime-subscriptions
 // @PreAuthorize: subscription:view (GET), subscription:create (POST), subscription:update (PATCH)
@@ -19,13 +20,13 @@ export const assignGroupPlan = (groupId: number, data: { planCode: string }) =>
   request.post<any, ApiResponse<Subscription>>(`/api/v1/runtime-subscriptions`, { ...data, groupId })
 
 export const cancelSubscription = (id: number) =>
-  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'CANCELLED' })
+  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: SubscriptionStatus.CANCELLED })
 
 export const suspendSubscription = (id: number) =>
-  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'SUSPENDED' })
+  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: SubscriptionStatus.SUSPENDED })
 
 export const reactivateSubscription = (id: number) =>
-  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'ACTIVE' })
+  request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: SubscriptionStatus.ACTIVE })
 
 export const approveSubscription = (id: number) =>
   request.patch<any, ApiResponse<void>>(`/api/v1/runtime-subscriptions/${id}/status`, { status: 'APPROVED' })

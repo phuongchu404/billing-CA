@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Auditable(entityType = "GROUP")
+@Auditable(entityType = CommercialEnums.ENTITY_GROUP)
 @Service
 @RequiredArgsConstructor
 public class GroupServiceImpl implements GroupService {
@@ -145,10 +145,10 @@ public class GroupServiceImpl implements GroupService {
     public void suspend(Long id) {
         assertCanAccess(id);
         Group group = findEntity(id);
-        if ("INACTIVE".equals(group.getStatus())) {
+        if (CommercialEnums.GroupStatus.INACTIVE.name().equals(group.getStatus())) {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Group is already inactive", 400);
         }
-        group.setStatus("INACTIVE");
+        group.setStatus(CommercialEnums.GroupStatus.INACTIVE.name());
         groupRepository.save(group);
     }
 
@@ -156,10 +156,10 @@ public class GroupServiceImpl implements GroupService {
     public void activate(Long id) {
         assertCanAccess(id);
         Group group = findEntity(id);
-        if ("ACTIVE".equals(group.getStatus())) {
+        if (CommercialEnums.GroupStatus.ACTIVE.name().equals(group.getStatus())) {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Group is already active", 400);
         }
-        group.setStatus("ACTIVE");
+        group.setStatus(CommercialEnums.GroupStatus.ACTIVE.name());
         groupRepository.save(group);
     }
 
@@ -246,7 +246,8 @@ public class GroupServiceImpl implements GroupService {
         }
 
         Optional<GroupPlanAssignment> activeOpt = assignmentRepository
-            .findFirstByGroupGroupIdAndAssignmentStatusOrderByActivatedAtDesc(group.getGroupId(), "ACTIVE");
+            .findFirstByGroupGroupIdAndAssignmentStatusOrderByActivatedAtDesc(
+                group.getGroupId(), CommercialEnums.AssignmentStatus.ACTIVE.name());
 
         if (activeOpt.isPresent()) {
             GroupPlanAssignment active = activeOpt.get();
@@ -334,7 +335,7 @@ public class GroupServiceImpl implements GroupService {
     private Integer getSigningQuota(GroupPlanAssignment a) {
         int total = a.getPlanTemplate().getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive())
-                && "SIGNING_COUNT".equals(r.getPricingMetric())
+                && CommercialEnums.PricingMetric.SIGNING_COUNT.name().equals(r.getPricingMetric())
                 && r.getRangeMax() != null)
             .mapToInt(PlanPricingRule::getRangeMax).sum();
         return total > 0 ? total : null;

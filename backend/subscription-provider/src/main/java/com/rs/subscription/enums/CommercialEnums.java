@@ -6,6 +6,10 @@ import com.rs.subscription.exception.SmsException;
 import java.util.Arrays;
 
 public final class CommercialEnums {
+    public static final String ENTITY_GROUP = "GROUP";
+    public static final String ASSIGNMENT_TYPE_GROUP_PLAN = "GROUP_PLAN";
+    public static final String ASSIGNMENT_TYPE_RETAIL_PLAN = "RETAIL_PLAN";
+    public static final String AUDIT_ACTION_REQUEST = "REQUEST";
 
     private CommercialEnums() {
     }
@@ -39,6 +43,13 @@ public final class CommercialEnums {
         APPROVED,
         REJECTED,
         SKIPPED
+    }
+
+    public enum ReviewDecision {
+        APPROVE,
+        REJECT,
+        ACTIVATE,
+        STOP
     }
 
     // Role cấp duyệt
@@ -132,6 +143,22 @@ public final class CommercialEnums {
         INACTIVE
     }
 
+    public enum IndividualPlanStatus {
+        AVAILABLE,
+        UNAVAILABLE,
+        PENDING,
+        APPROVED,
+        APPLYING
+    }
+
+    public enum IndividualCtsStatus {
+        ACTIVE,
+        PENDING_ACTIVATE,
+        PENDING_APPROVE,
+        REVOKED,
+        EXPIRED
+    }
+
     public enum StatementStatus {
         DRAFT,
         FINALIZED,
@@ -186,6 +213,11 @@ public final class CommercialEnums {
         CERTIFICATE_CREATED,
         CERTIFICATE_RENEWED,
         CERTIFICATE_REVOKED
+    }
+
+    public enum RollupStatus {
+        SUCCESS,
+        ERROR
     }
 
     public enum ProvisioningStatus {

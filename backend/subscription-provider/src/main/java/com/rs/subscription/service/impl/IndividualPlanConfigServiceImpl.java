@@ -38,8 +38,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigService {
 
-    private static final String CUSTOMER_SEGMENT = "INDIVIDUAL";
-    private static final List<String> ACTIVE_SCHEDULE_STATUSES = List.of("REQUESTED", "APPROVED", "ACTIVE");
+    private static final String CUSTOMER_SEGMENT = CommercialEnums.CustomerSegment.INDIVIDUAL.name();
+    private static final List<String> ACTIVE_SCHEDULE_STATUSES = List.of(
+        CommercialEnums.ScheduleStatus.REQUESTED.name(),
+        CommercialEnums.ScheduleStatus.APPROVED.name(),
+        CommercialEnums.ScheduleStatus.ACTIVE.name()
+    );
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
@@ -66,7 +70,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         summary.setLastUpdated(lastUpdated != null ? lastUpdated.format(DATETIME_FMT) : null);
 
         // currentPlan = template whose schedule is ACTIVE
-        scheduleRepository.findTopByScheduleStatus("ACTIVE").ifPresent(s -> {
+        scheduleRepository.findTopByScheduleStatus(CommercialEnums.ScheduleStatus.ACTIVE.name()).ifPresent(s -> {
             IndividualPlanConfigSummaryResponse.CurrentPlanInfo cp = new IndividualPlanConfigSummaryResponse.CurrentPlanInfo();
             cp.setName(s.getPlanTemplate().getPlanName());
             cp.setApplyUntil(s.getApplyTo() != null ? s.getApplyTo().format(DATE_FMT) : null);
@@ -74,7 +78,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         });
 
         // nextPlan = template whose schedule is APPROVED (earliest future applyFrom)
-        scheduleRepository.findTopByScheduleStatusOrderByApplyFromAsc("APPROVED").ifPresent(s -> {
+        scheduleRepository.findTopByScheduleStatusOrderByApplyFromAsc(CommercialEnums.ScheduleStatus.APPROVED.name()).ifPresent(s -> {
             IndividualPlanConfigSummaryResponse.NextPlanInfo np = new IndividualPlanConfigSummaryResponse.NextPlanInfo();
             np.setName(s.getPlanTemplate().getPlanName());
             np.setApplyFrom(s.getApplyFrom() != null ? s.getApplyFrom().format(DATE_FMT) : null);
@@ -104,7 +108,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         // applyHistory: tổng hợp lịch sử từ các schedule đã INACTIVE
         List<RetailPlanSchedule> allSchedules = scheduleRepository.findByPlanTemplatePlanTemplateIdOrderByCreatedAtDesc(id);
         String applyHistory = allSchedules.stream()
-                .filter(s -> "INACTIVE".equals(s.getScheduleStatus()) && s.getApplyFrom() != null && s.getApplyTo() != null)
+                .filter(s -> CommercialEnums.ScheduleStatus.INACTIVE.name().equals(s.getScheduleStatus()) && s.getApplyFrom() != null && s.getApplyTo() != null)
                 .sorted(Comparator.comparing(RetailPlanSchedule::getApplyFrom))
                 .map(s -> s.getApplyFrom().format(DATE_FMT) + " - " + s.getApplyTo().format(DATE_FMT))
                 .collect(Collectors.joining(", "));
@@ -143,8 +147,8 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .planCode(planCode)
                 .planName(req.getName())
                 .customerSegment(CUSTOMER_SEGMENT)
-                .templateScope("PUBLIC")
-                .status("AVAILABLE")
+                .templateScope(CommercialEnums.TemplateScope.PUBLIC.name())
+                .status(CommercialEnums.TemplateStatus.AVAILABLE.name())
                 .isVisible(true)
                 .allowBulkSigning(false)
                 .allowApiAccess(false)
@@ -163,18 +167,13 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         PlanTemplate saved = planTemplateRepository.save(template);
 
-        if (req.getApplyFrom() != null && req.getApplyUntil() != null) {
-            createSchedule(saved, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), "REQUESTED");
-            // Note: khi create() tạo schedule cùng lúc, approval sẽ được tạo qua requestApply() sau đó
-        }
-
         return getDetail(saved.getPlanTemplateId());
     }
 
     @Transactional
     public IndividualPlanConfigDetailResponse requestApply(Long id, IndividualRequestApplyRequest req) {
         PlanTemplate template = findTemplate(id);
-        ensureStatus(template, "AVAILABLE", "Chỉ có thể yêu cầu áp dụng khi gói cước đang ở trạng thái Khả dụng");
+        ensureStatus(template, CommercialEnums.TemplateStatus.AVAILABLE.name(), "Chỉ có thể yêu cầu áp dụng khi gói cước đang ở trạng thái Khả dụng");
 
         Optional<RetailPlanSchedule> existing = findActiveSchedule(id);
         if (existing.isPresent()) {
@@ -182,7 +181,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                     "Gói cước đã có yêu cầu áp dụng đang chờ xử lý", 400);
         }
 
-        RetailPlanSchedule saved = createSchedule(template, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), "REQUESTED");
+        RetailPlanSchedule saved = createSchedule(template, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), CommercialEnums.ScheduleStatus.REQUESTED.name());
 
         // Tính giá trị hợp đồng từ unitPrice tối đa của pricing rules
         BigDecimal contractValue = template.getPricingRules().stream()
@@ -224,27 +223,29 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
     @Transactional
     public IndividualPlanConfigDetailResponse approve(Long id, IndividualApproveRequest req) {
-        RetailPlanSchedule schedule = findActiveScheduleOrThrow(id, "REQUESTED",
+        RetailPlanSchedule schedule = findActiveScheduleOrThrow(id, CommercialEnums.ScheduleStatus.REQUESTED.name(),
                 "Chỉ có thể duyệt khi gói cước đang chờ duyệt");
 
         if (req.getApplyFrom() != null) schedule.setApplyFrom(LocalDate.parse(req.getApplyFrom()));
         if (req.getApplyUntil() != null) schedule.setApplyTo(LocalDate.parse(req.getApplyUntil()));
-        schedule.setScheduleStatus("APPROVED");
+        schedule.setScheduleStatus(CommercialEnums.ScheduleStatus.APPROVED.name());
         schedule.setApprovedBy(req.getApprovedBy());
         schedule.setApprovedAt(LocalDateTime.now());
         scheduleRepository.save(schedule);
 
-        recordAudit(schedule, "APPROVE", "REQUESTED", "APPROVED", req.getApprovedBy(), null);
+        recordAudit(schedule, CommercialEnums.AuditAction.APPROVE.name(),
+            CommercialEnums.ScheduleStatus.REQUESTED.name(), CommercialEnums.ScheduleStatus.APPROVED.name(), req.getApprovedBy(), null);
         return getDetail(id);
     }
 
     @Transactional
     public IndividualPlanConfigDetailResponse reject(Long id, String actor) {
-        RetailPlanSchedule schedule = findActiveScheduleOrThrow(id, "REQUESTED",
+        RetailPlanSchedule schedule = findActiveScheduleOrThrow(id, CommercialEnums.ScheduleStatus.REQUESTED.name(),
                 "Chỉ có thể từ chối khi gói cước đang chờ duyệt");
-        schedule.setScheduleStatus("INACTIVE");
+        schedule.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
         scheduleRepository.save(schedule);
-        recordAudit(schedule, "REJECT", "REQUESTED", "INACTIVE", actor, null);
+        recordAudit(schedule, CommercialEnums.AuditAction.REJECT.name(),
+            CommercialEnums.ScheduleStatus.REQUESTED.name(), CommercialEnums.ScheduleStatus.INACTIVE.name(), actor, null);
         return getDetail(id);
     }
 
@@ -252,27 +253,27 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     public IndividualPlanConfigDetailResponse stop(Long id, String actor) {
         Optional<RetailPlanSchedule> scheduleOpt = findActiveSchedule(id);
         if (scheduleOpt.isEmpty() ||
-                (!scheduleOpt.get().getScheduleStatus().equals("APPROVED") &&
-                 !scheduleOpt.get().getScheduleStatus().equals("ACTIVE"))) {
+                (!scheduleOpt.get().getScheduleStatus().equals(CommercialEnums.ScheduleStatus.APPROVED.name()) &&
+                 !scheduleOpt.get().getScheduleStatus().equals(CommercialEnums.ScheduleStatus.ACTIVE.name()))) {
             throw new SmsException(ErrorCodes.INVALID_STATUS_TRANSITION,
                     "Chỉ có thể dừng khi gói cước đang ở trạng thái Đã duyệt hoặc Đang áp dụng", 400);
         }
         RetailPlanSchedule schedule = scheduleOpt.get();
         String oldStatus = schedule.getScheduleStatus();
-        schedule.setScheduleStatus("INACTIVE");
+        schedule.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
         scheduleRepository.save(schedule);
-        recordAudit(schedule, "STOP", oldStatus, "INACTIVE", actor, null);
+        recordAudit(schedule, CommercialEnums.AuditAction.STOP.name(), oldStatus, CommercialEnums.ScheduleStatus.INACTIVE.name(), actor, null);
         return getDetail(id);
     }
 
     @Transactional
     public IndividualPlanConfigDetailResponse deactivate(Long id, String actor) {
         PlanTemplate template = findTemplate(id);
-        template.setStatus("INACTIVE");
+        template.setStatus(CommercialEnums.TemplateStatus.INACTIVE.name());
         planTemplateRepository.save(template);
 
         findActiveSchedule(id).ifPresent(s -> {
-            s.setScheduleStatus("INACTIVE");
+            s.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
             scheduleRepository.save(s);
         });
 
@@ -329,7 +330,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .requestedAt(LocalDateTime.now())
                 .build();
         RetailPlanSchedule saved = scheduleRepository.save(schedule);
-        recordAudit(saved, "REQUEST", null, status, requestedBy, null);
+        recordAudit(saved, CommercialEnums.AuditAction.REQUEST.name(), null, status, requestedBy, null);
         return saved;
     }
 
@@ -337,7 +338,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                               String oldStatus, String newStatus, String actor, String note) {
         AssignmentAudit audit = AssignmentAudit.builder()
                 .retailPlanSchedule(schedule)
-                .assignmentType("RETAIL_PLAN")
+                .assignmentType(CommercialEnums.AssignmentType.RETAIL_PLAN.name())
                 .action(action)
                 .oldStatus(oldStatus)
                 .newStatus(newStatus)
@@ -348,16 +349,23 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     }
 
     private String deriveStatus(PlanTemplate template, Optional<RetailPlanSchedule> activeSchedule) {
-        if ("INACTIVE".equals(template.getStatus())) return "UNAVAILABLE";
-        if (activeSchedule.isPresent()) {
-            return switch (activeSchedule.get().getScheduleStatus()) {
-                case "REQUESTED" -> "PENDING";
-                case "APPROVED" -> "APPROVED";
-                case "ACTIVE" -> "APPLYING";
-                default -> "AVAILABLE";
-            };
+        if (CommercialEnums.TemplateStatus.INACTIVE.name().equals(template.getStatus())) {
+            return CommercialEnums.IndividualPlanStatus.UNAVAILABLE.name();
         }
-        return "AVAILABLE";
+        if (activeSchedule.isPresent()) {
+            String scheduleStatus = activeSchedule.get().getScheduleStatus();
+            if (CommercialEnums.ScheduleStatus.REQUESTED.name().equals(scheduleStatus)) {
+                return CommercialEnums.IndividualPlanStatus.PENDING.name();
+            }
+            if (CommercialEnums.ScheduleStatus.APPROVED.name().equals(scheduleStatus)) {
+                return CommercialEnums.IndividualPlanStatus.APPROVED.name();
+            }
+            if (CommercialEnums.ScheduleStatus.ACTIVE.name().equals(scheduleStatus)) {
+                return CommercialEnums.IndividualPlanStatus.APPLYING.name();
+            }
+            return CommercialEnums.IndividualPlanStatus.AVAILABLE.name();
+        }
+        return CommercialEnums.IndividualPlanStatus.AVAILABLE.name();
     }
 
     private IndividualPlanConfigListItemResponse toListItem(PlanTemplate template) {
@@ -399,21 +407,25 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     }
 
     private String mapScheduleStatusToUi(String scheduleStatus) {
-        if (scheduleStatus == null) return "AVAILABLE";
-        return switch (scheduleStatus) {
-            case "REQUESTED" -> "PENDING";
-            case "ACTIVE" -> "APPLYING";
-            case "INACTIVE" -> "UNAVAILABLE";
-            default -> scheduleStatus;
-        };
+        if (scheduleStatus == null) return CommercialEnums.IndividualPlanStatus.AVAILABLE.name();
+        if (CommercialEnums.ScheduleStatus.REQUESTED.name().equals(scheduleStatus)) {
+            return CommercialEnums.IndividualPlanStatus.PENDING.name();
+        }
+        if (CommercialEnums.ScheduleStatus.ACTIVE.name().equals(scheduleStatus)) {
+            return CommercialEnums.IndividualPlanStatus.APPLYING.name();
+        }
+        if (CommercialEnums.ScheduleStatus.INACTIVE.name().equals(scheduleStatus)) {
+            return CommercialEnums.IndividualPlanStatus.UNAVAILABLE.name();
+        }
+        return scheduleStatus;
     }
 
     private PlanPricingRule toPricingRuleEntity(CreateIndividualPlanConfigRequest.PricingRuleRequest rr, int sortOrder) {
         return PlanPricingRule.builder()
-                .subjectType(rr.getSubject() != null ? rr.getSubject() : "INDIVIDUAL")
+                .subjectType(rr.getSubject() != null ? rr.getSubject() : CommercialEnums.SubjectType.INDIVIDUAL.name())
                 .certificateValidityValue(rr.getDurationMonths() != null ? rr.getDurationMonths() : 12)
-                .certificateValidityUnit("MONTH")
-                .pricingMetric(rr.getCondition() != null ? rr.getCondition() : "CERTIFICATE_COUNT")
+                .certificateValidityUnit(CommercialEnums.ValidityUnit.MONTH.name())
+                .pricingMetric(rr.getCondition() != null ? rr.getCondition() : CommercialEnums.PricingMetric.CERTIFICATE_COUNT.name())
                 .rangeMin(rr.getMinValue() != null ? rr.getMinValue() : 1)
                 .rangeMax(rr.getMaxValue())
                 .unitPrice(rr.getFee() != null ? BigDecimal.valueOf(rr.getFee()) : BigDecimal.ZERO)

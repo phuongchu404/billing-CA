@@ -1,5 +1,7 @@
 package com.rs.subscription.entity;
 
+import com.rs.subscription.enums.CommercialEnums;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -74,9 +76,9 @@ public class PlanTemplate {
     @PrePersist
     void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
-        if (customerSegment == null) customerSegment = "INDIVIDUAL";
-        if (templateScope == null) templateScope = "PUBLIC";
-        if (status == null) status = "DRAFT";
+        if (customerSegment == null) customerSegment = CommercialEnums.CustomerSegment.INDIVIDUAL.name();
+        if (templateScope == null) templateScope = CommercialEnums.TemplateScope.PUBLIC.name();
+        if (status == null) status = CommercialEnums.TemplateStatus.DRAFT.name();
         if (isVisible == null) isVisible = true;
         if (allowBulkSigning == null) allowBulkSigning = false;
         if (allowApiAccess == null) allowApiAccess = false;

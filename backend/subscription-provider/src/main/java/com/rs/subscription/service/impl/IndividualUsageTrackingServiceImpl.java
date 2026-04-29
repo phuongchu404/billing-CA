@@ -5,6 +5,7 @@ import com.rs.subscription.service.*;
 import com.rs.subscription.dto.response.IndividualUsageRowResponse;
 import com.rs.subscription.dto.response.IndividualUsageTrackingResponse;
 import com.rs.subscription.entity.Subscription;
+import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,8 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
     private final SubscriptionRepository subscriptionRepository;
 
     public IndividualUsageTrackingResponse getUsageTracking() {
-        List<Subscription> subs = subscriptionRepository.findBySubscriberTypeOrderByCreatedAtDesc("INDIVIDUAL");
+        List<Subscription> subs = subscriptionRepository.findBySubscriberTypeOrderByCreatedAtDesc(
+            CommercialEnums.SubscriberType.INDIVIDUAL.name());
 
         IndividualUsageTrackingResponse.IndividualUsageStatsResponse stats =
                 new IndividualUsageTrackingResponse.IndividualUsageStatsResponse();
@@ -30,13 +32,13 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
         stats.setPlansBought(subs.size());
         stats.setSignings(subs.stream().mapToLong(s -> s.getSigningQuotaUsed() != null ? s.getSigningQuotaUsed() : 0).sum());
         stats.setCtsIndividual(subs.stream()
-                .filter(s -> s.getPricingRule() != null && "INDIVIDUAL".equals(s.getPricingRule().getSubjectType()))
+                .filter(s -> s.getPricingRule() != null && CommercialEnums.SubjectType.INDIVIDUAL.name().equals(s.getPricingRule().getSubjectType()))
                 .count());
         stats.setCtsOrg(subs.stream()
-                .filter(s -> s.getPricingRule() != null && "ORGANIZATION".equals(s.getPricingRule().getSubjectType()))
+                .filter(s -> s.getPricingRule() != null && CommercialEnums.SubjectType.ORGANIZATION.name().equals(s.getPricingRule().getSubjectType()))
                 .count());
         stats.setCtsIndividualOfOrg(subs.stream()
-                .filter(s -> s.getPricingRule() != null && "INDIVIDUAL_OF_ORG".equals(s.getPricingRule().getSubjectType()))
+                .filter(s -> s.getPricingRule() != null && CommercialEnums.SubjectType.INDIVIDUAL_OF_ORG.name().equals(s.getPricingRule().getSubjectType()))
                 .count());
 
         List<IndividualUsageRowResponse> rows = subs.stream()
@@ -69,7 +71,7 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
             row.setFee(sub.getPricingRule().getUnitPrice() != null
                     ? sub.getPricingRule().getUnitPrice().longValue() : 0L);
         } else {
-            row.setCtsType("INDIVIDUAL");
+            row.setCtsType(CommercialEnums.SubjectType.INDIVIDUAL.name());
             row.setCtsDuration(12);
             row.setFee(0L);
         }
@@ -82,13 +84,18 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
     }
 
     private String mapSubscriptionStatusToCtsStatus(String subStatus) {
-        if (subStatus == null) return "PENDING_ACTIVATE";
-        return switch (subStatus) {
-            case "ACTIVE" -> "ACTIVE";
-            case "EXPIRED" -> "EXPIRED";
-            case "CANCELLED", "SUSPENDED" -> "REVOKED";
-            default -> "PENDING_ACTIVATE";
-        };
+        if (subStatus == null) return CommercialEnums.IndividualCtsStatus.PENDING_ACTIVATE.name();
+        if (CommercialEnums.SubscriptionStatus.ACTIVE.name().equals(subStatus)) {
+            return CommercialEnums.IndividualCtsStatus.ACTIVE.name();
+        }
+        if (CommercialEnums.SubscriptionStatus.EXPIRED.name().equals(subStatus)) {
+            return CommercialEnums.IndividualCtsStatus.EXPIRED.name();
+        }
+        if (CommercialEnums.SubscriptionStatus.CANCELLED.name().equals(subStatus)
+            || CommercialEnums.SubscriptionStatus.SUSPENDED.name().equals(subStatus)) {
+            return CommercialEnums.IndividualCtsStatus.REVOKED.name();
+        }
+        return CommercialEnums.IndividualCtsStatus.PENDING_ACTIVATE.name();
     }
 }
 

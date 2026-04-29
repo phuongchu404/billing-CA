@@ -1,3 +1,5 @@
+import type { AuthProvider, GroupStatus, MemberRole, ProvisioningStatus, SubscriberType, SubscriptionStatus, UserStatus } from './enums'
+
 export interface ApiResponse<T = any> {
   code: string
   success: boolean
@@ -57,11 +59,9 @@ export interface CreatePlanRequest {
   isVisible: boolean
 }
 
-export type SubscriptionStatus = 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'SUSPENDED'
-
 export interface Subscription {
   subscriptionId: number
-  subscriberType: 'INDIVIDUAL' | 'GROUP'
+  subscriberType: SubscriberType
   userId?: number
   groupId?: number
   planCode: string
@@ -93,7 +93,7 @@ export interface Partner {
   contactPhone?: string
   refContractNo?: string
   picEmails?: string
-  status: 'ACTIVE' | 'INACTIVE'
+  status: GroupStatus
   createdBy: string
   createdAt: string
   memberCount: number
@@ -103,7 +103,7 @@ export interface PartnerMember {
   id: number
   groupId: number
   userId: number
-  role: 'OPERATOR' | 'MEMBER'
+  role: MemberRole
   joinedAt: string
   addedBy: string
   memberStartDate?: string
@@ -150,8 +150,8 @@ export interface UserAccount {
   username: string
   email: string
   fullName: string
-  authProvider: 'LOCAL' | 'SSO'
-  status: 'ACTIVE' | 'INACTIVE' | 'LOCKED'
+  authProvider: AuthProvider
+  status: UserStatus
   roles: Role[]
   permissions: string[]
   managerUserId?: number | null
@@ -184,7 +184,7 @@ export interface CertificateRecord {
   certType?: 1 | 2 | 3
   certificateId?: string
   keyId?: string
-  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'FAILED_PERMANENT'
+  status: ProvisioningStatus
   issuedAt?: string
   expiresAt?: string
   retryCount: number
