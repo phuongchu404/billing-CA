@@ -65,6 +65,33 @@ public interface CertificateUsageRecordRepository extends JpaRepository<Certific
         @Param("from") LocalDateTime from,
         @Param("to") LocalDateTime to);
 
+    /** Batch: đếm lượt ký theo assignmentId + cert_type cho nhiều assignment cùng lúc. */
+    @Query("SELECT c.groupPlanAssignment.groupPlanAssignmentId, c.certType, COUNT(u) " +
+           "FROM CertificateUsageRecord u " +
+           "JOIN CertificateProvisioningRecord c ON c.certificateId = u.certificateId " +
+           "WHERE c.groupPlanAssignment.groupPlanAssignmentId IN :assignmentIds " +
+           "AND u.usageType = 'SIGNING' " +
+           "AND u.usedAt >= :from AND u.usedAt < :to " +
+           "GROUP BY c.groupPlanAssignment.groupPlanAssignmentId, c.certType")
+    List<Object[]> countSigningsByCertTypeGroupedByAssignment(
+        @Param("assignmentIds") List<Long> assignmentIds,
+        @Param("from") LocalDateTime from,
+        @Param("to") LocalDateTime to);
+
+    @Query("SELECT COUNT(u) FROM CertificateUsageRecord u " +
+           "WHERE u.usageType = 'SIGNING' AND u.usedAt >= :from AND u.usedAt < :to")
+    long countSignings(
+        @Param("from") LocalDateTime from,
+        @Param("to") LocalDateTime to);
+
+    @Query("SELECT COUNT(u) FROM CertificateUsageRecord u " +
+           "WHERE u.usageType = 'SIGNING' " +
+           "AND u.groupPlanAssignment IS NOT NULL " +
+           "AND u.usedAt >= :from AND u.usedAt < :to")
+    long countGroupSignings(
+        @Param("from") LocalDateTime from,
+        @Param("to") LocalDateTime to);
+
     @Modifying
     @Query(value = """
         INSERT INTO certificate_usage_daily (certificate_id, usage_date, usage_count, distinct_users)

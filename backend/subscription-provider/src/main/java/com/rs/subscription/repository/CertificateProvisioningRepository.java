@@ -91,6 +91,20 @@ public interface CertificateProvisioningRepository extends JpaRepository<Certifi
     List<Object[]> countWeeklyNewCustomers(
         @Param("from") LocalDateTime from,
         @Param("to") LocalDateTime to);
+
+    @Query("SELECT COUNT(c) FROM CertificateProvisioningRecord c " +
+           "WHERE c.status = 'COMPLETED' AND c.issuedAt >= :from AND c.issuedAt < :to")
+    long countCompletedIssuedBetween(
+        @Param("from") LocalDateTime from,
+        @Param("to") LocalDateTime to);
+
+    @Query("SELECT COUNT(c) FROM CertificateProvisioningRecord c " +
+           "WHERE c.status = 'COMPLETED' " +
+           "AND c.groupPlanAssignment IS NOT NULL " +
+           "AND c.issuedAt >= :from AND c.issuedAt < :to")
+    long countCompletedGroupIssuedBetween(
+        @Param("from") LocalDateTime from,
+        @Param("to") LocalDateTime to);
 }
 
 

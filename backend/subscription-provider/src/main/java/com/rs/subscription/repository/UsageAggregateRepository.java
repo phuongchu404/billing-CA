@@ -27,4 +27,9 @@ public interface UsageAggregateRepository extends JpaRepository<UsageAggregate, 
     /** Lấy tất cả GROUP scope aggregates cho một tháng cụ thể */
     @Query("SELECT u FROM UsageAggregate u WHERE u.aggregateScope = 'GROUP' AND u.periodType = 'MONTH' AND u.periodKey = :periodKey")
     List<UsageAggregate> findGroupMonthlyByPeriodKey(@Param("periodKey") String periodKey);
+
+    @Query("SELECT COALESCE(SUM(u.certificatesCreated), 0), COALESCE(SUM(u.signingUsed), 0) " +
+           "FROM UsageAggregate u " +
+           "WHERE u.aggregateScope = 'GROUP' AND u.periodType = 'MONTH' AND u.periodKey = :periodKey")
+    Object[] sumGroupMonthlyByPeriodKey(@Param("periodKey") String periodKey);
 }

@@ -10,8 +10,10 @@ import com.rs.subscription.entity.Group;
 import com.rs.subscription.entity.GroupPlanAssignment;
 import com.rs.subscription.entity.UsageAggregate;
 import com.rs.subscription.enums.CommercialEnums;
+import com.rs.subscription.repository.CertificateAuthFailureRecordRepository;
 import com.rs.subscription.repository.CertificateProvisioningRepository;
 import com.rs.subscription.repository.CertificateUsageRecordRepository;
+import com.rs.subscription.repository.DocumentUploadRecordRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
 import com.rs.subscription.repository.GroupRepository;
 import com.rs.subscription.repository.SubscriptionRepository;
@@ -44,6 +46,8 @@ public class ReportServiceImpl implements ReportService {
     private final UsageAggregateRepository usageAggregateRepository;
     private final CertificateProvisioningRepository certProvisioningRepository;
     private final CertificateUsageRecordRepository certUsageRepository;
+    private final DocumentUploadRecordRepository documentUploadRepository;
+    private final CertificateAuthFailureRecordRepository authFailureRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final DataScopeService dataScopeService;
 
@@ -121,6 +125,23 @@ public class ReportServiceImpl implements ReportService {
             }
         }
 
+        Map<Long, int[]> signingCountsByGroup = new HashMap<>();
+        if (!allAssignmentIds.isEmpty()) {
+            List<Object[]> signingRows = certUsageRepository
+                    .countSigningsByCertTypeGroupedByAssignment(allAssignmentIds, fromDt, toDt);
+            for (Object[] row : signingRows) {
+                Long assignmentId = ((Number) row[0]).longValue();
+                CertType ct = (CertType) row[1];
+                int cnt = ((Number) row[2]).intValue();
+                Long groupId = assignmentToGroup.get(assignmentId);
+                if (groupId == null) continue;
+                int[] counts = signingCountsByGroup.computeIfAbsent(groupId, k -> new int[3]);
+                if (ct == CertType.INDIVIDUAL) counts[0] += cnt;
+                else if (ct == CertType.ORGANIZATION) counts[1] += cnt;
+                else if (ct == CertType.INDIVIDUAL_OF_ORGANIZATION) counts[2] += cnt;
+            }
+        }
+
         // ── Query 6: gói sắp hết hạn — dùng kết quả cho cả count lẫn rows
         List<GroupPlanAssignment> expiring = assignmentRepository.findExpiringSoonWithNoSuccessor(
                 LocalDate.now(), LocalDate.now().plusMonths(3));
@@ -180,11 +201,12 @@ public class ReportServiceImpl implements ReportService {
             ioOrgCerts.add(cntIO);
 
             int total = cntInd + cntOrg + cntIO;
+            int[] sc = signingCountsByGroup.getOrDefault(g.getGroupId(), new int[3]);
             GroupReportResponse.RatioItem ri = new GroupReportResponse.RatioItem();
             ri.setName(g.getGroupName());
-            ri.setIndividual(total == 0 || cntInd == 0 ? 0 : round1(curSigning * (double) cntInd / (total + 1) / cntInd));
-            ri.setOrganization(total == 0 || cntOrg == 0 ? 0 : round1(curSigning * (double) cntOrg / (total + 1) / cntOrg));
-            ri.setIndividualOfOrg(total == 0 || cntIO == 0 ? 0 : round1(curSigning * (double) cntIO / (total + 1) / cntIO));
+            ri.setIndividual(total == 0 || cntInd == 0 ? 0 : round1(sc[0] * 1.0 / cntInd));
+            ri.setOrganization(total == 0 || cntOrg == 0 ? 0 : round1(sc[1] * 1.0 / cntOrg));
+            ri.setIndividualOfOrg(total == 0 || cntIO == 0 ? 0 : round1(sc[2] * 1.0 / cntIO));
             ratioData.add(ri);
         }
 
@@ -258,6 +280,7 @@ public class ReportServiceImpl implements ReportService {
         List<Object[]> certWeekly    = certProvisioningRepository.countWeeklyCertsByTypeForIndividual(fromDt, toDt);
         List<Object[]> signingWeekly = certUsageRepository.countWeeklySigningsByTypeForIndividual(fromDt, toDt);
         List<Object[]> newCustWeekly = certProvisioningRepository.countWeeklyNewCustomers(fromDt, toDt);
+        List<Object[]> failureWeekly = authFailureRepository.countWeeklyFailuresByTypeForIndividual(fromDt, toDt);
 
         int[] indivCerts = new int[4];
         int[] orgCerts   = new int[4];
@@ -266,6 +289,9 @@ public class ReportServiceImpl implements ReportService {
         int[] orgSign    = new int[4];
         int[] ioSign     = new int[4];
         int[] newCust    = new int[4];
+        int[] pinFailure = new int[4];
+        int[] otpFailure = new int[4];
+        int[] mocFailure = new int[4];
 
         for (Object[] row : certWeekly) {
             int weekIdx = clampWeek(((Number) row[0]).intValue()) - 1;
@@ -290,15 +316,26 @@ public class ReportServiceImpl implements ReportService {
             newCust[weekIdx] = ((Number) row[1]).intValue();
         }
 
+        for (Object[] row : failureWeekly) {
+            int weekIdx = clampWeek(((Number) row[0]).intValue()) - 1;
+            String failureType = row[1] != null ? row[1].toString() : "";
+            int cnt = ((Number) row[2]).intValue();
+            if ("PIN".equalsIgnoreCase(failureType)) pinFailure[weekIdx] += cnt;
+            else if ("OTP".equalsIgnoreCase(failureType)) otpFailure[weekIdx] += cnt;
+            else if ("MOC".equalsIgnoreCase(failureType)) mocFailure[weekIdx] += cnt;
+        }
+
         int totalNewCts   = Arrays.stream(indivCerts).sum() + Arrays.stream(orgCerts).sum() + Arrays.stream(ioCerts).sum();
         int totalSignings = Arrays.stream(indivSign).sum()  + Arrays.stream(orgSign).sum()  + Arrays.stream(ioSign).sum();
+        int totalUploads = (int) documentUploadRepository.countSuccessfulUploadsForIndividual(fromDt, toDt);
+        int totalUploadAttempts = (int) documentUploadRepository.countUploadsForIndividual(fromDt, toDt);
 
         IndividualReportResponse.IndividualStatsSummary stats = new IndividualReportResponse.IndividualStatsSummary();
         stats.setActiveCustomers((int) activeCustomers);
         stats.setNewCts(totalNewCts);
         stats.setSignings(totalSignings);
-        stats.setUploads(totalSignings > 0 ? (int) Math.round(totalSignings * 1.04) : 0);
-        stats.setUploadPct(totalSignings > 0 ? 96 : 0);
+        stats.setUploads(totalUploads);
+        stats.setUploadPct(totalUploadAttempts == 0 ? 0 : (int) Math.round(totalUploads * 100.0 / totalUploadAttempts));
 
         IndividualReportResponse.ChartByType ctsChart = new IndividualReportResponse.ChartByType();
         ctsChart.setIndividual(toList(indivCerts));
@@ -311,9 +348,9 @@ public class ReportServiceImpl implements ReportService {
         signingChart.setIndividualOfOrg(toList(ioSign));
 
         IndividualReportResponse.FailureChart failureChart = new IndividualReportResponse.FailureChart();
-        failureChart.setPin(Collections.nCopies(4, 0));
-        failureChart.setOtp(Collections.nCopies(4, 0));
-        failureChart.setMoc(Collections.nCopies(4, 0));
+        failureChart.setPin(toFailureRateList(pinFailure, otpFailure, mocFailure, indivSign, orgSign, ioSign, "PIN"));
+        failureChart.setOtp(toFailureRateList(pinFailure, otpFailure, mocFailure, indivSign, orgSign, ioSign, "OTP"));
+        failureChart.setMoc(toFailureRateList(pinFailure, otpFailure, mocFailure, indivSign, orgSign, ioSign, "MOC"));
 
         IndividualReportResponse res = new IndividualReportResponse();
         res.setStats(stats);
@@ -354,6 +391,30 @@ public class ReportServiceImpl implements ReportService {
     private List<Integer> toList(int[] arr) {
         List<Integer> list = new ArrayList<>();
         for (int v : arr) list.add(v);
+        return list;
+    }
+
+    private List<Integer> toFailureRateList(
+            int[] pinFailure,
+            int[] otpFailure,
+            int[] mocFailure,
+            int[] indivSign,
+            int[] orgSign,
+            int[] ioSign,
+            String type) {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            int selected = switch (type) {
+                case "PIN" -> pinFailure[i];
+                case "OTP" -> otpFailure[i];
+                case "MOC" -> mocFailure[i];
+                default -> 0;
+            };
+            int failures = pinFailure[i] + otpFailure[i] + mocFailure[i];
+            int signings = indivSign[i] + orgSign[i] + ioSign[i];
+            int attempts = failures + signings;
+            list.add(attempts == 0 ? 0 : (int) Math.round(selected * 100.0 / attempts));
+        }
         return list;
     }
 

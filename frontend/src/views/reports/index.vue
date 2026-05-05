@@ -202,7 +202,7 @@ const defaultTab: CustomerType = (() => {
 })()
 
 const selectedType = ref<CustomerType>(defaultTab)
-const selectedMonth = ref('2026-03')
+const selectedMonth = ref(currentMonthKey())
 const loading = ref(false)
 const expiringDialogVisible = ref(false)
 
@@ -218,12 +218,24 @@ let certChart: echarts.ECharts | null = null
 let signingChart: echarts.ECharts | null = null
 let growthChart: echarts.ECharts | null = null
 
-const monthOptions = [
-  { label: 'Tháng 1/2026', value: '2026-01' },
-  { label: 'Tháng 2/2026', value: '2026-02' },
-  { label: 'Tháng 3/2026', value: '2026-03' },
-  { label: 'Tháng 4/2026', value: '2026-04' },
-]
+const monthOptions = buildMonthOptions()
+
+function currentMonthKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function buildMonthOptions(count = 12) {
+  const now = new Date()
+  return Array.from({ length: count }, (_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - idx, 1)
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    return {
+      label: `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`,
+      value,
+    }
+  })
+}
 
 async function loadReport() {
   loading.value = true
