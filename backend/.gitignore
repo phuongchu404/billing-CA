@@ -7,3 +7,6 @@
 
 # RSA key files — do not commit private keys
 **/keys/*.pem
+
+# Docker env — chứa secrets, không commit
+.env
