@@ -2,8 +2,8 @@
   <div>
     <div class="page-header">
       <div>
-        <h2>Theo dõi sử dụng</h2>
-        <p class="page-subtitle">Khách hàng phổ thông</p>
+        <h2>{{ $t('usageTracking.title') }}</h2>
+        <p class="page-subtitle">{{ $t('usageTracking.subtitle') }}</p>
       </div>
     </div>
 
@@ -11,28 +11,28 @@
       <!-- Stats -->
       <div class="stats-grid">
         <div class="stat-item">
-          SL tài khoản: <b>{{ stats.accounts }}</b>
+          {{ $t('usageTracking.accountsLabel') }} <b>{{ stats.accounts }}</b>
         </div>
         <div class="stat-item">
-          SL gói cước đã mua: <b>{{ stats.plansBought }}</b>
+          {{ $t('usageTracking.plansBoughtLabel') }} <b>{{ stats.plansBought }}</b>
         </div>
         <div class="stat-item">
-          SL lượt đã ký: <b>{{ stats.signings.toLocaleString("vi-VN") }}</b>
+          {{ $t('usageTracking.signingsLabel') }} <b>{{ stats.signings.toLocaleString("vi-VN") }}</b>
         </div>
         <div class="stat-item">
-          SL CTS cá nhân: <b>{{ stats.ctsIndividual }}</b>
+          {{ $t('usageTracking.ctsIndividualLabel') }} <b>{{ stats.ctsIndividual }}</b>
         </div>
         <div class="stat-item">
-          SL CTS tổ chức: <b>{{ stats.ctsOrg }}</b>
+          {{ $t('usageTracking.ctsOrgLabel') }} <b>{{ stats.ctsOrg }}</b>
         </div>
         <div class="stat-item">
-          SL CTS cá nhân thuộc tổ chức: <b>{{ stats.ctsIndividualOfOrg }}</b>
+          {{ $t('usageTracking.ctsIndividualOfOrgLabel') }} <b>{{ stats.ctsIndividualOfOrg }}</b>
         </div>
       </div>
 
       <div class="action-bar">
-        <el-button :icon="Grid" @click="handleExport">Xuất Dữ Liệu</el-button>
-        <span class="last-updated">Lần cập nhật cuối: {{ lastUpdated }}</span>
+        <el-button :icon="Grid" @click="handleExport">{{ $t('usageTracking.exportData') }}</el-button>
+        <span class="last-updated">{{ $t('usageTracking.lastUpdatedLabel', { time: lastUpdated }) }}</span>
       </div>
 
       <!-- Pagination top -->
@@ -73,14 +73,14 @@
 
         <el-table-column prop="account" sortable min-width="145">
           <template #header>
-            <div class="col-label">TÀI KHOẢN</div>
+            <div class="col-label">{{ $t('usageTracking.colAccount') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="purchasedAt" sortable width="165">
           <template #header>
-            <div class="col-label">THỜI GIAN MUA GÓI</div>
+            <div class="col-label">{{ $t('usageTracking.colPurchaseDate') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterPurchasedAt"
@@ -97,7 +97,7 @@
 
         <el-table-column prop="ctsType" sortable width="155">
           <template #header>
-            <div class="col-label">PHÂN LOẠI CTS</div>
+            <div class="col-label">{{ $t('usageTracking.colCtsType') }}</div>
             <div class="col-filter">
               <el-select
                 v-model="filterCtsType"
@@ -107,10 +107,10 @@
                 style="width: 100%"
                 @change="page = 1"
               >
-                <el-option label="Cá nhân" value="INDIVIDUAL" />
-                <el-option label="Tổ chức" value="ORGANIZATION" />
+                <el-option :label="$t('usageTracking.individual')" value="INDIVIDUAL" />
+                <el-option :label="$t('usageTracking.organization')" value="ORGANIZATION" />
                 <el-option
-                  label="Cá nhân thuộc tổ chức"
+                  :label="$t('usageTracking.individualOfOrg')"
                   value="INDIVIDUAL_OF_ORG"
                 />
               </el-select>
@@ -123,7 +123,7 @@
 
         <el-table-column prop="ctsDuration" sortable width="130">
           <template #header>
-            <div class="col-label">THỜI HẠN CTS</div>
+            <div class="col-label">{{ $t('usageTracking.colCtsDuration') }}</div>
             <div class="col-filter">
               <el-select
                 v-model="filterCtsDuration"
@@ -133,19 +133,19 @@
                 style="width: 100%"
                 @change="page = 1"
               >
-                <el-option label="1 tháng" value="1" />
-                <el-option label="12 tháng" value="12" />
-                <el-option label="24 tháng" value="24" />
-                <el-option label="48 tháng" value="48" />
+                <el-option :label="$t('usageTracking.filter1m')" value="1" />
+                <el-option :label="$t('usageTracking.filter12m')" value="12" />
+                <el-option :label="$t('usageTracking.filter24m')" value="24" />
+                <el-option :label="$t('usageTracking.filter48m')" value="48" />
               </el-select>
             </div>
           </template>
-          <template #default="{ row }">{{ row.ctsDuration }} tháng</template>
+          <template #default="{ row }">{{ row.ctsDuration }} {{ $t('usageTracking.months') }}</template>
         </el-table-column>
 
         <el-table-column prop="ctsStatus" sortable width="145">
           <template #header>
-            <div class="col-label">TRẠNG THÁI CTS</div>
+            <div class="col-label">{{ $t('usageTracking.colCtsStatus') }}</div>
             <div class="col-filter">
               <el-select
                 v-model="filterCtsStatus"
@@ -155,11 +155,11 @@
                 style="width: 100%"
                 @change="page = 1"
               >
-                <el-option label="Đang hoạt động" value="ACTIVE" />
-                <el-option label="Chờ kích hoạt" value="PENDING_ACTIVATE" />
-                <el-option label="Chờ cấp duyệt" value="PENDING_APPROVE" />
-                <el-option label="Đã thu hồi" value="REVOKED" />
-                <el-option label="Hết hạn" value="EXPIRED" />
+                <el-option :label="$t('usageTracking.filterActive')" value="ACTIVE" />
+                <el-option :label="$t('usageTracking.filterPendingActivate')" value="PENDING_ACTIVATE" />
+                <el-option :label="$t('usageTracking.filterPendingApprove')" value="PENDING_APPROVE" />
+                <el-option :label="$t('usageTracking.filterRevoked')" value="REVOKED" />
+                <el-option :label="$t('usageTracking.filterExpired')" value="EXPIRED" />
               </el-select>
             </div>
           </template>
@@ -169,14 +169,14 @@
               type="primary"
               size="small"
               effect="plain"
-              >Chờ kích hoạt</el-tag
+              >{{ $t('usageTracking.statusPendingActivate') }}</el-tag
             >
             <el-tag
               v-else-if="row.ctsStatus === 'REVOKED'"
               type="info"
               size="small"
               effect="plain"
-              >Đã thu hồi</el-tag
+              >{{ $t('usageTracking.statusRevoked') }}</el-tag
             >
             <span v-else :class="ctsStatusClass(row.ctsStatus)">{{
               ctsStatusLabel(row.ctsStatus)
@@ -186,7 +186,7 @@
 
         <el-table-column prop="signings" sortable width="120" align="right">
           <template #header>
-            <div class="col-label">LƯỢT ĐÃ KÝ</div>
+            <div class="col-label">{{ $t('usageTracking.colSigningUsed') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">{{
@@ -196,7 +196,7 @@
 
         <el-table-column prop="plan" sortable min-width="145">
           <template #header>
-            <div class="col-label">GÓI CƯỚC ÁP DỤNG</div>
+            <div class="col-label">{{ $t('usageTracking.colPlanApplied') }}</div>
             <div class="col-filter">
               <el-select
                 v-model="filterPlan"
@@ -215,7 +215,7 @@
 
         <el-table-column prop="fee" sortable width="120" align="right">
           <template #header>
-            <div class="col-label">PHÍ (VNĐ)</div>
+            <div class="col-label">{{ $t('usageTracking.colFee') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">{{
@@ -227,7 +227,7 @@
       <!-- Pagination bottom -->
       <div class="pagination-row" style="margin-top: 12px">
         <span class="page-label">
-          Hiển thị
+          {{ $t('usageTracking.showing') }}
           <el-select
             v-model="pageSize"
             size="small"
@@ -238,7 +238,7 @@
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
           </el-select>
-          trong tổng số {{ filteredList.length }} lượt mua gói cước
+          {{ $t('usageTracking.totalPlans', { total: filteredList.length }) }}
         </span>
         <el-pagination
           v-model:current-page="page"
@@ -257,8 +257,11 @@
 import { ref, computed, onMounted } from "vue";
 import { Refresh, Grid } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
+import { useI18n } from "vue-i18n";
 import { getIndividualUsageTracking } from "@/api/individual";
 import type { IndividualUsageRow, IndividualUsageStats } from "@/types/individual";
+
+const { t } = useI18n();
 
 type CtsType = "INDIVIDUAL" | "ORGANIZATION" | "INDIVIDUAL_OF_ORG";
 type CtsStatus =
@@ -313,20 +316,20 @@ const pagedList = computed(() => {
 
 function ctsTypeLabel(type: CtsType): string {
   const map: Record<CtsType, string> = {
-    INDIVIDUAL: "Cá nhân",
-    ORGANIZATION: "Tổ chức",
-    INDIVIDUAL_OF_ORG: "Cá nhân thuộc tổ chức",
+    INDIVIDUAL: t('usageTracking.individual'),
+    ORGANIZATION: t('usageTracking.organization'),
+    INDIVIDUAL_OF_ORG: t('usageTracking.individualOfOrg'),
   };
   return map[type];
 }
 
 function ctsStatusLabel(status: CtsStatus): string {
   const map: Record<CtsStatus, string> = {
-    ACTIVE: "Đang hoạt động",
-    PENDING_ACTIVATE: "Chờ kích hoạt",
-    PENDING_APPROVE: "Chờ cấp duyệt",
-    REVOKED: "Đã thu hồi",
-    EXPIRED: "Hết hạn",
+    ACTIVE: t('usageTracking.statusActive'),
+    PENDING_ACTIVATE: t('usageTracking.statusPendingActivate'),
+    PENDING_APPROVE: t('usageTracking.statusPendingApprove'),
+    REVOKED: t('usageTracking.statusRevoked'),
+    EXPIRED: t('usageTracking.statusExpired'),
   };
   return map[status] ?? status;
 }
@@ -353,7 +356,7 @@ function resetFilters() {
 }
 
 function handleExport() {
-  ElMessage.info("Chức năng đang phát triển");
+  ElMessage.info(t('usageTracking.developing'));
 }
 
 async function load() {
@@ -366,7 +369,7 @@ async function load() {
       lastUpdated.value = res.data.lastUpdated ?? null;
     }
   } catch {
-    ElMessage.error("Không thể tải dữ liệu theo dõi sử dụng");
+    ElMessage.error(t('usageTracking.errorLoad'));
   } finally {
     loading.value = false;
   }

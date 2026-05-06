@@ -1,25 +1,25 @@
 <template>
   <div>
     <div class="page-header">
-      <h2>Khách hàng đại lý</h2>
+      <h2>{{ $t('agency.title') }}</h2>
     </div>
 
     <el-card shadow="never">
       <div class="info-bar">
         <span
-          >SL đại lý đang hoạt động: <b>{{ activeCount }}</b></span
+          >{{ $t('agency.activeAgencyCount', { count: '' }) }}<b>{{ activeCount }}</b></span
         >
         <el-button
           type="primary"
           :icon="Plus"
           :disabled="!can('group:create')"
           @click="handleAddNew"
-          >Thêm Mới</el-button
+          >{{ $t('agency.addNewAgency') }}</el-button
         >
         <el-button :icon="Download" @click="handleExport"
-          >Xuất Dữ Liệu Đối Soát</el-button
+          >{{ $t('agency.exportReconciliation') }}</el-button
         >
-        <span class="last-updated">Lần cập nhật cuối: {{ lastUpdated }}</span>
+        <span class="last-updated">{{ $t('agency.lastUpdated', { time: lastUpdated }) }}</span>
       </div>
 
       <!-- <div class="pagination-row">
@@ -58,21 +58,21 @@
 
         <el-table-column prop="groupCode" sortable width="110">
           <template #header>
-            <div class="col-label">MÃ ĐẠI LÝ</div>
+            <div class="col-label">{{ $t('agency.colCode') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="groupName" sortable min-width="180">
           <template #header>
-            <div class="col-label">TÊN ĐẠI LÝ</div>
+            <div class="col-label">{{ $t('agency.colName') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="status" sortable width="140">
           <template #header>
-            <div class="col-label">TRẠNG THÁI</div>
+            <div class="col-label">{{ $t('agency.colStatus') }}</div>
             <div class="col-filter">
               <el-select
                 v-model="filterStatus"
@@ -81,8 +81,8 @@
                 placeholder=""
                 style="width: 100%"
               >
-                <el-option label="Đang hoạt động" value="ACTIVE" />
-                <el-option label="Tạm dừng" value="INACTIVE" />
+                <el-option :label="$t('agency.statusActive')" value="ACTIVE" />
+                <el-option :label="$t('agency.statusInactive')" value="INACTIVE" />
               </el-select>
             </div>
           </template>
@@ -90,14 +90,14 @@
             <span
               :class="row.status === 'ACTIVE' ? 'text-active' : 'text-inactive'"
             >
-              {{ row.status === "ACTIVE" ? "Đang hoạt động" : "Tạm dừng" }}
+              {{ row.status === "ACTIVE" ? $t("agency.statusActive") : $t("agency.statusInactive") }}
             </span>
           </template>
         </el-table-column>
 
         <el-table-column prop="ownerName" sortable min-width="150">
           <template #header>
-            <div class="col-label">NHÂN VIÊN PHỤ TRÁCH</div>
+            <div class="col-label">{{ $t('agency.colOwner') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -108,7 +108,7 @@
 
         <el-table-column prop="currentPlan" sortable min-width="160">
           <template #header>
-            <div class="col-label">GÓI CƯỚC HIỆN TẠI</div>
+            <div class="col-label">{{ $t('agency.colCurrentPlan') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">{{ row.currentPlan ?? "" }}</template>
@@ -116,7 +116,7 @@
 
         <el-table-column prop="applyUntil" sortable width="130">
           <template #header>
-            <div class="col-label">ÁP DỤNG ĐẾN</div>
+            <div class="col-label">{{ $t('agency.colApplyUntil') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterApplyUntil"
@@ -133,7 +133,7 @@
 
         <el-table-column prop="ctsCreated" sortable width="130">
           <template #header>
-            <div class="col-label">SL CTS ĐÃ TẠO</div>
+            <div class="col-label">{{ $t('agency.colCtsCreated') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -143,7 +143,7 @@
 
         <el-table-column prop="ctsCreatedPct" sortable width="130">
           <template #header>
-            <div class="col-label">% CTS ĐÃ TẠO</div>
+            <div class="col-label">{{ $t('agency.colCtsCreatedPct') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">{{ row.ctsCreatedPct ?? "" }}</template>
@@ -151,7 +151,7 @@
 
         <el-table-column prop="signingUsed" sortable width="130">
           <template #header>
-            <div class="col-label">SL LƯỢT ĐÃ KÝ</div>
+            <div class="col-label">{{ $t('agency.colSigningUsed') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -163,7 +163,7 @@
 
         <el-table-column prop="signingUsedPct" sortable width="130">
           <template #header>
-            <div class="col-label">% LƯỢT ĐÃ KÝ</div>
+            <div class="col-label">{{ $t('agency.colSigningUsedPct') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">{{ row.signingUsedPct ?? "" }}</template>
@@ -171,7 +171,7 @@
 
         <el-table-column prop="updatedAt" sortable width="175">
           <template #header>
-            <div class="col-label">THỜI GIAN CẬP NHẬT</div>
+            <div class="col-label">{{ $t('agency.colUpdatedAt') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterUpdatedAt"
@@ -188,26 +188,26 @@
 
         <el-table-column fixed="right" width="330">
           <template #header>
-            <div class="col-label">HÀNH ĐỘNG</div>
+            <div class="col-label">{{ $t('agency.colActions') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
             <div class="action-btns">
               <el-button size="small" :icon="View" @click.stop="goDetail(row)"
-                >Chi tiết</el-button
+                >{{ $t('agency.btnDetail') }}</el-button
               >
               <el-button
                 size="small"
                 :icon="UserFilled"
                 :disabled="!canAssignOwner"
                 @click.stop="openAssignOwner(row)"
-                >Phụ trách</el-button
+                >{{ $t('agency.btnAssignOwner') }}</el-button
               >
               <el-button
                 size="small"
                 :icon="Document"
                 @click.stop="handleExportRow(row)"
-                >Xuất đối soát</el-button
+                >{{ $t('agency.btnExportRow') }}</el-button
               >
             </div>
           </template>
@@ -216,7 +216,7 @@
 
       <div class="pagination-row" style="margin-top: 12px">
         <span class="page-label">
-          Hiển thị
+          {{ $t('agency.showOf', { size: '', total: filteredList.length }).split('  ')[0] }}
           <el-select
             v-model="pageSize"
             size="small"
@@ -227,7 +227,7 @@
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
           </el-select>
-          trong tổng số {{ filteredList.length }} đại lý
+          {{ $t('agency.showOf', { size: '', total: filteredList.length }).split('  ')[1] || '' }}
         </span>
         <el-pagination
           v-model:current-page="page"
@@ -248,18 +248,18 @@
     >
       <template #header>
         <span style="font-size: 15px; font-weight: 700"
-          >GÁN NHÂN VIÊN PHỤ TRÁCH</span
+          >{{ $t('agency.dialogAssignOwnerTitle') }}</span
         >
       </template>
       <el-form label-width="130px" label-position="left">
-        <el-form-item label="Đại lý:">
+        <el-form-item :label="$t('agency.dialogAgencyLabel')">
           <span>{{ assignOwnerTarget?.groupName }}</span>
         </el-form-item>
-        <el-form-item label="Nhân viên:">
+        <el-form-item :label="$t('agency.dialogStaffLabel')">
           <el-select
             v-model="assignOwnerUserId"
             clearable
-            placeholder="Chọn nhân viên"
+            :placeholder="$t('agency.dialogStaffPlaceholder')"
             style="width: 100%"
           >
             <el-option
@@ -277,9 +277,9 @@
             type="primary"
             :loading="savingOwner"
             @click="handleAssignOwner"
-            >Xác Nhận</el-button
+            >{{ $t('common.confirm') }}</el-button
           >
-          <el-button @click="assignOwnerVisible = false">Hủy</el-button>
+          <el-button @click="assignOwnerVisible = false">{{ $t('common.cancel') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -289,6 +289,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import {
   Plus,
   Download,
@@ -303,6 +304,7 @@ import { usePermission } from "@/composables/usePermission";
 import { ElMessage } from "element-plus";
 
 const { can } = usePermission();
+const { t } = useI18n();
 import type { GroupListItem } from "@/types/group";
 import type { UserAccount } from "@/types";
 
@@ -384,11 +386,11 @@ async function load() {
     if (res.success && res.data) {
       list.value = res.data.map(mapRow);
     } else {
-      ElMessage.error(res.message || "Không thể tải danh sách đại lý");
+      ElMessage.error(res.message || t('agency.errorNotFound'));
     }
     lastUpdated.value = formatDatetime(new Date().toISOString());
   } catch (e) {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   } finally {
     loading.value = false;
   }
@@ -437,7 +439,7 @@ async function handleAssignOwner() {
       assignOwnerUserId.value || null,
     );
     if (res.success) {
-      ElMessage.success("Đã cập nhật nhân viên phụ trách");
+      ElMessage.success(t('agency.successAssignOwner'));
       assignOwnerVisible.value = false;
       await load();
     }

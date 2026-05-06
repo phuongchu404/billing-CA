@@ -1,74 +1,74 @@
 <template>
   <div>
     <div class="page-header">
-      <h2>Thông tin đại lý</h2>
-      <span class="breadcrumb">Khách hàng đại lý</span>
+      <h2>{{ $t('agency.detailTitle') }}</h2>
+      <span class="breadcrumb">{{ $t('agency.breadcrumb') }}</span>
     </div>
 
     <!-- Action buttons: khác nhau theo trạng thái -->
     <div class="action-bar">
       <template v-if="agency.status === 'ACTIVE'">
         <el-button :icon="Download" @click="handleExport"
-          >Xuất Đối Soát</el-button
+          >{{ $t('agency.btnExportReconciliation') }}</el-button
         >
-        <el-button :icon="Edit" @click="handleEdit">Chỉnh Sửa</el-button>
-        <el-button :icon="Plus" @click="handleAddPlan">Thêm Gói Cước</el-button>
+        <el-button :icon="Edit" @click="handleEdit">{{ $t('agency.btnEdit') }}</el-button>
+        <el-button :icon="Plus" @click="handleAddPlan">{{ $t('agency.btnAddPlan') }}</el-button>
         <el-button :icon="VideoPause" @click="handleSuspend"
-          >Tạm Dừng</el-button
+          >{{ $t('agency.btnSuspend') }}</el-button
         >
       </template>
       <template v-else>
         <el-button :icon="VideoPlay" @click="handleActivate"
-          >Kích Hoạt</el-button
+          >{{ $t('agency.btnActivate') }}</el-button
         >
       </template>
     </div>
 
     <!-- THÔNG TIN CHI TIẾT -->
     <el-card shadow="never" class="section-card">
-      <div class="section-title">THÔNG TIN CHI TIẾT</div>
+      <div class="section-title">{{ $t('agency.detailSection') }}</div>
       <div class="info-grid">
         <div class="info-row two-col">
-          <span><b>Tên đại lý:</b> {{ agency.groupName }}</span>
-          <span><b>Mã đại lý:</b> {{ agency.groupCode }}</span>
+          <span><b>{{ $t('agency.agencyNameField') }}</b> {{ agency.groupName }}</span>
+          <span><b>{{ $t('agency.agencyCodeField') }}</b> {{ agency.groupCode }}</span>
         </div>
         <div class="info-row">
-          <b>Trạng thái:</b>
+          <b>{{ $t('agency.statusField') }}</b>
           <span
             :class="
               agency.status === 'ACTIVE' ? 'text-active' : 'text-inactive'
             "
             style="margin-left: 4px"
           >
-            {{ agency.status === "ACTIVE" ? "Đang hoạt động" : "Tạm dừng" }}
+            {{ agency.status === "ACTIVE" ? $t("agency.statusActive") : $t("agency.statusInactive") }}
           </span>
         </div>
         <div class="info-row">
           <span
-            ><b>Nhân sự phụ trách:</b> {{ agency.picEmails.join(", ") }}</span
+            ><b>{{ $t('agency.picField') }}</b> {{ agency.picEmails.join(", ") }}</span
           >
         </div>
         <div v-if="agency.contactEmails?.length" class="info-row">
           <span
-            ><b>Người đại diện:</b> {{ agency.contactEmails.join(", ") }}</span
+            ><b>{{ $t('agency.representativeField') }}</b> {{ agency.contactEmails.join(", ") }}</span
           >
         </div>
         <div class="info-row">
-          <span><b>Mã hợp đồng tham chiếu:</b> {{ agency.refContractNo }}</span>
+          <span><b>{{ $t('agency.refContractField') }}</b> {{ agency.refContractNo }}</span>
         </div>
         <div class="info-row two-col">
-          <span><b>Người tạo:</b> {{ agency.createdBy }}</span>
-          <span><b>Thời gian tạo:</b> {{ agency.createdAt }}</span>
+          <span><b>{{ $t('agency.createdByField') }}</b> {{ agency.createdBy }}</span>
+          <span><b>{{ $t('agency.createdAtField') }}</b> {{ agency.createdAt }}</span>
         </div>
         <div class="info-row">
-          <span><b>Thời gian cập nhật:</b> {{ agency.updatedAt }}</span>
+          <span><b>{{ $t('agency.updatedAtField') }}</b> {{ agency.updatedAt }}</span>
         </div>
       </div>
     </el-card>
 
     <!-- QUẢN LÝ GÓI CƯỚC -->
     <el-card shadow="never" class="section-card">
-      <div class="section-title">QUẢN LÝ GÓI CƯỚC</div>
+      <div class="section-title">{{ $t('agency.planSectionTitle') }}</div>
       <el-table :data="filteredPlans" border>
         <el-table-column type="index" width="50">
           <template #header>
@@ -81,14 +81,14 @@
 
         <el-table-column prop="planName" sortable min-width="180">
           <template #header>
-            <div class="col-label">TÊN GÓI</div>
+            <div class="col-label">{{ $t('agency.colPlanName') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="status" sortable width="145">
           <template #header>
-            <div class="col-label">TRẠNG THÁI</div>
+            <div class="col-label">{{ $t('agency.colStatus') }}</div>
             <div class="col-filter">
               <el-select
                 v-model="planFilterStatus"
@@ -97,11 +97,11 @@
                 placeholder=""
                 style="width: 100%"
               >
-                <el-option label="Khả dụng" value="available" />
-                <el-option label="Không khả dụng" value="unavailable" />
-                <el-option label="Chờ duyệt" value="pending" />
-                <el-option label="Đã duyệt" value="approved" />
-                <el-option label="Đang áp dụng" value="active" />
+                <el-option :label="$t('agency.statusAvailable')" value="available" />
+                <el-option :label="$t('agency.statusUnavailable')" value="unavailable" />
+                <el-option :label="$t('agency.statusPending')" value="pending" />
+                <el-option :label="$t('agency.statusApproved')" value="approved" />
+                <el-option :label="$t('agency.planStatusActive')" value="active" />
               </el-select>
             </div>
           </template>
@@ -111,7 +111,7 @@
               size="small"
               type="info"
               plain
-              >Khả dụng</el-tag
+              >{{ $t('agency.statusAvailable') }}</el-tag
             >
             <el-tag
               v-else-if="row.status === 'unavailable'"
@@ -119,32 +119,32 @@
               type="info"
               plain
               style="color: #909399; border-color: #dcdfe6"
-              >Không khả dụng</el-tag
+              >{{ $t('agency.statusUnavailable') }}</el-tag
             >
             <el-tag
               v-else-if="row.status === 'pending'"
               size="small"
               type="warning"
-              >Chờ duyệt</el-tag
+              >{{ $t('agency.statusPending') }}</el-tag
             >
             <el-tag
               v-else-if="row.status === 'approved'"
               size="small"
               class="tag-approved"
-              >Đã duyệt</el-tag
+              >{{ $t('agency.statusApproved') }}</el-tag
             >
             <el-tag
               v-else-if="row.status === 'active'"
               size="small"
               type="primary"
-              >Đang áp dụng</el-tag
+              >{{ $t('agency.planStatusActive') }}</el-tag
             >
           </template>
         </el-table-column>
 
         <el-table-column prop="applyFrom" sortable width="135">
           <template #header>
-            <div class="col-label">ÁP DỤNG TỪ</div>
+            <div class="col-label">{{ $t('agency.colApplyFrom') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="planFilterFrom"
@@ -161,7 +161,7 @@
 
         <el-table-column prop="applyTo" sortable width="135">
           <template #header>
-            <div class="col-label">ÁP DỤNG ĐẾN</div>
+            <div class="col-label">{{ $t('agency.colApplyTo') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="planFilterTo"
@@ -178,7 +178,7 @@
 
         <el-table-column prop="updatedAt" sortable width="175">
           <template #header>
-            <div class="col-label">THỜI GIAN CẬP NHẬT</div>
+            <div class="col-label">{{ $t('agency.colUpdatedAt') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="planFilterUpdated"
@@ -195,7 +195,7 @@
 
         <el-table-column width="190" fixed="right">
           <template #header>
-            <div class="col-label">HÀNH ĐỘNG</div>
+            <div class="col-label">{{ $t('agency.colActions') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -204,7 +204,7 @@
                 size="small"
                 :icon="InfoFilled"
                 @click="handlePlanDetail(row)"
-                >Chi tiết</el-button
+                >{{ $t('agency.btnDetail') }}</el-button
               >
               <template v-if="agency.status === 'ACTIVE'">
                 <el-button
@@ -213,7 +213,7 @@
                   type="primary"
                   :disabled="!can('group:update')"
                   @click="handleRequestApply(row)"
-                  >Y/c áp dụng</el-button
+                  >{{ $t('agency.btnRequestApply') }}</el-button
                 >
                 <el-button
                   v-else-if="row.status === 'pending'"
@@ -222,7 +222,7 @@
                   :icon="Check"
                   :disabled="!canApprovePlan"
                   @click="handleApprove(row)"
-                  >Duyệt</el-button
+                  >{{ $t('agency.btnApprove') }}</el-button
                 >
                 <el-button
                   v-else-if="
@@ -232,7 +232,7 @@
                   type="warning"
                   :disabled="!can('group:update')"
                   @click="handleStopApply(row)"
-                  >Dừng áp dụng</el-button
+                  >{{ $t('agency.btnStopApply') }}</el-button
                 >
               </template>
             </div>
@@ -247,41 +247,41 @@
         class="section-title toggle-title"
         @click="showHistory = !showHistory"
       >
-        LỊCH SỬ ÁP DỤNG GÓI CƯỚC
+        {{ $t('agency.historySectionTitle') }}
         <el-icon><ArrowDown v-if="showHistory" /><ArrowRight v-else /></el-icon>
       </div>
       <el-table v-show="showHistory" :data="historyRows" border>
         <el-table-column type="index" label="#" width="50" />
         <el-table-column
           prop="applyFrom"
-          label="ÁP DỤNG TỪ"
+          :label="$t('agency.colApplyFrom')"
           sortable
           width="130"
         />
         <el-table-column
           prop="applyTo"
-          label="ÁP DỤNG ĐẾN"
+          :label="$t('agency.colApplyTo')"
           sortable
           width="130"
         />
         <el-table-column
           prop="planName"
-          label="TÊN GÓI"
+          :label="$t('agency.colPlanName')"
           sortable
           min-width="180"
         />
-        <el-table-column label="TRẠNG THÁI" width="130" sortable prop="assignmentStatus">
+        <el-table-column :label="$t('agency.colStatus')" width="130" sortable prop="assignmentStatus">
           <template #default="{ row }">
-            <el-tag v-if="row.assignmentStatus === 'APPROVED'" size="small" type="info">Đã duyệt</el-tag>
-            <el-tag v-else-if="row.assignmentStatus === 'ACTIVE'" size="small" type="primary">Đang áp dụng</el-tag>
-            <el-tag v-else-if="row.assignmentStatus === 'STOPPED'" size="small" type="warning">Đã dừng</el-tag>
-            <el-tag v-else-if="row.assignmentStatus === 'EXPIRED'" size="small" type="danger">Hết hạn</el-tag>
+            <el-tag v-if="row.assignmentStatus === 'APPROVED'" size="small" type="info">{{ $t('agency.statusApproved') }}</el-tag>
+            <el-tag v-else-if="row.assignmentStatus === 'ACTIVE'" size="small" type="primary">{{ $t('agency.planStatusActive') }}</el-tag>
+            <el-tag v-else-if="row.assignmentStatus === 'STOPPED'" size="small" type="warning">{{ $t('agency.planStatusStopped') }}</el-tag>
+            <el-tag v-else-if="row.assignmentStatus === 'EXPIRED'" size="small" type="danger">{{ $t('agency.planStatusExpired') }}</el-tag>
             <el-tag v-else size="small">{{ row.assignmentStatus }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column
           prop="ctsCreated"
-          label="SL CTS ĐÃ TẠO"
+          :label="$t('agency.colCtsCreated')"
           sortable
           width="145"
         >
@@ -291,13 +291,13 @@
         </el-table-column>
         <el-table-column
           prop="ctsCreatedPct"
-          label="% CTS ĐÃ TẠO"
+          :label="$t('agency.colCtsCreatedPct')"
           sortable
           width="140"
         />
         <el-table-column
           prop="signingUsed"
-          label="SL LƯỢT ĐÃ KÝ"
+          :label="$t('agency.colSigningUsed')"
           sortable
           width="145"
         >
@@ -307,7 +307,7 @@
         </el-table-column>
         <el-table-column
           prop="signingUsedPct"
-          label="% LƯỢT ĐÃ KÝ"
+          :label="$t('agency.colSigningUsedPct')"
           sortable
           width="140"
         />
@@ -317,110 +317,87 @@
     <!-- ===== DIALOG 1: YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC ===== -->
     <el-dialog
       v-model="requestApplyVisible"
-      title="YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC"
+      :title="$t('agency.dialogRequestApply')"
       width="480px"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
         <p class="dlg-info-line">
-          Tên gói cước:
+          {{ $t('agency.dialogPlanName') }}
           <span class="dlg-value">{{ selectedPlan?.planName }}</span>
         </p>
         <p class="dlg-info-line">
-          Tên đại lý: <span class="dlg-value">{{ agency.groupName }}</span>
+          {{ $t('agency.dialogAgencyName') }} <span class="dlg-value">{{ agency.groupName }}</span>
         </p>
         <p class="dlg-info-line">
-          Mã đại lý: <span class="dlg-value">{{ agency.groupCode }}</span>
+          {{ $t('agency.dialogAgencyCode') }} <span class="dlg-value">{{ agency.groupCode }}</span>
         </p>
         <div class="dlg-date-row">
-          <span class="dlg-date-label">Thời gian áp dụng</span>
+          <span class="dlg-date-label">{{ $t('agency.dialogApplyPeriod') }}</span>
           <el-date-picker
             v-model="requestApplyDateRange"
             type="daterange"
-            start-placeholder="Từ"
+            :start-placeholder="$t('agency.dateFrom')"
             range-separator="-"
-            end-placeholder="Đến"
+            :end-placeholder="$t('agency.dateTo')"
             value-format="YYYY-MM-DD"
             style="flex: 1"
           />
         </div>
         <div class="dlg-date-row">
-          <span class="dlg-date-label">Cấp phê duyệt</span>
+          <span class="dlg-date-label">{{ $t('agency.dialogApprovalLevel') }}</span>
           <el-select v-model="requestApprovalLevel" style="flex: 1">
-            <el-option label="Trưởng phòng kinh doanh" :value="1" />
-            <el-option label="CFO (Finance Manager)" :value="2" />
-            <el-option label="CEO" :value="3" />
+            <el-option :label="$t('agency.dialogSalesManager')" :value="1" />
+            <el-option :label="$t('agency.dialogCFO')" :value="2" />
+            <el-option :label="$t('agency.dialogCEO')" :value="3" />
           </el-select>
         </div>
-        <p class="dlg-note">
-          Khi bấm nút Xác Nhận, hệ thống sẽ đưa phiên bản hiện tại sẽ chuyển
-          sang trạng thái
-          <b>"Chờ duyệt"</b>. Sau khi được duyệt, bảng gói cước sẽ được áp dụng
-          từ 00:00:00 ngày bắt đầu đến 23:59:59 ngày kết thúc.
-        </p>
+        <p class="dlg-note" v-html="$t('agency.dialogRequestNote')"></p>
       </div>
       <template #footer>
         <el-button type="primary" :disabled="!can('group:update')" @click="confirmRequestApply"
-          >Xác Nhận</el-button
+          >{{ $t('common.confirm') }}</el-button
         >
-        <el-button @click="requestApplyVisible = false">Hủy Bỏ</el-button>
+        <el-button @click="requestApplyVisible = false">{{ $t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== DIALOG 2: DUYỆT ÁP DỤNG GÓI CƯỚC ===== -->
     <el-dialog
       v-model="approveVisible"
-      title="DUYỆT ÁP DỤNG GÓI CƯỚC"
+      :title="$t('agency.dialogApproveApply')"
       width="520px"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc">
-          Nhấn <b>"Xác nhận"</b> để duyệt áp dụng gói cước
-          <b class="dlg-plan-name">{{ selectedPlan?.planName }}</b>
-          cho đại lý <b>{{ agency.groupName }}</b> với mã
-          <b>{{ agency.groupCode }}</b
-          >.
-        </p>
+        <p class="dlg-desc" v-html="$t('agency.dialogApproveDesc', { planName: selectedPlan?.planName, agencyName: agency.groupName, agencyCode: agency.groupCode })"></p>
         <div class="dlg-date-row">
-          <span class="dlg-date-label">Thời gian áp dụng</span>
+          <span class="dlg-date-label">{{ $t('agency.dialogApplyPeriod') }}</span>
           <el-date-picker
             v-model="approveDateRange"
             type="daterange"
-            start-placeholder="Từ"
+            :start-placeholder="$t('agency.dateFrom')"
             range-separator="-"
-            end-placeholder="Đến"
+            :end-placeholder="$t('agency.dateTo')"
             value-format="YYYY-MM-DD"
             style="flex: 1"
           />
         </div>
-        <p class="dlg-note">
-          Khi chọn Xác nhận, gói cước sẽ chuyển sang trạng thái
-          <b>"Đã duyệt"</b> và được áp dụng từ 00:00:00 ngày bắt đầu đến
-          23:59:59 ngày kết thúc.
-        </p>
+        <p class="dlg-note" v-html="$t('agency.dialogApproveNote')"></p>
         <ul class="dlg-bullets">
-          <li>
-            Từ 00:00:00 ngày bắt đầu, trạng thái sẽ chuyển sang
-            <b>"Đang áp dụng"</b>
-          </li>
-          <li>
-            Sau khi hết thời gian hiệu lực, trạng thái sẽ tự động chuyển về
-            <b>"Khả dụng"</b>
-          </li>
-          <li>
-            Chọn Từ chối, trạng thái gói cước sẽ chuyển về <b>"Khả dụng"</b>.
-          </li>
+          <li v-html="$t('agency.dialogApproveBullet1')"></li>
+          <li v-html="$t('agency.dialogApproveBullet2')"></li>
+          <li v-html="$t('agency.dialogApproveBullet3')"></li>
         </ul>
       </div>
       <template #footer>
         <div class="dlg-footer-split">
-          <el-button type="warning" :disabled="!canApprovePlan" @click="confirmReject">Từ Chối</el-button>
+          <el-button type="warning" :disabled="!canApprovePlan" @click="confirmReject">{{ $t('agency.btnReject') }}</el-button>
           <div>
             <el-button type="primary" :disabled="!canApprovePlan" @click="confirmApprove"
-              >Xác Nhận</el-button
+              >{{ $t('common.confirm') }}</el-button
             >
-            <el-button @click="approveVisible = false">Hủy Bỏ</el-button>
+            <el-button @click="approveVisible = false">{{ $t('common.cancel') }}</el-button>
           </div>
         </div>
       </template>
@@ -429,84 +406,75 @@
     <!-- ===== DIALOG 3: DỪNG ÁP DỤNG GÓI CƯỚC ===== -->
     <el-dialog
       v-model="stopApplyVisible"
-      title="DỪNG ÁP DỤNG GÓI CƯỚC"
+      :title="$t('agency.dialogStopApply')"
       width="480px"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc">
-          Nhấn <b>"Xác nhận"</b> để dừng lập tức áp dụng gói cước
-          <b class="dlg-plan-name">{{ selectedPlan?.planName }}</b>
-          cho đại lý <b>{{ agency.groupName }}</b> với mã
-          <b>{{ agency.groupCode }}</b
-          >. Sau khi dừng, trạng thái cập nhật sẽ chuyển sang <b>"Khả dụng"</b>.
-        </p>
+        <p class="dlg-desc" v-html="$t('agency.dialogStopDesc', { planName: selectedPlan?.planName, agencyName: agency.groupName, agencyCode: agency.groupCode })"></p>
       </div>
       <template #footer>
-        <el-button type="primary" :disabled="!can('group:update')" @click="confirmStopApply">Xác Nhận</el-button>
-        <el-button @click="stopApplyVisible = false">Hủy Bỏ</el-button>
+        <el-button type="primary" :disabled="!can('group:update')" @click="confirmStopApply">{{ $t('common.confirm') }}</el-button>
+        <el-button @click="stopApplyVisible = false">{{ $t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== DIALOG 4: CHI TIẾT GÓI CƯỚC ===== -->
     <el-dialog
       v-model="planDetailVisible"
-      title="CHI TIẾT GÓI CƯỚC"
+      :title="$t('agency.dialogPlanDetail')"
       width="760px"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
         <div class="detail-info-grid">
           <div class="detail-info-row">
-            <span><b>Tên gói cước:</b> {{ selectedPlan?.planName }}</span>
+            <span><b>{{ $t('agency.dialogPlanName') }}</b> {{ selectedPlan?.planName }}</span>
             <span
-              ><b>Trạng thái:</b>
+              ><b>{{ $t('agency.statusField') }}</b>
               {{ planStatusLabel(selectedPlan?.status) }}</span
             >
           </div>
           <div class="detail-info-row">
-            <span><b>Mã đại lý:</b> {{ agency.groupCode }}</span>
-            <span><b>Tên đại lý:</b> {{ agency.groupName }}</span>
+            <span><b>{{ $t('agency.agencyCodeField') }}</b> {{ agency.groupCode }}</span>
+            <span><b>{{ $t('agency.agencyNameField') }}</b> {{ agency.groupName }}</span>
           </div>
           <div class="detail-info-row">
-            <span><b>Áp dụng từ:</b> {{ selectedPlan?.applyFrom }}</span>
-            <span><b>Áp dụng đến:</b> {{ selectedPlan?.applyTo }}</span>
+            <span><b>{{ $t('agency.colApplyFrom') }}:</b> {{ selectedPlan?.applyFrom }}</span>
+            <span><b>{{ $t('agency.colApplyTo') }}:</b> {{ selectedPlan?.applyTo }}</span>
           </div>
           <div class="detail-info-row">
             <span
-              ><b>Thời gian cập nhật:</b> {{ selectedPlan?.updatedAt }}</span
+              ><b>{{ $t('agency.updatedAtField') }}</b> {{ selectedPlan?.updatedAt }}</span
             >
           </div>
         </div>
 
         <el-table :data="planConfigRows" border style="margin-top: 16px" v-loading="planDetailLoading">
           <el-table-column type="index" width="50" />
-          <el-table-column prop="subject" label="ĐỐI TƯỢNG" width="160" />
-          <el-table-column label="THỜI HẠN CHỨNG THƯ" width="160">
-            <template #default="{ row }">{{ row.duration }} tháng</template>
+          <el-table-column prop="subject" :label="$t('agency.colSubject')" width="160" />
+          <el-table-column :label="$t('agency.colCtsDuration')" width="160">
+            <template #default="{ row }">{{ row.duration }} {{ $t('agency.monthUnit') }}</template>
           </el-table-column>
-          <el-table-column prop="condition" label="ĐIỀU KIỆN" width="130" />
+          <el-table-column prop="condition" :label="$t('agency.colCondition')" width="130" />
           <el-table-column
             prop="min"
-            label="GIÁ TRỊ MIN (CỦA ĐIỀU KIỆN)"
+            :label="$t('agency.colMinValue')"
             width="155"
           />
           <el-table-column
             prop="max"
-            label="GIÁ TRỊ MAX (CỦA ĐIỀU KIỆN)"
+            :label="$t('agency.colMaxValue')"
             width="155"
           />
-          <el-table-column label="PHÍ/ ĐIỀU KIỆN">
+          <el-table-column :label="$t('agency.colFeePerCondition')">
             <template #default="{ row }"
-              >{{ row.fee.toLocaleString() }} vnđ</template
+              >{{ row.fee.toLocaleString() }} {{ $t('agency.vnd') }}</template
             >
           </el-table-column>
         </el-table>
 
-        <p class="dlg-note" style="margin-top: 12px">
-          <b>Lưu ý:</b> Gói cước đã tạo sẽ không thể chỉnh sửa. Vui lòng tạo gói
-          cước mới trong trường hợp thay đổi.
-        </p>
+        <p class="dlg-note" style="margin-top: 12px" v-html="$t('agency.dialogPlanNote')"></p>
       </div>
       <template #footer>
         <div class="dlg-footer-split">
@@ -515,7 +483,7 @@
             type="warning"
             :disabled="!can('group:update')"
             @click="openDisableDialog"
-            >Vô Hiệu Hoá</el-button
+            >{{ $t('agency.btnDisable') }}</el-button
           >
           <div>
             <el-button
@@ -523,9 +491,9 @@
               type="primary"
               :disabled="!can('group:update')"
               @click="openRequestFromDetail"
-              >Yêu Cầu Áp Dụng</el-button
+              >{{ $t('agency.btnRequestApply') }}</el-button
             >
-            <el-button @click="planDetailVisible = false">Hủy Bỏ</el-button>
+            <el-button @click="planDetailVisible = false">{{ $t('common.cancel') }}</el-button>
           </div>
         </div>
       </template>
@@ -534,17 +502,17 @@
     <!-- ===== DIALOG: XUẤT ĐỐI SOÁT ===== -->
     <el-dialog
       v-model="exportVisible"
-      title="XUẤT ĐỐI SOÁT"
+      :title="$t('agency.dialogExport')"
       width="420px"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
         <div class="dlg-date-row">
-          <span class="dlg-date-label">Thời gian đối soát</span>
+          <span class="dlg-date-label">{{ $t('agency.dialogExportPeriod') }}</span>
           <el-date-picker
             v-model="exportMonth"
             type="month"
-            placeholder="Chọn tháng xuất đối soát"
+            :placeholder="$t('agency.dialogExportPlaceholder')"
             format="MM/YYYY"
             value-format="YYYY-MM"
             style="flex: 1"
@@ -556,77 +524,64 @@
           type="primary"
           :disabled="!exportMonth"
           @click="confirmExport"
-          >Xác Nhận</el-button
+          >{{ $t('common.confirm') }}</el-button
         >
-        <el-button @click="exportVisible = false">Hủy Bỏ</el-button>
+        <el-button @click="exportVisible = false">{{ $t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== DIALOG: KÍCH HOẠT LẠI ===== -->
     <el-dialog
       v-model="activateVisible"
-      title="KÍCH HOẠT LẠI"
+      :title="$t('agency.dialogActivateTitle')"
       width="460px"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc">
-          Bạn có chắc chắn muốn kích hoạt lại đại lý [{{ agency.groupCode }}] -
-          {{ agency.groupName }}?
-        </p>
-        <p class="dlg-desc" style="margin-top: 8px">
-          Đại lý sẽ được chuyển về trạng thái <b>"Đang hoạt động"</b> và tiếp
-          tục sử dụng dịch vụ. Gói cước còn hiệu lực sẽ tiếp tục được áp dụng
-          (nếu có).
-        </p>
+        <p class="dlg-desc" v-html="$t('agency.dialogActivateConfirm', { code: agency.groupCode, name: agency.groupName })"></p>
+        <p class="dlg-desc" style="margin-top: 8px" v-html="$t('agency.dialogActivateNote')"></p>
       </div>
       <template #footer>
-        <el-button type="primary" @click="confirmActivate">Xác Nhận</el-button>
-        <el-button @click="activateVisible = false">Hủy Bỏ</el-button>
+        <el-button type="primary" @click="confirmActivate">{{ $t('common.confirm') }}</el-button>
+        <el-button @click="activateVisible = false">{{ $t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== DIALOG 5: VÔ HIỆU HOÁ ===== -->
     <el-dialog
       v-model="disableVisible"
-      title="VÔ HIỆU HOÁ"
+      :title="$t('agency.dialogDisableTitle')"
       width="480px"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc">
-          Bạn đang vô hiệu hoá gói cước <b>{{ selectedPlan?.planName }}</b> của
-          đại lý [{{ agency.groupCode }}] - {{ agency.groupName }}.
-        </p>
-        <p class="dlg-desc" style="margin-top: 8px">
-          Cấu hình gói cước này sẽ không còn khả dụng. Nhấn <b>"Xác Nhận"</b> để
-          vô hiệu hoá.
-        </p>
+        <p class="dlg-desc" v-html="$t('agency.dialogDisableDesc', { planName: selectedPlan?.planName, code: agency.groupCode, name: agency.groupName })"></p>
+        <p class="dlg-desc" style="margin-top: 8px" v-html="$t('agency.dialogDisableNote')"></p>
       </div>
       <template #footer>
-        <el-button type="primary" :disabled="!can('group:update')" @click="confirmDisable">Xác Nhận</el-button>
-        <el-button @click="disableVisible = false">Hủy Bỏ</el-button>
+        <el-button type="primary" :disabled="!can('group:update')" @click="confirmDisable">{{ $t('common.confirm') }}</el-button>
+        <el-button @click="disableVisible = false">{{ $t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== DIALOG: CHỈNH SỬA THÔNG TIN ĐẠI LÝ ===== -->
     <el-dialog
       v-model="editVisible"
-      title="CHỈNH SỬA THÔNG TIN ĐẠI LÝ"
+      :title="$t('agency.dialogEditTitle')"
       width="520px"
       :close-on-click-modal="false"
     >
       <el-form :model="editForm" label-width="190px" class="edit-form">
-        <el-form-item label="Mã đại lý">
+        <el-form-item :label="$t('agency.dialogEditCodeLabel')">
           <div style="width: 100%">
             <el-input :value="agency.groupCode" disabled />
-            <div class="field-hint">Không thể đổi mã đại lý</div>
+            <div class="field-hint">{{ $t('agency.dialogEditCodeHint') }}</div>
           </div>
         </el-form-item>
-        <el-form-item label="Tên đại lý">
+        <el-form-item :label="$t('agency.dialogEditNameLabel')">
           <el-input v-model="editForm.groupName" />
         </el-form-item>
-        <el-form-item label="Email nhân sự phụ trách">
+        <el-form-item :label="$t('agency.dialogEditPicLabel')">
           <el-select
             v-model="editForm.picEmails"
             multiple
@@ -644,7 +599,7 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="Email đại diện đại lý">
+        <el-form-item :label="$t('agency.dialogEditContactLabel')">
           <el-select
             v-model="editForm.contactEmails"
             multiple
@@ -665,10 +620,10 @@
       </el-form>
       <template #footer>
         <el-button type="primary" :loading="editSaving" @click="confirmEdit"
-          >Xác Nhận</el-button
+          >{{ $t('common.confirm') }}</el-button
         >
         <el-button :disabled="editSaving" @click="editVisible = false"
-          >Hủy Bỏ</el-button
+          >{{ $t('common.cancel') }}</el-button
         >
       </template>
     </el-dialog>
@@ -678,6 +633,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import {
   Download,
   Edit,
@@ -713,6 +669,7 @@ const route = useRoute();
 const router = useRouter();
 const agencyId = Number(route.params.id);
 const { can } = usePermission();
+const { t } = useI18n();
 
 // ---- State ----
 const agency = ref<GroupDetail>({
@@ -802,10 +759,10 @@ async function loadAgency() {
     if (res.success && res.data) {
       agency.value = res.data;
     } else {
-      ElMessage.error(res.message || "Không tìm thấy đại lý");
+      ElMessage.error(res.message || t('agency.errorNotFound'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
 }
 
@@ -816,7 +773,7 @@ async function loadPlans() {
       plans.value = res.data.map(mapAssignment);
     }
   } catch {
-    ElMessage.error("Lỗi khi tải danh sách gói cước");
+    ElMessage.error(t('agency.errorLoadPlans'));
   }
 }
 
@@ -827,7 +784,7 @@ async function loadHistory() {
       historyRows.value = res.data;
     }
   } catch {
-    ElMessage.error("Lỗi khi tải lịch sử áp dụng gói cước");
+    ElMessage.error(t('agency.errorLoadHistory'));
   }
 }
 
@@ -879,11 +836,11 @@ const editForm = reactive({
 // --- helpers ---
 function planStatusLabel(status?: string): string {
   const map: Record<string, string> = {
-    available: "Khả dụng",
-    unavailable: "Không khả dụng",
-    pending: "Chờ duyệt",
-    approved: "Đã duyệt",
-    active: "Đang áp dụng",
+    available: t('agency.statusAvailable'),
+    unavailable: t('agency.statusUnavailable'),
+    pending: t('agency.statusPending'),
+    approved: t('agency.statusApproved'),
+    active: t('agency.planStatusActive'),
   };
   return status ? (map[status] ?? status) : "";
 }
@@ -906,7 +863,7 @@ function handleEdit() {
 
 async function handleSuspend() {
   try {
-    await ElMessageBox.confirm("Tạm dừng đại lý này?", "Xác nhận", {
+    await ElMessageBox.confirm(t('agency.confirmSuspend'), t('agency.confirmTitle'), {
       type: "warning",
     });
   } catch {
@@ -916,12 +873,12 @@ async function handleSuspend() {
     const res = await suspendGroup(agencyId);
     if (res.success) {
       agency.value.status = "INACTIVE";
-      ElMessage.success("Đã tạm dừng đại lý");
+      ElMessage.success(t('agency.successSuspended'));
     } else {
-      ElMessage.error(res.message || "Không thể tạm dừng");
+      ElMessage.error(res.message || t('agency.errorCannotSuspend'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
 }
 
@@ -931,7 +888,7 @@ function handleActivate() {
 
 function handleRequestApply(row: PlanRow) {
   if (!can("group:update")) {
-    ElMessage.warning("Bạn không có quyền yêu cầu áp dụng gói cước");
+    ElMessage.warning(t('agency.noPermissionRequestApply'));
     return;
   }
   selectedPlan.value = row;
@@ -945,11 +902,11 @@ function handleRequestApply(row: PlanRow) {
 
 function handleApprove(row: PlanRow) {
   if (!canApprovePlan.value) {
-    ElMessage.warning("Bạn không có quyền duyệt gói cước");
+    ElMessage.warning(t('agency.noPermissionApprove'));
     return;
   }
   if (!row.approvalRequestId) {
-    ElMessage.warning("Không tìm thấy yêu cầu phê duyệt của gói cước");
+    ElMessage.warning(t('agency.noApprovalRequest'));
     return;
   }
   router.push(`/approvals/${row.approvalRequestId}`);
@@ -957,7 +914,7 @@ function handleApprove(row: PlanRow) {
 
 function handleStopApply(row: PlanRow) {
   if (!can("group:update")) {
-    ElMessage.warning("Bạn không có quyền dừng áp dụng gói cước");
+    ElMessage.warning(t('agency.noPermissionStopApply'));
     return;
   }
   selectedPlan.value = row;
@@ -965,13 +922,13 @@ function handleStopApply(row: PlanRow) {
 }
 
 const subjectTypeLabel: Record<string, string> = {
-  INDIVIDUAL: "Cá nhân",
-  ORGANIZATION: "Tổ chức",
-  INDIVIDUAL_OF_ORG: "Cá nhân thuộc tổ chức",
+  INDIVIDUAL: t('agency.subjectIndividual'),
+  ORGANIZATION: t('agency.subjectOrganization'),
+  INDIVIDUAL_OF_ORG: t('agency.subjectIndividualOfOrg'),
 };
 const pricingMetricLabel: Record<string, string> = {
-  CERTIFICATE_COUNT: "Số lượng CTS",
-  SIGNING_COUNT: "Số lượt ký",
+  CERTIFICATE_COUNT: t('agency.metricCertificateCount'),
+  SIGNING_COUNT: t('agency.metricSigningCount'),
 };
 
 async function handlePlanDetail(row: PlanRow) {
@@ -990,12 +947,12 @@ async function handlePlanDetail(row: PlanRow) {
           duration: r.certificateValidityValue,
           condition: pricingMetricLabel[r.pricingMetric] ?? r.pricingMetric,
           min: r.rangeMin,
-          max: r.rangeMax ?? "Không giới hạn",
+          max: r.rangeMax ?? t('agency.unlimited'),
           fee: Number(r.unitPrice),
         }));
     }
   } catch {
-    ElMessage.error("Không thể tải chi tiết gói cước");
+    ElMessage.error(t('agency.errorLoadPlanDetail'));
   } finally {
     planDetailLoading.value = false;
   }
@@ -1003,7 +960,7 @@ async function handlePlanDetail(row: PlanRow) {
 
 function openDisableDialog() {
   if (!can("group:update")) {
-    ElMessage.warning("Bạn không có quyền vô hiệu hoá gói cước");
+    ElMessage.warning(t('agency.noPermissionDisable'));
     return;
   }
   planDetailVisible.value = false;
@@ -1012,7 +969,7 @@ function openDisableDialog() {
 
 function openRequestFromDetail() {
   if (!can("group:update")) {
-    ElMessage.warning("Bạn không có quyền yêu cầu áp dụng gói cước");
+    ElMessage.warning(t('agency.noPermissionRequestFromDetail'));
     return;
   }
   planDetailVisible.value = false;
@@ -1028,7 +985,7 @@ function openRequestFromDetail() {
 async function confirmRequestApply() {
   if (!selectedPlan.value) return;
   if (!can("group:update")) {
-    ElMessage.warning("Bạn không có quyền yêu cầu áp dụng gói cước");
+    ElMessage.warning(t('agency.noPermissionRequestApply'));
     return;
   }
   try {
@@ -1044,13 +1001,13 @@ async function confirmRequestApply() {
       approvalLevel: requestApprovalLevel.value,
     });
     if (res.success) {
-      ElMessage.success("Đã gửi yêu cầu áp dụng");
+      ElMessage.success(t('agency.successRequestApply'));
       await loadPlans();
     } else {
-      ElMessage.error(res.message || "Không thể gửi yêu cầu");
+      ElMessage.error(res.message || t('agency.errorCannotRequest'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
   requestApplyVisible.value = false;
 }
@@ -1058,7 +1015,7 @@ async function confirmRequestApply() {
 async function confirmApprove() {
   if (!selectedPlan.value) return;
   if (!canApprovePlan.value) {
-    ElMessage.warning("Bạn không có quyền duyệt gói cước");
+    ElMessage.warning(t('agency.noPermissionApprove'));
     return;
   }
   try {
@@ -1069,13 +1026,13 @@ async function confirmApprove() {
       applyTo: approveDateRange.value ? approveDateRange.value[1] : null,
     });
     if (res.success) {
-      ElMessage.success("Đã duyệt gói cước");
+      ElMessage.success(t('agency.successApproved'));
       await loadPlans();
     } else {
-      ElMessage.error(res.message || "Không thể duyệt");
+      ElMessage.error(res.message || t('agency.errorCannotApprove'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
   approveVisible.value = false;
 }
@@ -1083,7 +1040,7 @@ async function confirmApprove() {
 async function confirmReject() {
   if (!selectedPlan.value) return;
   if (!canApprovePlan.value) {
-    ElMessage.warning("Bạn không có quyền từ chối duyệt gói cước");
+    ElMessage.warning(t('agency.noPermissionApprove'));
     return;
   }
   try {
@@ -1092,13 +1049,13 @@ async function confirmReject() {
       actor: "system",
     });
     if (res.success) {
-      ElMessage.success("Đã từ chối gói cước");
+      ElMessage.success(t('agency.successRejected'));
       await loadPlans();
     } else {
-      ElMessage.error(res.message || "Không thể từ chối");
+      ElMessage.error(res.message || t('agency.errorCannotReject'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
   approveVisible.value = false;
 }
@@ -1106,23 +1063,23 @@ async function confirmReject() {
 async function confirmStopApply() {
   if (!selectedPlan.value) return;
   if (!can("group:update")) {
-    ElMessage.warning("Bạn không có quyền dừng áp dụng gói cước");
+    ElMessage.warning(t('agency.noPermissionStopApply'));
     return;
   }
   try {
     const res = await reviewAssignment(selectedPlan.value.id, {
       decision: "STOP",
       actor: "system",
-      note: "Dừng áp dụng",
+      note: t('agency.stopNote'),
     });
     if (res.success) {
-      ElMessage.success("Đã dừng áp dụng gói cước");
+      ElMessage.success(t('agency.successStopped'));
       await loadPlans();
     } else {
-      ElMessage.error(res.message || "Không thể dừng");
+      ElMessage.error(res.message || t('agency.errorCannotStop'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
   stopApplyVisible.value = false;
 }
@@ -1130,23 +1087,23 @@ async function confirmStopApply() {
 async function confirmDisable() {
   if (!selectedPlan.value) return;
   if (!can("group:update")) {
-    ElMessage.warning("Bạn không có quyền vô hiệu hoá gói cước");
+    ElMessage.warning(t('agency.noPermissionDisable'));
     return;
   }
   try {
     const res = await reviewAssignment(selectedPlan.value.id, {
       decision: "STOP",
       actor: "system",
-      note: "Vô hiệu hoá",
+      note: t('agency.disableNote'),
     });
     if (res.success) {
-      ElMessage.success("Đã vô hiệu hoá gói cước");
+      ElMessage.success(t('agency.successDisabled'));
       await loadPlans();
     } else {
-      ElMessage.error(res.message || "Không thể vô hiệu hoá");
+      ElMessage.error(res.message || t('agency.errorCannotDisable'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
   disableVisible.value = false;
 }
@@ -1161,12 +1118,12 @@ async function confirmActivate() {
     const res = await activateGroup(agencyId);
     if (res.success) {
       agency.value.status = "ACTIVE";
-      ElMessage.success("Đã kích hoạt đại lý");
+      ElMessage.success(t('agency.successActivated'));
     } else {
-      ElMessage.error(res.message || "Không thể kích hoạt");
+      ElMessage.error(res.message || t('agency.errorCannotActivate'));
     }
   } catch {
-    ElMessage.error("Lỗi kết nối server");
+    ElMessage.error(t('agency.errorServer'));
   }
   activateVisible.value = false;
 }
@@ -1189,13 +1146,13 @@ async function confirmEdit() {
       agency.value.groupName = editForm.groupName;
       agency.value.picEmails = [...editForm.picEmails];
       agency.value.contactEmails = [...editForm.contactEmails];
-      ElMessage.success("Cập nhật thông tin đại lý thành công");
+      ElMessage.success(t('agency.successEditAgency'));
       editVisible.value = false;
     } else {
-      ElMessage.error(res.message || "Cập nhật thất bại");
+      ElMessage.error(res.message || t('agency.errorEditAgency'));
     }
   } catch {
-    ElMessage.error("Đã xảy ra lỗi, vui lòng thử lại");
+    ElMessage.error(t('agency.errorOccurred'));
   } finally {
     editSaving.value = false;
   }
