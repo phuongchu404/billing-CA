@@ -92,8 +92,16 @@
         </el-form-item>
       </el-form>
       <div class="plan-notes">
-        <p v-html="$t('agency.applyNotePending')" />
-        <p v-html="$t('agency.applyNoteAvailable')" />
+        <p>
+          {{ $t('agency.applyNotePendingPrefix') }}
+          <b>{{ $t('agency.applyNotePendingStatus') }}</b>
+          {{ $t('agency.applyNotePendingSuffix') }}
+        </p>
+        <p>
+          {{ $t('agency.applyNoteAvailablePrefix') }}
+          <b>{{ $t('agency.applyNoteAvailableStatus') }}</b>
+          {{ $t('agency.applyNoteAvailableSuffix') }}
+        </p>
       </div>
     </el-card>
 
@@ -183,23 +191,122 @@
       <div v-show="showGuide" class="guide-content">
         <ul>
           <li>{{ $t('agency.guideIntro') }}</li>
-          <li v-html="$t('agency.guideDuration')" />
-          <li v-html="$t('agency.guideCondition')" />
           <li>
-            <span v-html="$t('agency.guideMin')" />
-            <span v-html="$t('agency.guideMax')" />
-            <br />
-            <span v-html="$t('agency.guideNote')" />
+            <b>{{ $t('agency.guideDurationLabel') }}</b>
+            {{ $t('agency.guideDurationText') }}
           </li>
-          <li v-html="$t('agency.guideFee')" />
+          <li>
+            <b>{{ $t('agency.guideConditionLabel') }}</b>
+            {{ $t('agency.guideConditionText') }}
+          </li>
+          <li>
+            <span>
+              <b>{{ $t('agency.guideMinLabel') }}</b>
+              {{ $t('agency.guideMinText') }}
+            </span>
+            <span>
+              <b>{{ $t('agency.guideMaxLabel') }}</b>
+              {{ $t('agency.guideMaxText') }}
+            </span>
+            <br />
+            <span>
+              <u>{{ $t('agency.guideNoteLabel') }}</u>
+              {{ $t('agency.guideNoteText') }}
+            </span>
+          </li>
+          <li>
+            <b>{{ $t('agency.guideFeeLabel') }}</b>
+            {{ $t('agency.guideFeeText') }}
+          </li>
         </ul>
       </div>
     </el-card>
 
+    <!-- TÀI KHOẢN ĐĂNG NHẬP ĐỐI TÁC (tùy chọn) -->
+    <el-card shadow="never" class="section-card">
+      <div class="section-title">{{ $t('agency.partnerAccountSection') }}</div>
+      <el-checkbox v-model="createPartnerAccount" style="margin-bottom:16px">
+        {{ $t('agency.partnerAccountToggle') }}
+      </el-checkbox>
+
+      <el-form v-if="createPartnerAccount" :model="partnerForm" label-width="220px" label-position="left">
+        <el-form-item :label="$t('agency.partnerUsernameLabel')">
+          <el-input v-model="partnerForm.username" :placeholder="$t('agency.partnerUsernamePlaceholder')" />
+        </el-form-item>
+
+        <el-form-item :label="$t('agency.partnerEmailLabel')">
+          <el-input v-model="partnerForm.email" :placeholder="$t('agency.partnerEmailPlaceholder')" />
+        </el-form-item>
+
+        <el-form-item :label="$t('agency.partnerFullNameLabel')">
+          <el-input v-model="partnerForm.fullName" :placeholder="$t('agency.partnerFullNamePlaceholder')" />
+        </el-form-item>
+
+        <el-form-item :label="$t('agency.partnerPasswordLabel')">
+          <el-input
+            v-model="partnerForm.password"
+            type="password"
+            show-password
+            :placeholder="$t('agency.partnerPasswordPlaceholder')"
+          />
+          <div class="field-hint">{{ $t('agency.partnerPasswordHint') }}</div>
+        </el-form-item>
+
+        <el-form-item :label="$t('agency.partnerConfirmPasswordLabel')">
+          <el-input
+            v-model="partnerForm.confirmPassword"
+            type="password"
+            show-password
+            :placeholder="$t('agency.partnerConfirmPasswordPlaceholder')"
+          />
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <div class="footer-btns">
-      <el-button type="primary" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
       <el-button @click="handleCancel">{{ $t('common.cancel') }}</el-button>
     </div>
+
+    <!-- DIALOG CHỌN GÓI CƯỚC MẪU -->
+    <el-dialog
+      v-model="templateDialogVisible"
+      :title="$t('agency.chooseTemplateTitle')"
+      width="480px"
+      destroy-on-close
+    >
+      <p style="margin:0 0 16px;color:#606266;font-size:13px;line-height:1.6">
+        {{ $t('agency.chooseTemplateDesc') }}
+      </p>
+      <el-form label-width="90px" label-position="left">
+        <el-form-item :label="$t('agency.chooseTemplatePlanLabel')">
+          <div v-loading="templateLoading" style="width:100%">
+            <el-select
+              v-model="selectedTemplateId"
+              :placeholder="$t('agency.chooseTemplatePlaceholder')"
+              style="width:100%"
+              filterable
+            >
+              <el-option
+                v-for="tpl in templates"
+                :key="tpl.planTemplateId"
+                :label="tpl.planName"
+                :value="tpl.planTemplateId"
+              >
+                <span>{{ tpl.planName }}</span>
+                <span style="float:right;color:#909399;font-size:12px">{{ tpl.planCode }}</span>
+              </el-option>
+            </el-select>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button type="primary" :disabled="!selectedTemplateId" @click="applyTemplate">
+          {{ $t('common.confirm') }}
+        </el-button>
+        <el-button @click="templateDialogVisible = false">{{ $t('common.cancel') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -210,11 +317,21 @@ import { useI18n } from 'vue-i18n'
 import { Document, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { provisionGroup } from '@/api/groups'
-import type { ProvisionGroupRequest } from '@/types/group'
-import type { PlanPricingRuleRequest } from '@/types/planTemplate'
+import { listPlanTemplates } from '@/api/planTemplates'
+import type { ProvisionGroupRequest, PartnerAccountRequest } from '@/types/group'
+import type { PlanTemplate, PlanPricingRuleRequest } from '@/types/planTemplate'
 
 const { t } = useI18n()
 const router = useRouter()
+
+const createPartnerAccount = ref(false)
+const partnerForm = reactive({
+  username: '',
+  email: '',
+  fullName: '',
+  password: '',
+  confirmPassword: '',
+})
 
 interface ConfigRow {
   subject: string
@@ -259,8 +376,55 @@ function addEmail(type: 'pic' | 'contact') {
 function focusPicInput() { picInputRef.value?.focus() }
 function focusContactInput() { contactInputRef.value?.focus() }
 
-function handleChooseTemplate() {
-  // TODO: open template picker dialog
+// --- Template picker dialog ---
+const templateDialogVisible = ref(false)
+const templateLoading = ref(false)
+const templates = ref<PlanTemplate[]>([])
+const selectedTemplateId = ref<number | null>(null)
+
+async function handleChooseTemplate() {
+  templateDialogVisible.value = true
+  selectedTemplateId.value = null
+  if (templates.value.length === 0) {
+    templateLoading.value = true
+    try {
+      const res = await listPlanTemplates('GROUP')
+      if (res.success && res.data) {
+        templates.value = res.data
+      } else {
+        ElMessage.error(t('agency.errorLoadTemplate'))
+      }
+    } catch {
+      ElMessage.error(t('agency.errorLoadTemplate'))
+    } finally {
+      templateLoading.value = false
+    }
+  }
+}
+
+function applyTemplate() {
+  const tpl = templates.value.find(tmpl => tmpl.planTemplateId === selectedTemplateId.value)
+  if (!tpl) {
+    ElMessage.warning(t('agency.warningChooseTemplate'))
+    return
+  }
+
+  if (tpl.planName) form.planName = tpl.planName
+
+  const subjectOrder: ConfigRow['subjectType'][] = ['INDIVIDUAL', 'ORGANIZATION', 'INDIVIDUAL_OF_ORG']
+  subjectOrder.forEach((subjectType, idx) => {
+    const rule = tpl.pricingRules.find(r => r.subjectType === subjectType)
+    if (rule) {
+      configRows[idx].duration = rule.certificateValidityValue
+      configRows[idx].condition = rule.pricingMetric === 'SIGNING_COUNT' ? 'signing' : 'certificate'
+      configRows[idx].minValue = rule.rangeMin
+      configRows[idx].maxValue = rule.rangeMax
+      configRows[idx].fee = rule.unitPrice as unknown as number
+    }
+  })
+
+  ElMessage.success(t('agency.applyTemplateSuccess'))
+  templateDialogVisible.value = false
 }
 
 async function handleSubmit() {
@@ -271,6 +435,26 @@ async function handleSubmit() {
   if (!form.planName.trim()) {
     ElMessage.warning(t('agency.warningPlanName'))
     return
+  }
+
+  // Validate partner account fields nếu được bật
+  if (createPartnerAccount.value) {
+    if (!partnerForm.username.trim()) {
+      ElMessage.warning(t('agency.warningPartnerUsername'))
+      return
+    }
+    if (!partnerForm.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partnerForm.email)) {
+      ElMessage.warning(t('agency.warningPartnerEmail'))
+      return
+    }
+    if (!partnerForm.password) {
+      ElMessage.warning(t('agency.warningPartnerPassword'))
+      return
+    }
+    if (partnerForm.password !== partnerForm.confirmPassword) {
+      ElMessage.warning(t('agency.warningPartnerPasswordMismatch'))
+      return
+    }
   }
 
   // Flush email đang gõ dở chưa nhấn Space/Enter
@@ -293,6 +477,16 @@ async function handleSubmit() {
       isActive: true,
     }))
 
+    const partnerAccount: PartnerAccountRequest | undefined = createPartnerAccount.value
+      ? {
+          username: partnerForm.username.trim(),
+          email: partnerForm.email.trim(),
+          fullName: partnerForm.fullName.trim() || undefined,
+          password: partnerForm.password,
+          confirmPassword: partnerForm.confirmPassword,
+        }
+      : undefined
+
     const req: ProvisionGroupRequest = {
       groupName: form.groupName,
       picEmails: form.picEmails,
@@ -303,6 +497,7 @@ async function handleSubmit() {
       effectiveTo: form.applyDateRange ? form.applyDateRange[1] : null,
       requestedBy: 'system',
       pricingRules,
+      partnerAccount,
     }
 
     const res = await provisionGroup(req)
@@ -311,7 +506,10 @@ async function handleSubmit() {
       return
     }
 
-    ElMessage.success(t('agency.successCreateAgency'))
+    const msg = res.data.partnerUser
+      ? t('agency.successCreateAgencyWithPartner')
+      : t('agency.successCreateAgency')
+    ElMessage.success(msg)
     router.push('/plans/' + res.data.group.groupId)
   } catch (e) {
     ElMessage.error(t('agency.errorServer'))

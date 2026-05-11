@@ -97,6 +97,17 @@ public class UserServiceImpl implements UserService {
             .build();
     }
 
+    public PagedResponse<UserResponse> listUsersByRole(String roleName, int page, int size) {
+        Page<UserAccount> result = userAccountRepository.findByRoleName(roleName, PageRequest.of(page, size));
+        return PagedResponse.<UserResponse>builder()
+            .content(result.getContent().stream().map(this::toResponse).collect(Collectors.toList()))
+            .totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages())
+            .page(page)
+            .size(size)
+            .build();
+    }
+
     public UserResponse getUserById(Long userId) {
         return toResponse(findById(userId));
     }

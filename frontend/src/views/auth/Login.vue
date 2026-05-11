@@ -34,7 +34,7 @@
         </el-form>
 
         <div class="login-footer">
-          <span>© 2025 MK Group. All rights reserved.</span>
+          <span>{{ t('auth.copyright', { year: 2025 }) }}</span>
         </div>
       </div>
     </div>

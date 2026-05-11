@@ -24,8 +24,8 @@
           >{{ t('roles.editRole') }}</el-button>
         </el-tooltip>
         <el-tooltip
-          :content="isProtectedRole ? t('roles.cannotDeleteAdmin') : ''"
-          :disabled="!isProtectedRole"
+          :content="selectedRole?.roleName === 'ROLE_PARTNER' ? t('roles.cannotDeletePartner') : isProtectedRole ? t('roles.cannotDeleteAdmin') : ''"
+          :disabled="!isUndeletableRole"
           placement="top"
         >
           <el-button
@@ -33,7 +33,7 @@
             type="danger"
             plain
             :loading="saving"
-            :disabled="!authStore.hasPermission('role:update') || !selectedRoleId || !!selectedRole?.isSystemRole"
+            :disabled="!authStore.hasPermission('role:update') || !selectedRoleId || isUndeletableRole"
             @click="handleDeleteRole"
           >{{ t('roles.deleteRole') }}</el-button>
         </el-tooltip>
@@ -86,7 +86,7 @@
               <tr class="module-row" @click="toggleModule(mod.moduleName)">
                 <td :colspan="matrixRoles.length + 1">
                   <span class="module-arrow" :class="{ expanded: expandedModules.has(mod.moduleName) }">▼</span>
-                  {{ t('permissions.module.' + mod.moduleName) }}
+                  {{ translatePermissionModule(mod.moduleName) }}
                 </td>
               </tr>
 
@@ -94,7 +94,7 @@
                 <template v-for="group in mod.permissionGroups" :key="group.groupName">
                   <tr class="group-row">
                     <td :colspan="matrixRoles.length + 1" class="group-name-cell">
-                      {{ t('permissions.group.' + group.groupName) }}
+                      {{ translatePermissionGroup(group.groupName) }}
                     </td>
                   </tr>
 
@@ -168,7 +168,7 @@
               <tr class="pst-module-row" @click="toggleCreateModule(mod.moduleName)">
                 <td>
                   <span class="pst-arrow" :class="{ expanded: createExpandedModules.has(mod.moduleName) }">▼</span>
-                  {{ t('permissions.module.' + mod.moduleName) }}
+                  {{ translatePermissionModule(mod.moduleName) }}
                 </td>
                 <td class="pst-check-cell" @click.stop>
                   <el-checkbox
@@ -181,7 +181,7 @@
               <template v-if="createExpandedModules.has(mod.moduleName)">
                 <template v-for="group in mod.permissionGroups" :key="group.groupName">
                   <tr class="pst-group-row">
-                    <td colspan="2">{{ t('permissions.group.' + group.groupName) }}</td>
+                    <td colspan="2">{{ translatePermissionGroup(group.groupName) }}</td>
                   </tr>
                   <tr v-for="perm in group.permissions" :key="perm.permissionId" class="pst-perm-row">
                     <td class="pst-perm-name">{{ perm.displayName }}</td>
@@ -219,7 +219,7 @@ import { useAuthStore } from '@/store'
 import type { Role, PermissionModule } from '@/types'
 import type { FormInstance } from 'element-plus'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const authStore = useAuthStore()
 const loading = ref(false)
 const saving  = ref(false)
@@ -292,11 +292,33 @@ function cancelEdit() {
 
 const selectedRole      = computed(() => matrixRoles.value.find(r => r.roleId === selectedRoleId.value) ?? null)
 const isProtectedRole   = computed(() => selectedRole.value?.roleName === 'ROLE_ADMIN')
+const isUndeletableRole = computed(() => {
+  const name = selectedRole.value?.roleName
+  return name === 'ROLE_ADMIN' || name === 'ROLE_PARTNER' || !!selectedRole.value?.isSystemRole
+})
+
+function normalizePermissionKey(value: string) {
+  return value.toUpperCase()
+}
+
+function translatePermissionModule(moduleName: string) {
+  const key = `permissions.module.${normalizePermissionKey(moduleName)}`
+  return te(key) ? t(key) : moduleName
+}
+
+function translatePermissionGroup(groupName: string) {
+  const key = `permissions.group.${normalizePermissionKey(groupName)}`
+  return te(key) ? t(key) : groupName
+}
 
 async function handleDeleteRole() {
   if (!selectedRoleId.value) return
   const role = selectedRole.value
   if (!role) return
+  if (role.roleName === 'ROLE_PARTNER') {
+    ElMessage.warning(t('roles.cannotDeletePartner'))
+    return
+  }
   if (role.isSystemRole) {
     ElMessage.warning(t('roles.cannotDeleteSystemRole'))
     return

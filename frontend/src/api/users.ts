@@ -4,6 +4,9 @@ import type { ApiResponse, PagedResponse, UserAccount } from '@/types'
 export const listUsers = (params: { status?: string; query?: string; page?: number; size?: number }) =>
   request.get<any, ApiResponse<PagedResponse<UserAccount>>>('/api/v1/admin/users', { params })
 
+export const listPartnerUsers = (params?: { page?: number; size?: number }) =>
+  request.get<any, ApiResponse<PagedResponse<UserAccount>>>('/api/v1/admin/partner-users', { params })
+
 export const getUser = (userId: number) =>
   request.get<any, ApiResponse<UserAccount>>(`/api/v1/admin/users/${userId}`)
 

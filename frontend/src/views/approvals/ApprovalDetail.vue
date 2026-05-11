@@ -1,8 +1,8 @@
 <template>
   <div class="approval-detail-page">
     <div class="page-header">
-      <el-button class="back-btn" :icon="ArrowLeft" @click="router.back()" link>Quay lại</el-button>
-      <h2>Chi tiết yêu cầu phê duyệt <span class="req-id">#{{ requestId }}</span></h2>
+      <el-button class="back-btn" :icon="ArrowLeft" @click="router.back()" link>{{ t('common.back') }}</el-button>
+      <h2>{{ t('approvals.detailTitle') }} <span class="req-id">#{{ requestId }}</span></h2>
       <p class="page-subtitle">
         {{ segmentLabel(data?.customerSegment) }} —
         <el-tag :type="statusType(data?.status)" size="small">{{ statusLabel(data?.status) }}</el-tag>
@@ -18,7 +18,7 @@
           type="primary"
           :icon="Promotion"
           @click="showSubmitDialog = true"
-        >Gửi yêu cầu duyệt</el-button>
+        >{{ t('approvals.submitForApproval') }}</el-button>
 
         <!-- Sale: Resubmit sau revision -->
         <el-button
@@ -26,61 +26,61 @@
           type="warning"
           :icon="Refresh"
           @click="showResubmitDialog = true"
-        >Gửi lại sau chỉnh sửa</el-button>
+        >{{ t('approvals.resubmitAfterRevision') }}</el-button>
 
         <!-- Approver: Approve / Reject / Revision (khi IN_APPROVAL) -->
         <template v-if="data.status === 'IN_APPROVAL'">
-          <el-button type="success" :icon="CircleCheck" @click="showApproveDialog = true">Phê duyệt</el-button>
-          <el-button type="danger" :icon="CircleClose" @click="showRejectDialog = true">Từ chối</el-button>
-          <el-button type="warning" :icon="Edit" @click="showRevisionDialog = true">Yêu cầu chỉnh sửa</el-button>
+          <el-button type="success" :icon="CircleCheck" @click="showApproveDialog = true">{{ t('approvals.approve') }}</el-button>
+          <el-button type="danger" :icon="CircleClose" @click="showRejectDialog = true">{{ t('approvals.reject') }}</el-button>
+          <el-button type="warning" :icon="Edit" @click="showRevisionDialog = true">{{ t('approvals.requestRevision') }}</el-button>
         </template>
       </div>
 
       <!-- Thông tin chung -->
       <div class="section-card" v-if="data">
         <div class="section-header">
-          <span class="section-title">THÔNG TIN YÊU CẦU</span>
+          <span class="section-title">{{ t('approvals.requestInfoSection') }}</span>
         </div>
         <div class="info-grid">
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Loại yêu cầu:</span>
+              <span class="info-label">{{ t('approvals.requestType') }}</span>
               <span class="info-value">{{ data.requestType }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Loại khách hàng:</span>
+              <span class="info-label">{{ t('approvals.customerTypeLabel') }}</span>
               <span class="info-value">{{ segmentLabel(data.customerSegment) }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Người tạo:</span>
+              <span class="info-label">{{ t('approvals.createdByLabel') }}</span>
               <span class="info-value">{{ data.requestedBy }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Ngày tạo:</span>
+              <span class="info-label">{{ t('approvals.createdAtLabel') }}</span>
               <span class="info-value">{{ fmtDate(data.createdAt) }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Giá trị hợp đồng:</span>
+              <span class="info-label">{{ t('approvals.contractValueLabel') }}</span>
               <span class="info-value">{{ data.contractValue ? formatAmount(data.contractValue) : '—' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Số cấp duyệt:</span>
-              <span class="info-value">{{ data.totalLevels }} cấp</span>
+              <span class="info-label">{{ t('approvals.totalLevelsLabel') }}</span>
+              <span class="info-value">{{ t('approvals.levelCount', { count: data.totalLevels }) }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item info-item--full">
-              <span class="info-label">Mô tả:</span>
+              <span class="info-label">{{ t('approvals.descriptionLabel') }}</span>
               <span class="info-value">{{ data.description }}</span>
             </div>
           </div>
           <div class="info-row" v-if="data.status === 'NEED_REVISION' && data.reviewNote">
             <div class="info-item info-item--full">
-              <span class="info-label revision-label">Lý do chỉnh sửa:</span>
+              <span class="info-label revision-label">{{ t('approvals.revisionReasonLabel') }}</span>
               <span class="info-value revision-note">{{ data.reviewNote }}</span>
             </div>
           </div>
@@ -90,36 +90,36 @@
       <!-- Chi tiết gói cước -->
       <div class="section-card" v-if="entityDetail">
         <div class="section-header">
-          <span class="section-title">CHI TIẾT GÓI CƯỚC</span>
+          <span class="section-title">{{ t('approvals.planDetailsSection') }}</span>
         </div>
         <div class="info-grid">
           <div class="info-row" v-if="entityDetail.groupName">
             <div class="info-item">
-              <span class="info-label">Tên đại lý:</span>
+              <span class="info-label">{{ t('approvals.agencyNameLabel') }}</span>
               <span class="info-value">{{ entityDetail.groupName }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Mã đại lý:</span>
+              <span class="info-label">{{ t('approvals.agencyCodeLabel') }}</span>
               <span class="info-value">{{ entityDetail.groupCode }}</span>
             </div>
           </div>
           <div class="info-row">
             <div class="info-item">
-              <span class="info-label">Tên gói cước:</span>
+              <span class="info-label">{{ t('approvals.planNameLabel') }}</span>
               <span class="info-value plan-name">{{ entityDetail.planName }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Mã gói cước:</span>
+              <span class="info-label">{{ t('approvals.planCodeLabel') }}</span>
               <span class="info-value">{{ entityDetail.planCode }}</span>
             </div>
           </div>
           <div class="info-row" v-if="entityDetail.applyFrom || entityDetail.applyTo">
             <div class="info-item">
-              <span class="info-label">Áp dụng từ:</span>
+              <span class="info-label">{{ t('approvals.applyFromLabel') }}</span>
               <span class="info-value">{{ entityDetail.applyFrom ?? '—' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Áp dụng đến:</span>
+              <span class="info-label">{{ t('approvals.applyToLabel') }}</span>
               <span class="info-value">{{ entityDetail.applyTo ?? '—' }}</span>
             </div>
           </div>
@@ -127,30 +127,30 @@
 
         <!-- Bảng cấu hình giá -->
         <div class="pricing-section" v-if="pricingRules.length">
-          <div class="pricing-title">Cấu hình bảng giá</div>
+          <div class="pricing-title">{{ t('approvals.pricingConfig') }}</div>
           <el-table :data="pricingRules" border size="small" class="pricing-table">
-            <el-table-column label="Đối tượng" width="160">
+            <el-table-column :label="t('approvals.subject')" width="160">
               <template #default="{ row }">{{ subjectLabel(row.subjectType) }}</template>
             </el-table-column>
-            <el-table-column label="Hiệu lực chứng thư" width="160">
+            <el-table-column :label="t('approvals.certValidity')" width="160">
               <template #default="{ row }">
                 {{ row.certificateValidityValue }} {{ validityUnitLabel(row.certificateValidityUnit) }}
               </template>
             </el-table-column>
-            <el-table-column label="Tính phí theo" width="140">
+            <el-table-column :label="t('approvals.pricingMetric')" width="140">
               <template #default="{ row }">{{ metricLabel(row.pricingMetric) }}</template>
             </el-table-column>
-            <el-table-column label="Khoảng" width="130">
+            <el-table-column :label="t('approvals.range')" width="130">
               <template #default="{ row }">
                 {{ row.rangeMin }} — {{ row.rangeMax ?? '∞' }}
               </template>
             </el-table-column>
-            <el-table-column label="Đơn giá" min-width="130" align="right">
+            <el-table-column :label="t('approvals.unitPrice')" min-width="130" align="right">
               <template #default="{ row }">
                 <span class="price-value">{{ formatAmount(row.unitPrice) }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="Quota tổng" width="110" align="right">
+            <el-table-column :label="t('approvals.quotaTotal')" width="110" align="right">
               <template #default="{ row }">{{ row.quotaTotal ?? '—' }}</template>
             </el-table-column>
           </el-table>
@@ -160,7 +160,7 @@
       <!-- Timeline duyệt -->
       <div class="section-card" v-if="data?.steps?.length">
         <div class="section-header">
-          <span class="section-title">TIẾN TRÌNH PHÊ DUYỆT</span>
+          <span class="section-title">{{ t('approvals.approvalProgressSection') }}</span>
         </div>
         <div class="steps-container">
           <div
@@ -186,7 +186,7 @@
                 <span class="step-time">{{ fmtDate(step.decidedAt) }}</span>
               </div>
               <div v-else-if="step.status === 'PENDING'" class="step-decision step-decision--pending">
-                Đang chờ phê duyệt
+                {{ t('approvals.waitingApproval') }}
               </div>
               <div v-if="step.comment" class="step-comment">"{{ step.comment }}"</div>
             </div>
@@ -196,100 +196,99 @@
     </div>
 
     <!-- Dialog: Submit -->
-    <el-dialog v-model="showSubmitDialog" title="GỬI YÊU CẦU PHÊ DUYỆT" width="460px" align-center>
+    <el-dialog v-model="showSubmitDialog" :title="t('approvals.submitDialogTitle')" width="460px" align-center>
       <p class="dlg-body">
-        Request sẽ được gửi cho người phê duyệt cấp 1 (Trưởng phòng).
-        Số cấp duyệt sẽ được tính tự động dựa trên giá trị hợp đồng.
+        {{ t('approvals.submitDialogDesc') }}
       </p>
       <el-form label-width="150px" style="margin-top: 12px">
-        <el-form-item label="Giá trị HĐ (VND)">
+        <el-form-item :label="t('approvals.contractValueVnd')">
           <el-input-number v-model="submitForm.contractValue" :min="0" :precision="0" style="width: 100%" />
         </el-form-item>
       </el-form>
       <el-form label-width="150px" style="margin-top: 8px">
-        <el-form-item label="Cấp phê duyệt">
+        <el-form-item :label="t('approvals.approvalLevel')">
           <el-select v-model="submitForm.approvalLevel" style="width: 100%">
-            <el-option label="Trưởng phòng kinh doanh" :value="1" />
-            <el-option label="CFO (Finance Manager)" :value="2" />
-            <el-option label="CEO" :value="3" />
+            <el-option :label="t('approvals.level1')" :value="1" />
+            <el-option :label="t('approvals.level2')" :value="2" />
+            <el-option :label="t('approvals.level3')" :value="3" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="primary" :loading="actionLoading" @click="doSubmit">Xác nhận gửi</el-button>
-        <el-button @click="showSubmitDialog = false">Huỷ</el-button>
+        <el-button type="primary" :loading="actionLoading" @click="doSubmit">{{ t('approvals.confirmSubmit') }}</el-button>
+        <el-button @click="showSubmitDialog = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Approve -->
-    <el-dialog v-model="showApproveDialog" title="PHÊ DUYỆT" width="460px" align-center>
+    <el-dialog v-model="showApproveDialog" :title="t('approvals.approveDialogTitle')" width="460px" align-center>
       <p class="dlg-body">
-        Bạn đang phê duyệt cấp <b>{{ data?.currentLevel }}</b>/{{ data?.totalLevels }}
+        {{ t('approvals.approvingLevelPrefix') }} <b>{{ data?.currentLevel }}</b>/{{ data?.totalLevels }}
         ({{ data ? levelLabel(currentStepRole) : '' }}).
       </p>
       <el-form label-width="80px" style="margin-top: 12px">
-        <el-form-item label="Ghi chú">
-          <el-input v-model="approveForm.comment" type="textarea" :rows="3" placeholder="Ghi chú (tùy chọn)" />
+        <el-form-item :label="t('approvals.note')">
+          <el-input v-model="approveForm.comment" type="textarea" :rows="3" :placeholder="t('approvals.noteOptional')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="success" :loading="actionLoading" @click="doApprove">Phê duyệt</el-button>
-        <el-button @click="showApproveDialog = false">Huỷ</el-button>
+        <el-button type="success" :loading="actionLoading" @click="doApprove">{{ t('approvals.approve') }}</el-button>
+        <el-button @click="showApproveDialog = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Reject -->
-    <el-dialog v-model="showRejectDialog" title="TỪ CHỐI YÊU CẦU" width="460px" align-center>
+    <el-dialog v-model="showRejectDialog" :title="t('approvals.rejectDialogTitle')" width="460px" align-center>
       <p class="dlg-body dlg-danger">
-        Request sẽ bị từ chối hoàn toàn. Sale sẽ nhận được thông báo qua email.
+        {{ t('approvals.rejectDialogDesc') }}
       </p>
       <el-form label-width="80px" style="margin-top: 12px">
-        <el-form-item label="Lý do" required>
-          <el-input v-model="rejectForm.reason" type="textarea" :rows="3" placeholder="Bắt buộc nhập lý do" />
+        <el-form-item :label="t('approvals.reason')" required>
+          <el-input v-model="rejectForm.reason" type="textarea" :rows="3" :placeholder="t('approvals.reasonRequired')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="danger" :loading="actionLoading" @click="doReject">Xác nhận từ chối</el-button>
-        <el-button @click="showRejectDialog = false">Huỷ</el-button>
+        <el-button type="danger" :loading="actionLoading" @click="doReject">{{ t('approvals.confirmReject') }}</el-button>
+        <el-button @click="showRejectDialog = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Revision -->
-    <el-dialog v-model="showRevisionDialog" title="YÊU CẦU CHỈNH SỬA" width="460px" align-center>
+    <el-dialog v-model="showRevisionDialog" :title="t('approvals.revisionDialogTitle')" width="460px" align-center>
       <p class="dlg-body">
-        Toàn bộ tiến trình duyệt sẽ reset. Sale sẽ nhận email và cần gửi lại sau khi chỉnh sửa.
+        {{ t('approvals.revisionDialogDesc') }}
       </p>
       <el-form label-width="80px" style="margin-top: 12px">
-        <el-form-item label="Lý do" required>
-          <el-input v-model="revisionForm.reason" type="textarea" :rows="3" placeholder="Mô tả nội dung cần chỉnh sửa" />
+        <el-form-item :label="t('approvals.reason')" required>
+          <el-input v-model="revisionForm.reason" type="textarea" :rows="3" :placeholder="t('approvals.revisionReasonPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="warning" :loading="actionLoading" @click="doRevision">Gửi yêu cầu</el-button>
-        <el-button @click="showRevisionDialog = false">Huỷ</el-button>
+        <el-button type="warning" :loading="actionLoading" @click="doRevision">{{ t('approvals.sendRequest') }}</el-button>
+        <el-button @click="showRevisionDialog = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Resubmit -->
-    <el-dialog v-model="showResubmitDialog" title="GỬI LẠI SAU CHỈNH SỬA" width="460px" align-center>
+    <el-dialog v-model="showResubmitDialog" :title="t('approvals.resubmitDialogTitle')" width="460px" align-center>
       <p class="dlg-body">
-        Request sẽ được reset và gửi lại từ cấp 1. Hãy đảm bảo bạn đã chỉnh sửa nội dung cần thiết.
+        {{ t('approvals.resubmitDialogDesc') }}
       </p>
       <el-form label-width="150px" style="margin-top: 12px">
-        <el-form-item label="Giá trị HĐ (VND)">
+        <el-form-item :label="t('approvals.contractValueVnd')">
           <el-input-number v-model="resubmitForm.contractValue" :min="0" :precision="0" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="Cấp phê duyệt">
+        <el-form-item :label="t('approvals.approvalLevel')">
           <el-select v-model="resubmitForm.approvalLevel" style="width: 100%">
-            <el-option label="Trưởng phòng kinh doanh" :value="1" />
-            <el-option label="CFO (Finance Manager)" :value="2" />
-            <el-option label="CEO" :value="3" />
+            <el-option :label="t('approvals.level1')" :value="1" />
+            <el-option :label="t('approvals.level2')" :value="2" />
+            <el-option :label="t('approvals.level3')" :value="3" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button type="warning" :loading="actionLoading" @click="doResubmit">Gửi lại</el-button>
-        <el-button @click="showResubmitDialog = false">Huỷ</el-button>
+        <el-button type="warning" :loading="actionLoading" @click="doResubmit">{{ t('approvals.resubmit') }}</el-button>
+        <el-button @click="showResubmitDialog = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -298,6 +297,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   ArrowLeft, ArrowDown, Promotion, Refresh,
   CircleCheck, CircleClose, Edit, Clock,
@@ -324,6 +324,7 @@ import type {
 
 const router = useRouter()
 const route = useRoute()
+const { t, locale } = useI18n()
 const requestId = Number(route.params.id)
 
 const loading = ref(false)
@@ -370,7 +371,7 @@ async function load() {
     }
     await loadEntityDetail(data.value)
   } catch {
-    ElMessage.error('Không thể tải thông tin yêu cầu')
+    ElMessage.error(t('approvals.loadDetailError'))
   } finally {
     loading.value = false
   }
@@ -413,7 +414,7 @@ async function loadEntityDetail(approval: MultiLevelApprovalResponse | null) {
       pricingRules.value = (tmpl.pricingRules ?? []).filter((r: PlanPricingRule) => r.isActive !== false)
     }
   } catch {
-    // không bắt buộc — nếu không fetch được thì ẩn section
+    // Optional details; keep the section hidden if this fetch fails.
   }
 }
 
@@ -427,9 +428,9 @@ async function doSubmit() {
     })
     data.value = (res as any).data ?? res
     showSubmitDialog.value = false
-    ElMessage.success('Đã gửi yêu cầu phê duyệt. Email đã được gửi cho người duyệt cấp 1.')
+    ElMessage.success(t('approvals.submitSuccess'))
   } catch {
-    ElMessage.error('Gửi yêu cầu thất bại')
+    ElMessage.error(t('approvals.submitFailed'))
   } finally {
     actionLoading.value = false
   }
@@ -444,9 +445,9 @@ async function doApprove() {
     })
     data.value = (res as any).data ?? res
     showApproveDialog.value = false
-    ElMessage.success('Đã phê duyệt thành công')
+    ElMessage.success(t('approvals.approveSuccess'))
   } catch {
-    ElMessage.error('Phê duyệt thất bại')
+    ElMessage.error(t('approvals.approveFailed'))
   } finally {
     actionLoading.value = false
   }
@@ -454,7 +455,7 @@ async function doApprove() {
 
 async function doReject() {
   if (!rejectForm.value.reason.trim()) {
-    ElMessage.warning('Vui lòng nhập lý do từ chối')
+    ElMessage.warning(t('approvals.rejectReasonRequired'))
     return
   }
   actionLoading.value = true
@@ -465,9 +466,9 @@ async function doReject() {
     })
     data.value = (res as any).data ?? res
     showRejectDialog.value = false
-    ElMessage.success('Đã từ chối yêu cầu')
+    ElMessage.success(t('approvals.rejectSuccess'))
   } catch {
-    ElMessage.error('Từ chối thất bại')
+    ElMessage.error(t('approvals.rejectFailed'))
   } finally {
     actionLoading.value = false
   }
@@ -475,7 +476,7 @@ async function doReject() {
 
 async function doRevision() {
   if (!revisionForm.value.reason.trim()) {
-    ElMessage.warning('Vui lòng nhập lý do chỉnh sửa')
+    ElMessage.warning(t('approvals.revisionReasonRequired'))
     return
   }
   actionLoading.value = true
@@ -486,9 +487,9 @@ async function doRevision() {
     })
     data.value = (res as any).data ?? res
     showRevisionDialog.value = false
-    ElMessage.success('Đã gửi yêu cầu chỉnh sửa. Email thông báo đã được gửi cho người tạo.')
+    ElMessage.success(t('approvals.revisionSuccess'))
   } catch {
-    ElMessage.error('Gửi yêu cầu chỉnh sửa thất bại')
+    ElMessage.error(t('approvals.revisionFailed'))
   } finally {
     actionLoading.value = false
   }
@@ -504,23 +505,23 @@ async function doResubmit() {
     })
     data.value = (res as any).data ?? res
     showResubmitDialog.value = false
-    ElMessage.success('Đã gửi lại yêu cầu. Email đã được gửi cho người duyệt cấp 1.')
+    ElMessage.success(t('approvals.resubmitSuccess'))
   } catch {
-    ElMessage.error('Gửi lại thất bại')
+    ElMessage.error(t('approvals.resubmitFailed'))
   } finally {
     actionLoading.value = false
   }
 }
 
 function segmentLabel(segment?: CustomerSegment): string {
-  if (segment === 'GROUP') return 'Khách hàng đại lý'
-  return 'Khách hàng phổ thông'
+  if (segment === 'GROUP') return t('approvals.segmentGroup')
+  return t('approvals.segmentIndividual')
 }
 
 function statusLabel(status?: MultiApprovalStatus): string {
   const map: Record<string, string> = {
-    DRAFT: 'Bản nháp', IN_APPROVAL: 'Đang duyệt',
-    NEED_REVISION: 'Cần chỉnh sửa', APPROVED: 'Đã duyệt', REJECTED: 'Bị từ chối',
+    DRAFT: t('approvals.statusDraft'), IN_APPROVAL: t('approvals.statusInApproval'),
+    NEED_REVISION: t('approvals.statusNeedRevision'), APPROVED: t('approvals.statusApproved'), REJECTED: t('approvals.statusRejected'),
   }
   return status ? (map[status] ?? status) : ''
 }
@@ -534,7 +535,7 @@ function statusType(status?: MultiApprovalStatus): 'primary' | 'success' | 'warn
 
 function levelLabel(level?: string): string {
   const map: Record<string, string> = {
-    LEVEL_1: 'Trưởng phòng kinh doanh', LEVEL_2: 'CFO (Finance Manager)', LEVEL_3: 'CEO',
+    LEVEL_1: t('approvals.level1'), LEVEL_2: t('approvals.level2'), LEVEL_3: t('approvals.level3'),
   }
   return level ? (map[level] ?? level) : ''
 }
@@ -548,10 +549,10 @@ function stepStatus(step: ApprovalStepResponse): 'process' | 'finish' | 'error' 
 
 function stepStatusLabel(status: string): string {
   const map: Record<string, string> = {
-    APPROVED: 'Đã duyệt',
-    REJECTED: 'Từ chối',
-    SKIPPED: 'Bỏ qua',
-    PENDING: 'Chờ duyệt',
+    APPROVED: t('approvals.statusApproved'),
+    REJECTED: t('approvals.statusRejectedShort'),
+    SKIPPED: t('approvals.statusSkipped'),
+    PENDING: t('approvals.statusPending'),
   }
   return map[status] ?? status
 }
@@ -564,34 +565,34 @@ function stepTagType(status: string): 'success' | 'danger' | 'info' | 'warning' 
 }
 
 function formatAmount(value: number): string {
-  return new Intl.NumberFormat('vi-VN').format(value) + ' VND'
+  return new Intl.NumberFormat(locale.value === 'vi' ? 'vi-VN' : 'en-US').format(value) + ' VND'
 }
 
 function fmtDate(dt?: string): string {
   if (!dt) return '—'
-  return new Date(dt).toLocaleDateString('vi-VN', {
+  return new Date(dt).toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-US', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
 
 function subjectLabel(type: string): string {
   const map: Record<string, string> = {
-    INDIVIDUAL: 'Cá nhân',
-    ORGANIZATION: 'Tổ chức',
-    INDIVIDUAL_OF_ORG: 'Cá nhân thuộc tổ chức',
+    INDIVIDUAL: t('approvals.subjectIndividual'),
+    ORGANIZATION: t('approvals.subjectOrganization'),
+    INDIVIDUAL_OF_ORG: t('approvals.subjectIndividualOfOrg'),
   }
   return map[type] ?? type
 }
 
 function validityUnitLabel(unit: string): string {
-  const map: Record<string, string> = { DAY: 'ngày', MONTH: 'tháng', YEAR: 'năm' }
+  const map: Record<string, string> = { DAY: t('approvals.unitDay'), MONTH: t('approvals.unitMonth'), YEAR: t('approvals.unitYear') }
   return map[unit] ?? unit
 }
 
 function metricLabel(metric: string): string {
   const map: Record<string, string> = {
-    SIGNING_COUNT: 'Lượt ký',
-    CERTIFICATE_COUNT: 'Chứng thư',
+    SIGNING_COUNT: t('approvals.metricSigning'),
+    CERTIFICATE_COUNT: t('approvals.metricCertificate'),
   }
   return map[metric] ?? metric
 }

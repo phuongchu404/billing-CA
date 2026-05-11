@@ -2,32 +2,32 @@
   <div>
     <div class="page-header">
       <div>
-        <h2>Cấu hình gói cước</h2>
-        <p class="page-subtitle">Khách hàng phổ thông</p>
+        <h2>{{ t('individualPlan.title') }}</h2>
+        <p class="page-subtitle">{{ t('individualPlan.subtitle') }}</p>
       </div>
     </div>
 
     <el-card shadow="never">
       <div class="current-plan-info">
         <div v-if="currentPlan">
-          Gói cước đang áp dụng:
+          {{ t('individualPlan.currentPlan') }}
           <b>{{ currentPlan.name }}</b>
-          áp dụng đến ngày
+          {{ t('individualPlan.applyUntil') }}
           <b>{{ currentPlan.applyUntil }}</b>
         </div>
         <div v-if="nextPlan">
-          Gói cước tiếp theo:
+          {{ t('individualPlan.nextPlan') }}
           <b>{{ nextPlan.name }}</b>
-          áp dụng từ ngày
+          {{ t('individualPlan.applyFrom') }}
           <b>{{ nextPlan.applyFrom }}</b>
         </div>
       </div>
 
       <div class="info-bar">
         <el-button type="primary" :icon="Plus" :disabled="!can('plan:create')" @click="handleAddNew"
-          >Thêm Mới</el-button
+          >{{ t('common.add') }}</el-button
         >
-        <span class="last-updated">Lần cập nhật cuối: {{ lastUpdated }}</span>
+        <span class="last-updated">{{ t('agency.lastUpdated', { time: lastUpdated }) }}</span>
       </div>
 
       <!-- <div class="pagination-row">
@@ -71,14 +71,14 @@
 
         <el-table-column prop="name" sortable min-width="180">
           <template #header>
-            <div class="col-label">TÊN GÓI</div>
+            <div class="col-label">{{ t('individualPlan.colPlanName') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="status" sortable width="140">
           <template #header>
-            <div class="col-label">TRẠNG THÁI</div>
+            <div class="col-label">{{ t('common.status') }}</div>
             <div class="col-filter">
               <el-select
                 v-model="filterStatus"
@@ -88,11 +88,11 @@
                 style="width: 100%"
                 @change="page = 1"
               >
-                <el-option label="Khả dụng" value="AVAILABLE" />
-                <el-option label="Không khả dụng" value="UNAVAILABLE" />
-                <el-option label="Chờ duyệt" value="PENDING" />
-                <el-option label="Đã duyệt" value="APPROVED" />
-                <el-option label="Đang áp dụng" value="APPLYING" />
+                <el-option :label="t('individualPlan.statusAvailable')" value="AVAILABLE" />
+                <el-option :label="t('individualPlan.statusUnavailable')" value="UNAVAILABLE" />
+                <el-option :label="t('individualPlan.statusPending')" value="PENDING" />
+                <el-option :label="t('individualPlan.statusApproved')" value="APPROVED" />
+                <el-option :label="t('individualPlan.statusApplying')" value="APPLYING" />
               </el-select>
             </div>
           </template>
@@ -109,7 +109,7 @@
 
         <el-table-column prop="applyFrom" sortable width="130">
           <template #header>
-            <div class="col-label">ÁP DỤNG TỪ</div>
+            <div class="col-label">{{ t('agency.colApplyFrom') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterApplyFrom"
@@ -127,7 +127,7 @@
 
         <el-table-column prop="applyUntil" sortable width="130">
           <template #header>
-            <div class="col-label">ÁP DỤNG ĐẾN</div>
+            <div class="col-label">{{ t('agency.colApplyTo') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterApplyUntil"
@@ -145,7 +145,7 @@
 
         <el-table-column prop="updatedAt" sortable width="175">
           <template #header>
-            <div class="col-label">THỜI GIAN CẬP NHẬT</div>
+            <div class="col-label">{{ t('agency.colUpdatedAt') }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterUpdatedAt"
@@ -163,13 +163,13 @@
 
         <el-table-column fixed="right" width="210">
           <template #header>
-            <div class="col-label">HÀNH ĐỘNG</div>
+            <div class="col-label">{{ t('common.actions') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
             <div class="action-btns">
               <el-button size="small" :icon="Timer" @click.stop="goDetail(row)"
-                >Chi tiết</el-button
+                >{{ t('common.detail') }}</el-button
               >
               <el-button
                 v-if="row.status === 'AVAILABLE'"
@@ -179,7 +179,7 @@
                 :disabled="!can('plan:update')"
                 @click.stop="openRequestApply(row)"
               >
-                Y/c áp dụng
+                {{ t('agency.btnRequestApply') }}
               </el-button>
               <el-button
                 v-if="row.status === 'PENDING'"
@@ -190,7 +190,7 @@
                 :disabled="!can('plan:update')"
                 @click.stop="openApprove(row)"
               >
-                Duyệt
+                {{ t('agency.btnApprove') }}
               </el-button>
               <el-button
                 v-if="row.status === 'APPROVED' || row.status === 'APPLYING'"
@@ -199,7 +199,7 @@
                 :disabled="!can('plan:update')"
                 @click.stop="openStopApply(row)"
               >
-                Dừng áp dụng
+                {{ t('agency.btnStopApply') }}
               </el-button>
             </div>
           </template>
@@ -208,7 +208,7 @@
 
       <div class="pagination-row" style="margin-top: 12px">
         <span class="page-label">
-          Hiển thị
+          {{ t('common.showing') }}
           <el-select
             v-model="pageSize"
             size="small"
@@ -219,7 +219,7 @@
             <el-option :value="10" label="10" />
             <el-option :value="20" label="20" />
           </el-select>
-          trong tổng số {{ filteredList.length }} gói cước
+          {{ t('individualPlan.totalPlans', { total: filteredList.length }) }}
         </span>
         <el-pagination
           v-model:current-page="page"
@@ -235,87 +235,83 @@
     <!-- Dialog 1: YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC -->
     <el-dialog v-model="requestApplyVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC</span>
+        <span class="dlg-title">{{ t('agency.dialogRequestApply') }}</span>
       </template>
       <div class="dlg-name-row">
         <span
-          >Tên: <b>{{ activeRow?.name }}</b></span
+          >{{ t('common.name') }}: <b>{{ activeRow?.name }}</b></span
         >
         <el-button link type="primary" @click="goDetail(activeRow!)"
-          >Xem chi tiết</el-button
+          >{{ t('agency.viewDetail') }}</el-button
         >
       </div>
       <el-form label-width="140px" style="margin-top: 16px">
-        <el-form-item label="Thời gian áp dụng">
+        <el-form-item :label="t('agency.dialogApplyPeriod')">
           <el-date-picker
             v-model="requestApplyDateRange"
             type="daterange"
             range-separator="-"
-            start-placeholder="Từ"
-            end-placeholder="Đến"
+            :start-placeholder="t('agency.dateFrom')"
+            :end-placeholder="t('agency.dateTo')"
             style="width: 100%"
           />
         </el-form-item>
       </el-form>
       <p class="dlg-note">
-        Khi bấm nút Xác Nhận, hệ thống sẽ đưa phiên bản hiện tại sẽ chuyển sang
-        trạng thái "Chờ duyệt". Sau khi được duyệt, bảng gói cước sẽ được áp
-        dụng từ 00:00:00 ngày bắt đầu đến 23:59:59 ngày kết thúc.
+        {{ t('individualPlan.requestApplyNote') }}
       </p>
       <template #footer>
         <el-button type="primary" @click="confirmRequestApply"
-          >Xác Nhận</el-button
+          >{{ t('common.confirm') }}</el-button
         >
-        <el-button @click="requestApplyVisible = false">Huỷ Bỏ</el-button>
+        <el-button @click="requestApplyVisible = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog 2: DUYỆT ÁP DỤNG GÓI CƯỚC -->
     <el-dialog v-model="approveVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">DUYỆT ÁP DỤNG GÓI CƯỚC</span>
+        <span class="dlg-title">{{ t('agency.dialogApproveApply') }}</span>
       </template>
       <p class="dlg-body">
-        Nhấn "Xác nhận" để duyệt áp dụng gói cước
+        {{ t('individualPlan.approveDescPrefix') }}
         <b class="dlg-plan-name">{{ activeRow?.name }}</b>
-        cho khách hàng phổ thông.
+        {{ t('individualPlan.approveDescSuffix') }}
       </p>
       <el-form label-width="140px" style="margin-top: 16px">
-        <el-form-item label="Thời gian áp dụng">
+        <el-form-item :label="t('agency.dialogApplyPeriod')">
           <el-date-picker
             v-model="approveDateRange"
             type="daterange"
             range-separator="-"
-            start-placeholder="Từ"
-            end-placeholder="Đến"
+            :start-placeholder="t('agency.dateFrom')"
+            :end-placeholder="t('agency.dateTo')"
             style="width: 100%"
           />
         </el-form-item>
       </el-form>
       <p class="dlg-note">
-        Khi chọn Xác nhận, gói cước sẽ chuyển sang trạng thái "Đã duyệt" và được
-        áp dụng từ 00:00:00 ngày bắt đầu đến 23:59:59 ngày kết thúc.
+        {{ t('individualPlan.approveNote') }}
       </p>
       <ul class="dlg-bullets">
         <li>
-          Từ 00:00:00 ngày bắt đầu, trạng thái sẽ chuyển sang "Đang áp dụng"
+          {{ t('individualPlan.approveBullet1') }}
         </li>
         <li>
-          Sau khi hết thời gian hiệu lực, trạng thái sẽ tự động chuyển về "Khả
-          dụng"
+          {{ t('individualPlan.approveBullet2') }}
         </li>
-        <li>Chọn Từ chối, trạng thái gói cước sẽ chuyển về "Khả dụng".</li>
+        <li>{{ t('individualPlan.approveBullet3') }}</li>
       </ul>
       <template #footer>
         <div class="dlg-footer-split">
           <el-button type="warning" plain @click="confirmReject"
-            >Từ Chối</el-button
+            >{{ t('agency.btnReject') }}</el-button
           >
           <div class="dlg-footer-right">
             <el-button type="primary" @click="confirmApprove"
-              >Xác Nhận</el-button
+              >{{ t('common.confirm') }}</el-button
             >
-            <el-button @click="approveVisible = false">Hủy Bỏ</el-button>
+            <el-button @click="approveVisible = false">{{ t('common.cancel') }}</el-button>
           </div>
         </div>
       </template>
@@ -324,16 +320,16 @@
     <!-- Dialog 3: DỪNG ÁP DỤNG GÓI CƯỚC -->
     <el-dialog v-model="stopApplyVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">DỪNG ÁP DỤNG GÓI CƯỚC</span>
+        <span class="dlg-title">{{ t('agency.dialogStopApply') }}</span>
       </template>
       <p class="dlg-body">
-        Nhấn "Xác nhận" để dừng lập tức gói cước
+        {{ t('individualPlan.stopDescPrefix') }}
         <b class="dlg-plan-name">{{ activeRow?.name }}</b
-        >. Sau khi dừng, trạng thái cập nhật sẽ chuyển sang "Khả dụng".
+        >. {{ t('individualPlan.stopDescSuffix') }}
       </p>
       <template #footer>
-        <el-button type="primary" @click="confirmStopApply">Xác Nhận</el-button>
-        <el-button @click="stopApplyVisible = false">Hủy Bỏ</el-button>
+        <el-button type="primary" @click="confirmStopApply">{{ t('common.confirm') }}</el-button>
+        <el-button @click="stopApplyVisible = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -344,8 +340,10 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { Plus, Refresh, Timer, Check } from "@element-plus/icons-vue";
 import { usePermission } from "@/composables/usePermission";
+import { useI18n } from "vue-i18n";
 
 const { can } = usePermission();
+const { t } = useI18n();
 import { ElMessage } from "element-plus";
 import {
   getIndividualPlanConfigSummary,
@@ -403,11 +401,11 @@ const pagedList = computed(() => {
 
 function statusLabel(status: PlanStatus): string {
   const map: Record<PlanStatus, string> = {
-    AVAILABLE: "Khả dụng",
-    UNAVAILABLE: "Không khả dụng",
-    PENDING: "Chờ duyệt",
-    APPROVED: "Đã duyệt",
-    APPLYING: "Đang áp dụng",
+    AVAILABLE: t("individualPlan.statusAvailable"),
+    UNAVAILABLE: t("individualPlan.statusUnavailable"),
+    PENDING: t("individualPlan.statusPending"),
+    APPROVED: t("individualPlan.statusApproved"),
+    APPLYING: t("individualPlan.statusApplying"),
   };
   return map[status] ?? status;
 }
@@ -466,7 +464,7 @@ function openStopApply(row: PlanConfigRow) {
 // Dialog confirmations
 async function confirmRequestApply() {
   if (!activeRow.value || !requestApplyDateRange.value) {
-    ElMessage.warning("Vui lòng chọn thời gian áp dụng");
+    ElMessage.warning(t("individualPlan.warningApplyPeriod"));
     return;
   }
   const [from, to] = requestApplyDateRange.value;
@@ -476,11 +474,11 @@ async function confirmRequestApply() {
       applyFrom: fmt(from),
       applyUntil: fmt(to),
     });
-    ElMessage.success("Đã gửi yêu cầu áp dụng");
+    ElMessage.success(t("individualPlan.requestApplySuccess"));
     requestApplyVisible.value = false;
     load();
   } catch {
-    ElMessage.error("Gửi yêu cầu thất bại");
+    ElMessage.error(t("individualPlan.requestApplyFailed"));
   }
 }
 
@@ -495,11 +493,11 @@ async function confirmApprove() {
   }
   try {
     await approvePlanConfig(activeRow.value.id, payload);
-    ElMessage.success("Đã duyệt gói cước");
+    ElMessage.success(t("individualPlan.approveSuccess"));
     approveVisible.value = false;
     load();
   } catch {
-    ElMessage.error("Duyệt gói cước thất bại");
+    ElMessage.error(t("individualPlan.approveFailed"));
   }
 }
 
@@ -507,11 +505,11 @@ async function confirmReject() {
   if (!activeRow.value) return;
   try {
     await rejectPlanConfig(activeRow.value.id);
-    ElMessage.info("Đã từ chối duyệt gói cước");
+    ElMessage.info(t("individualPlan.rejectSuccess"));
     approveVisible.value = false;
     load();
   } catch {
-    ElMessage.error("Từ chối thất bại");
+    ElMessage.error(t("individualPlan.rejectFailed"));
   }
 }
 
@@ -519,11 +517,11 @@ async function confirmStopApply() {
   if (!activeRow.value) return;
   try {
     await stopPlanConfig(activeRow.value.id);
-    ElMessage.success("Đã dừng áp dụng gói cước");
+    ElMessage.success(t("individualPlan.stopSuccess"));
     stopApplyVisible.value = false;
     load();
   } catch {
-    ElMessage.error("Dừng áp dụng thất bại");
+    ElMessage.error(t("individualPlan.stopFailed"));
   }
 }
 
@@ -538,7 +536,7 @@ async function load() {
       lastUpdated.value = res.data.lastUpdated ?? null;
     }
   } catch {
-    ElMessage.error("Không thể tải danh sách gói cước");
+    ElMessage.error(t("individualPlan.loadListError"));
   } finally {
     loading.value = false;
   }

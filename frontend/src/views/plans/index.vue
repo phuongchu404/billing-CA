@@ -16,7 +16,7 @@
           @click="handleAddNew"
           >{{ $t('agency.addNewAgency') }}</el-button
         >
-        <el-button :icon="Download" @click="handleExport"
+        <el-button :icon="Download" :loading="exportingAll" @click="handleExport"
           >{{ $t('agency.exportReconciliation') }}</el-button
         >
         <span class="last-updated">{{ $t('agency.lastUpdated', { time: lastUpdated }) }}</span>
@@ -206,6 +206,7 @@
               <el-button
                 size="small"
                 :icon="Document"
+                :loading="exportingRowId === row.groupId"
                 @click.stop="handleExportRow(row)"
                 >{{ $t('agency.btnExportRow') }}</el-button
               >
@@ -298,7 +299,7 @@ import {
   Document,
   UserFilled,
 } from "@element-plus/icons-vue";
-import { listGroups, assignGroupOwner } from "@/api/groups";
+import { listGroups, assignGroupOwner, downloadSettlementExport, triggerBlobDownload } from "@/api/groups";
 import { listUsers } from "@/api/users";
 import { usePermission } from "@/composables/usePermission";
 import { ElMessage } from "element-plus";
@@ -400,16 +401,35 @@ function handleAddNew() {
   router.push("/plans/new");
 }
 
-function handleExport() {
-  // TODO: implement bulk export
+const exportingAll = ref(false);
+const exportingRowId = ref<number | null>(null);
+
+async function handleExport() {
+  exportingAll.value = true;
+  try {
+    const blob = await downloadSettlementExport({});
+    triggerBlobDownload(blob, `doi-soat-tat-ca.xlsx`);
+  } catch {
+    ElMessage.error(t('agency.errorExport'));
+  } finally {
+    exportingAll.value = false;
+  }
 }
 
 function goDetail(row: AgencyRow) {
   router.push("/plans/" + row.groupId);
 }
 
-function handleExportRow(_row: AgencyRow) {
-  // TODO: implement per-row export
+async function handleExportRow(row: AgencyRow) {
+  exportingRowId.value = row.groupId;
+  try {
+    const blob = await downloadSettlementExport({ groupId: row.groupId });
+    triggerBlobDownload(blob, `doi-soat-${row.groupCode}.xlsx`);
+  } catch {
+    ElMessage.error(t('agency.errorExport'));
+  } finally {
+    exportingRowId.value = null;
+  }
 }
 
 // ── Assign owner dialog ──

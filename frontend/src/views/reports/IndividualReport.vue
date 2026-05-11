@@ -11,7 +11,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ report?.stats.activeCustomers ?? 0 }}</div>
-              <div class="stat-label">SL khách hàng có CTS đang hoạt động</div>
+              <div class="stat-label">{{ t('individualReport.activeCustomersCts') }}</div>
             </div>
           </div>
         </el-card>
@@ -26,7 +26,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ report?.stats.newCts ?? 0 }}</div>
-              <div class="stat-label">SL CTS mới được tạo trong tháng này</div>
+              <div class="stat-label">{{ t('individualReport.newCtsThisMonth') }}</div>
             </div>
           </div>
         </el-card>
@@ -41,7 +41,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ (report?.stats.signings ?? 0).toLocaleString('vi-VN') }}</div>
-              <div class="stat-label">SL lượt ký trong tháng này</div>
+              <div class="stat-label">{{ t('individualReport.signingsThisMonth') }}</div>
             </div>
           </div>
         </el-card>
@@ -53,7 +53,7 @@
           <div class="stat-inner" style="align-items:center">
             <div class="stat-info">
               <div class="stat-value">{{ (report?.stats.uploads ?? 0).toLocaleString('vi-VN') }}</div>
-              <div class="stat-label">Tài liệu đã được tải lên trong tháng này</div>
+              <div class="stat-label">{{ t('individualReport.uploadsThisMonth') }}</div>
             </div>
             <div class="donut-wrap">
               <div ref="donutRef" style="width:72px;height:72px" />
@@ -77,7 +77,7 @@
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>
-            <span class="chart-title">SL khách hàng mới trong tháng</span>
+            <span class="chart-title">{{ t('individualReport.newCustomersChart') }}</span>
           </template>
           <div ref="newCustChartRef" style="height:260px" />
         </el-card>
@@ -88,12 +88,12 @@
         <el-card shadow="never">
           <template #header>
             <div class="chart-header">
-              <span class="chart-title">SL chứng thư số được tạo</span>
+              <span class="chart-title">{{ t('individualReport.ctsCreatedChart') }}</span>
               <el-select v-model="filterCts" size="small" style="width:100px" @change="renderCtsChart">
-                <el-option label="Tất Cả" value="" />
-                <el-option label="Cá nhân" value="INDIVIDUAL" />
-                <el-option label="Tổ chức" value="ORGANIZATION" />
-                <el-option label="CN thuộc TC" value="INDIVIDUAL_OF_ORG" />
+                <el-option :label="t('individualReport.filterAll')" value="" />
+                <el-option :label="t('individualReport.filterIndividual')" value="INDIVIDUAL" />
+                <el-option :label="t('individualReport.filterOrganization')" value="ORGANIZATION" />
+                <el-option :label="t('individualReport.filterIndividualOfOrg')" value="INDIVIDUAL_OF_ORG" />
               </el-select>
             </div>
           </template>
@@ -109,12 +109,12 @@
         <el-card shadow="never">
           <template #header>
             <div class="chart-header">
-              <span class="chart-title">SL lượt ký trong tháng</span>
+              <span class="chart-title">{{ t('individualReport.signingChart') }}</span>
               <el-select v-model="filterSigning" size="small" style="width:100px" @change="renderSigningChart">
-                <el-option label="Tất Cả" value="" />
-                <el-option label="Cá nhân" value="INDIVIDUAL" />
-                <el-option label="Tổ chức" value="ORGANIZATION" />
-                <el-option label="CN thuộc TC" value="INDIVIDUAL_OF_ORG" />
+                <el-option :label="t('individualReport.filterAll')" value="" />
+                <el-option :label="t('individualReport.filterIndividual')" value="INDIVIDUAL" />
+                <el-option :label="t('individualReport.filterOrganization')" value="ORGANIZATION" />
+                <el-option :label="t('individualReport.filterIndividualOfOrg')" value="INDIVIDUAL_OF_ORG" />
               </el-select>
             </div>
           </template>
@@ -127,11 +127,11 @@
         <el-card shadow="never">
           <template #header>
             <div class="chart-header">
-              <span class="chart-title">Tỉ lệ (%) xác thực thất bại khi ký</span>
+              <span class="chart-title">{{ t('individualReport.failureRateChart') }}</span>
               <el-select v-model="filterFailure" size="small" style="width:100px">
-                <el-option label="Tất Cả" value="" />
-                <el-option label="Cá nhân" value="INDIVIDUAL" />
-                <el-option label="Tổ chức" value="ORGANIZATION" />
+                <el-option :label="t('individualReport.filterAll')" value="" />
+                <el-option :label="t('individualReport.filterIndividual')" value="INDIVIDUAL" />
+                <el-option :label="t('individualReport.filterOrganization')" value="ORGANIZATION" />
               </el-select>
             </div>
           </template>
@@ -146,10 +146,12 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { UserFilled, DocumentChecked, DataAnalysis } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import { useI18n } from 'vue-i18n'
 import { getIndividualReport } from '@/api/reports'
 import type { IndividualReportResponse } from '@/api/reports'
 
 const selectedMonth = ref(currentMonthKey())
+const { t } = useI18n()
 const filterCts = ref('')
 const filterSigning = ref('')
 const filterFailure = ref('')
@@ -182,7 +184,7 @@ function buildMonthOptions(count = 12) {
     const d = new Date(now.getFullYear(), now.getMonth() - idx, 1)
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     return {
-      label: `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`,
+      label: t('individualReport.month', { m: d.getMonth() + 1, y: d.getFullYear() }),
       value,
     }
   })
@@ -260,11 +262,11 @@ function renderCtsChart() {
 
   const visibleSeries = []
   if (!filterCts.value || filterCts.value === 'INDIVIDUAL')
-    visibleSeries.push({ name: 'Cá nhân', type: 'bar', stack: 'total', data: individual, itemStyle: { color: COLORS.individual }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
+    visibleSeries.push({ name: t('individualReport.filterIndividual'), type: 'bar', stack: 'total', data: individual, itemStyle: { color: COLORS.individual }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
   if (!filterCts.value || filterCts.value === 'ORGANIZATION')
-    visibleSeries.push({ name: 'Tổ chức', type: 'bar', stack: 'total', data: organization, itemStyle: { color: COLORS.organization }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
+    visibleSeries.push({ name: t('individualReport.filterOrganization'), type: 'bar', stack: 'total', data: organization, itemStyle: { color: COLORS.organization }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
   if (!filterCts.value || filterCts.value === 'INDIVIDUAL_OF_ORG')
-    visibleSeries.push({ name: 'Cá nhân thuộc tổ chức', type: 'bar', stack: 'total', data: individualOfOrg, itemStyle: { color: COLORS.individualOfOrg }, barMaxWidth: 48 })
+    visibleSeries.push({ name: t('individualReport.filterIndividualOfOrg'), type: 'bar', stack: 'total', data: individualOfOrg, itemStyle: { color: COLORS.individualOfOrg }, barMaxWidth: 48 })
 
   ctsChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -284,11 +286,11 @@ function renderSigningChart() {
 
   const visibleSeries = []
   if (!filterSigning.value || filterSigning.value === 'INDIVIDUAL')
-    visibleSeries.push({ name: 'Cá nhân', type: 'bar', stack: 'total', data: individual, itemStyle: { color: COLORS.individual }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
+    visibleSeries.push({ name: t('individualReport.filterIndividual'), type: 'bar', stack: 'total', data: individual, itemStyle: { color: COLORS.individual }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
   if (!filterSigning.value || filterSigning.value === 'ORGANIZATION')
-    visibleSeries.push({ name: 'Tổ chức', type: 'bar', stack: 'total', data: organization, itemStyle: { color: COLORS.organization }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
+    visibleSeries.push({ name: t('individualReport.filterOrganization'), type: 'bar', stack: 'total', data: organization, itemStyle: { color: COLORS.organization }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
   if (!filterSigning.value || filterSigning.value === 'INDIVIDUAL_OF_ORG')
-    visibleSeries.push({ name: 'Cá nhân thuộc tổ chức', type: 'bar', stack: 'total', data: individualOfOrg, itemStyle: { color: COLORS.individualOfOrg }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#606266', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
+    visibleSeries.push({ name: t('individualReport.filterIndividualOfOrg'), type: 'bar', stack: 'total', data: individualOfOrg, itemStyle: { color: COLORS.individualOfOrg }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#606266', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
 
   signingChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -310,16 +312,16 @@ function renderFailureChart() {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      formatter: (params: any) => params.map((p: any) => `${p.seriesName}: thất bại ${p.value}%`).join('<br/>'),
+      formatter: (params: any) => params.map((p: any) => t('individualReport.failureTooltip', { series: p.seriesName, value: p.value })).join('<br/>'),
     },
-    legend: { bottom: 0, data: ['Mã PIN', 'OTP', 'MoC'], itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 11 } },
+    legend: { bottom: 0, data: [t('individualReport.legendPIN'), t('individualReport.legendOTP'), t('individualReport.legendMoC')], itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 11 } },
     grid: { left: 16, right: 16, bottom: 48, top: 8, containLabel: true },
     xAxis: { type: 'category', data: weeks, axisLabel: { fontSize: 12 } },
     yAxis: { type: 'value', max: 100, splitLine: { lineStyle: { color: '#f0f0f0' } }, axisLabel: { formatter: (v: number) => v } },
     series: [
-      { name: 'Mã PIN', type: 'bar', data: pin, itemStyle: { color: COLORS.pin }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
-      { name: 'OTP', type: 'bar', data: otp, itemStyle: { color: COLORS.otp }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
-      { name: 'MoC', type: 'bar', data: moc, itemStyle: { color: COLORS.moc }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
+      { name: t('individualReport.legendPIN'), type: 'bar', data: pin, itemStyle: { color: COLORS.pin }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
+      { name: t('individualReport.legendOTP'), type: 'bar', data: otp, itemStyle: { color: COLORS.otp }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
+      { name: t('individualReport.legendMoC'), type: 'bar', data: moc, itemStyle: { color: COLORS.moc }, barMaxWidth: 28, label: { show: true, position: 'top', fontSize: 11, color: '#606266' } },
     ],
   }, true)
 }

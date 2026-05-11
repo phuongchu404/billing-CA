@@ -31,6 +31,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rs.subscription.dto.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -62,6 +65,31 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     public List<MultiLevelApprovalResponse> listAll() {
         return approvalRequestRepository.findAllByOrderByCreatedAtDesc()
             .stream().map(this::toResponse).toList();
+    }
+
+    public PagedResponse<MultiLevelApprovalResponse> listPaged(String status, String customerSegment, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        boolean hasStatus = status != null && !status.isBlank();
+        boolean hasSegment = customerSegment != null && !customerSegment.isBlank();
+
+        Page<ApprovalRequest> result;
+        if (hasStatus && hasSegment) {
+            result = approvalRequestRepository.findByStatusAndCustomerSegmentOrderByCreatedAtDesc(status, customerSegment, pageable);
+        } else if (hasStatus) {
+            result = approvalRequestRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        } else if (hasSegment) {
+            result = approvalRequestRepository.findByCustomerSegmentOrderByCreatedAtDesc(customerSegment, pageable);
+        } else {
+            result = approvalRequestRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+
+        return PagedResponse.<MultiLevelApprovalResponse>builder()
+            .content(result.getContent().stream().map(this::toResponse).toList())
+            .totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages())
+            .page(page)
+            .size(size)
+            .build();
     }
 
     public MultiLevelApprovalResponse getById(Long id) {

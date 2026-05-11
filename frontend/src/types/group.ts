@@ -115,6 +115,15 @@ export interface AddGroupPlanRequest {
   pricingRules: import('@/types/planTemplate').PlanPricingRuleRequest[]
 }
 
+/** Thông tin tài khoản đối tác tùy chọn khi tạo đại lý */
+export interface PartnerAccountRequest {
+  username: string
+  email: string
+  fullName?: string
+  password: string
+  confirmPassword: string
+}
+
 /** Request tạo đại lý + gói cước + gán cùng lúc */
 export interface ProvisionGroupRequest {
   groupName: string
@@ -126,6 +135,7 @@ export interface ProvisionGroupRequest {
   effectiveTo?: string | null
   requestedBy: string
   pricingRules: import('@/types/planTemplate').PlanPricingRuleRequest[]
+  partnerAccount?: PartnerAccountRequest
 }
 
 /** Response trả về sau khi provision thành công */
@@ -133,4 +143,5 @@ export interface ProvisionGroupResponse {
   group: GroupDetail
   planTemplate: import('@/types/planTemplate').PlanTemplate
   assignment: GroupPlanAssignment
+  partnerUser?: import('@/types').UserAccount
 }

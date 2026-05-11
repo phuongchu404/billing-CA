@@ -1,628 +1,375 @@
-# Tài liệu Phân Quyền & Phê Duyệt (Permission & Approval)
+# Tài liệu Phân quyền & Phê duyệt
 
-> **Dự án:** billing-CA  
-> **Cập nhật lần cuối:** 2026-04-27
-
----
-
-## Mục lục
-
-1. [Tổng quan hệ thống phân quyền (RBAC)](#1-tổng-quan-hệ-thống-phân-quyền-rbac)
-2. [Luồng nghiệp vụ Phân Quyền](#2-luồng-nghiệp-vụ-phân-quyền)
-3. [Luồng nghiệp vụ Phê Duyệt Đa Cấp](#3-luồng-nghiệp-vụ-phê-duyệt-đa-cấp)
-4. [Các bảng liên quan & dữ liệu](#4-các-bảng-liên-quan--dữ-liệu)
-5. [Cấu hình Backend](#5-cấu-hình-backend)
-6. [Cấu hình Frontend](#6-cấu-hình-frontend)
-7. [API Endpoints](#7-api-endpoints)
-8. [Mã lỗi liên quan](#8-mã-lỗi-liên-quan)
+> Dự án: `billing-CA`  
+> Cập nhật lần cuối: 2026-05-11  
+> Nguồn đối chiếu: backend `plan-mng-web` và `subscription-provider`
 
 ---
 
-## 1. Tổng quan hệ thống phân quyền (RBAC)
+## 1. Tổng quan RBAC
 
-Hệ thống sử dụng mô hình **Role-Based Access Control (RBAC)** với 3 lớp:
+Backend dùng mô hình RBAC:
 
-```
-UserAccount  →  UserRole  →  Role  →  RolePermission  →  Permission
-(Người dùng)    (Gán role)  (Vai trò) (Mapping)           (Quyền cụ thể)
-```
-
-### Phân cấp Permission
-
-Mỗi `Permission` được tổ chức theo cấu trúc 3 tầng:
-
-```
-Module Group (ví dụ: "Quản lý Gói Cước")
-  └── Permission Group (ví dụ: "Phê duyệt")
-        └── Permission Key (ví dụ: "approval:level1")
+```text
+user_accounts -> user_roles -> roles -> role_permissions -> permissions
 ```
 
-### Data Scope (Phạm vi dữ liệu nhìn thấy)
-
-Ngoài quyền hành động, hệ thống còn kiểm soát **dữ liệu nào người dùng nhìn thấy**:
-
-| Loại user          | Permission                  | Dữ liệu nhìn thấy                             |
-|--------------------|-----------------------------|------------------------------------------------|
-| Admin / Super User | Không giới hạn scope        | Tất cả groups                                  |
-| User nội bộ        | `group:view:own`            | Chỉ groups của mình                            |
-| User nội bộ        | `group:view:subordinates`   | Groups của mình + cấp dưới trong cây tổ chức   |
-| Partner            | `report:view:partner`       | Các groups được cấp qua bảng `PartnerGroupAccess` |
-
----
-
-## 2. Luồng nghiệp vụ Phân Quyền
-
-### 2.1 Tạo Role mới
-
-```
-Admin → Tạo Role (tên, mô tả) → Gán Permission cho Role → Gán Role cho User
-```
-
-**Các bước chi tiết:**
-
-1. **Tạo Role**: Admin tạo role mới qua `POST /api/v1/admin/roles`
-2. **Gán Permission**: Admin chọn permissions từ cây permission và gán vào role qua `PUT /api/v1/admin/roles/{roleId}/permissions`
-3. **Gán Role cho User**: Khi tạo user hoặc cập nhật user, chọn role cần gán
-
-**Ràng buộc:**
-- Role hệ thống (`isSystemRole = true`) không được sửa/xóa
-- Không thể xóa role đang được gán cho user (`ROLE_IN_USE`)
-
-### 2.2 Xem ma trận phân quyền
-
-Xem tổng quan quyền của tất cả roles qua `GET /api/v1/admin/roles/permissions/matrix`.  
-Response trả về ma trận: **Role × Permission** với số lượng user của mỗi role.
-
-### 2.3 Kiểm soát truy cập tại Controller
-
-Mỗi endpoint được bảo vệ bằng `@PreAuthorize`. Ví dụ:
+Spring Security đưa cả role name và permission key vào authority. Vì vậy backend có thể kiểm tra:
 
 ```java
-@PreAuthorize("hasAuthority('subscription:view')")    // Xem danh sách phê duyệt
-@PreAuthorize("hasAuthority('subscription:update')")  // Submit / Resubmit
-@PreAuthorize("hasAnyAuthority('approval:level1', 'approval:level2', 'approval:level3')")  // Phê duyệt
-@PreAuthorize("hasAuthority('role:create')")          // Tạo role
+hasAuthority('ROLE_ADMIN')
+hasAuthority('role:update')
+hasAnyAuthority('approval:level1', 'approval:level2', 'approval:level3')
 ```
+
+### Bảng chính
+
+| Bảng | Vai trò |
+|---|---|
+| `user_accounts` | Tài khoản người dùng, trạng thái, manager trực tiếp |
+| `roles` | Vai trò hệ thống hoặc vai trò tùy chỉnh |
+| `permissions` | Quyền hành động theo key, ví dụ `role:update` |
+| `user_roles` | Gán role cho user |
+| `role_permissions` | Gán permission cho role |
+| `partner_group_access` | Cấp quyền partner xem group cụ thể |
+
+### Role seed hiện tại
+
+Trong `V1__init_schema.sql`, các role mặc định là:
+
+| Role | Ý nghĩa |
+|---|---|
+| `ROLE_ADMIN` | Quản trị hệ thống, có bypass trong một số luồng approval |
+| `ROLE_USER` | User mặc định |
+| `ROLE_LEVEL_1` | Vai trò cấp 1 |
+| `ROLE_LEVEL_2` | Vai trò cấp 2 |
+| `ROLE_LEVEL_3` | Vai trò cấp 3 |
+| `ROLE_LEVEL_4` | Vai trò cấp 4 |
+| `ROLE_PARTNER` | Đối tác, xem báo cáo group được cấp |
+| `ROLE_MANAGER` | Quản lý nội bộ, xem dữ liệu cấp dưới |
+
+Lưu ý: backend phê duyệt đa cấp không kiểm tra role `APPROVAL_L1/L2/L3`. Service kiểm tra theo permission key `approval:level1`, `approval:level2`, `approval:level3`.
 
 ---
 
-## 3. Luồng nghiệp vụ Phê Duyệt Đa Cấp
+## 2. Permission và API bảo vệ
 
-### 3.1 Trạng thái Approval Request
+### Nhóm permission đang dùng
 
+| Nhóm | Permission key |
+|---|---|
+| Dashboard | `dashboard:view` |
+| Gói phổ thông | `plan:view`, `plan:create`, `plan:update`, `plan:delete` |
+| Usage cá nhân | `individual:usage:view` |
+| Khách hàng đại lý | `group:view`, `group:create`, `group:update` |
+| Subscription | `subscription:view`, `subscription:create`, `subscription:update` |
+| User | `user:view`, `user:create`, `user:update` |
+| Role | `role:view`, `role:create`, `role:update` |
+| Báo cáo | `report:view`, `report:group:view`, `report:individual:view`, `report:event:create` |
+| Audit | `audit-log:view` |
+| Data scope | `group:view:own`, `group:view:subordinates`, `group:assign:owner`, `report:view:own`, `report:view:subordinates`, `report:view:partner` |
+| Partner access | `partner:access:grant`, `partner:access:revoke` |
+| Approval | `approval:level1`, `approval:level2`, `approval:level3` |
+
+### Ghi chú đồng bộ DB
+
+Code hiện đang dùng các permission approval `approval:level1..3`. Tuy nhiên trong `V1__init_schema.sql` và `manual/reset_permissions.sql`, danh sách seed chính chỉ có 30 permissions và chưa insert các key approval. `V3__permission_data_fixes.sql` có phần insert approval permissions nhưng đang bị comment. `V4__approval_permission_labels.sql` chỉ update label nếu các key đã tồn tại.
+
+Khi triển khai thật, DB cần có tối thiểu:
+
+```sql
+INSERT INTO permissions (permission_key, display_name, module_group, group_name, sort_order)
+VALUES
+  ('approval:level1', 'Trưởng phòng kinh doanh', 'PHE_DUYET', 'APPROVAL', 93),
+  ('approval:level2', 'CFO (Finance Manager)', 'PHE_DUYET', 'APPROVAL', 94),
+  ('approval:level3', 'CEO', 'PHE_DUYET', 'APPROVAL', 95)
+ON DUPLICATE KEY UPDATE
+  display_name = VALUES(display_name),
+  module_group = VALUES(module_group),
+  group_name = VALUES(group_name),
+  sort_order = VALUES(sort_order);
 ```
-DRAFT  →  IN_APPROVAL  →  APPROVED
-                       →  REJECTED
-                       →  NEED_REVISION  →  IN_APPROVAL (resubmit)
-```
 
-| Trạng thái      | Mô tả                                               |
-|-----------------|-----------------------------------------------------|
-| `DRAFT`         | Mới tạo, chưa nộp phê duyệt                         |
-| `IN_APPROVAL`   | Đang trong quá trình phê duyệt (có step đang PENDING)|
-| `NEED_REVISION` | Bị yêu cầu chỉnh sửa lại                            |
-| `APPROVED`      | Được duyệt toàn bộ các cấp                          |
-| `REJECTED`      | Bị từ chối tại một cấp nào đó                       |
-
-### 3.2 Trạng thái Approval Step (từng bước)
-
-| Trạng thái | Mô tả                                    |
-|------------|------------------------------------------|
-| `PENDING`  | Đang chờ quyết định ở cấp này            |
-| `APPROVED` | Cấp này đã duyệt, chuyển cấp tiếp theo   |
-| `REJECTED` | Cấp này từ chối                          |
-| `SKIPPED`  | Bị bỏ qua (do cấp trước đã reject)       |
-
-### 3.3 Số cấp phê duyệt
-
-Số cấp phê duyệt được tính tự động dựa trên **loại khách hàng** và **giá trị hợp đồng**, lấy từ bảng `approval_level_configs`:
-
-| Phân khúc    | Giá trị hợp đồng          | Số cấp |
-|--------------|--------------------------|--------|
-| `INDIVIDUAL` | < 5,000,000              | 1 cấp  |
-| `INDIVIDUAL` | 5,000,000 – 50,000,000   | 2 cấp  |
-| `INDIVIDUAL` | ≥ 50,000,000             | 3 cấp  |
-| `GROUP`      | < 50,000,000             | 1 cấp  |
-| `GROUP`      | 50,000,000 – 500,000,000 | 2 cấp  |
-| `GROUP`      | ≥ 500,000,000            | 3 cấp  |
-
-> **Lưu ý:** Cấu hình này lưu trong DB (bảng `approval_level_configs`) và có thể thay đổi mà không cần deploy lại code.
-
-### 3.4 Cấp phê duyệt và Role tương ứng
-
-| Level     | Role DB        | Chức danh               |
-|-----------|----------------|-------------------------|
-| `LEVEL_1` | `APPROVAL_L1`  | Trưởng phòng            |
-| `LEVEL_2` | `APPROVAL_L2`  | Giám đốc                |
-| `LEVEL_3` | `APPROVAL_L3`  | CFO (Giám đốc Tài chính)|
-
-### 3.5 Luồng phê duyệt chi tiết từng bước
-
-#### Bước 1: Tạo yêu cầu (Tạo GroupPlanAssignment hoặc RetailPlanSchedule)
-
-- Khi tạo `GroupPlanAssignment` hoặc `RetailPlanSchedule`, hệ thống tự động:
-  1. Tạo bản ghi `ApprovalRequest` với status = `DRAFT`
-  2. Gọi `createAndSubmit()` → tự submit ngay
-  3. Tính số cấp phê duyệt dựa trên `ApprovalLevelConfig`
-  4. Tạo các bản ghi `ApprovalRequestStep` (1–3 steps tùy số cấp)
-  5. Step đầu tiên set `status = PENDING`, các step còn lại `PENDING`
-  6. Gửi email thông báo cho người có role `APPROVAL_L1`
-
-#### Bước 2: Phê duyệt cấp 1 (LEVEL_1)
-
-Người có quyền `approval:level1` gọi `POST /api/v1/approval-requests/{id}/approve`:
-
-- **Approve** → Step LEVEL_1 chuyển `APPROVED`
-  - Nếu còn level tiếp theo: `currentLevel` tăng lên, step tiếp theo vẫn `PENDING`, gửi email cho LEVEL_2
-  - Nếu đây là level cuối: toàn bộ request → `APPROVED`, cập nhật entity gốc
-- **Reject** → Step LEVEL_1 chuyển `REJECTED`, các step còn lại → `SKIPPED`, request → `REJECTED`, cập nhật entity gốc, gửi email thông báo người nộp
-- **Request Revision** → Request → `NEED_REVISION`, gửi email thông báo người nộp chỉnh sửa
-
-#### Bước 3: Phê duyệt cấp 2, cấp 3 (nếu có)
-
-Tương tự bước 2, nhưng cần quyền `approval:level2` / `approval:level3`.
-
-#### Bước 4: Resubmit (sau khi bị yêu cầu sửa)
-
-Người nộp gọi `POST /api/v1/approval-requests/{id}/resubmit`:
-
-- Request → `IN_APPROVAL`
-- **Reset toàn bộ steps về `PENDING`**, bắt đầu lại từ LEVEL_1
-- Gửi email thông báo LEVEL_1
-
-#### Ràng buộc nghiệp vụ
-
-| Quy tắc | Mô tả |
-|---------|-------|
-| Không tự duyệt | Người nộp không thể tự phê duyệt yêu cầu của mình |
-| Reject cần lý do | `reason` bắt buộc khi reject hoặc request revision |
-| Chỉ submit khi DRAFT/NEED_REVISION | Trạng thái khác không cho phép submit |
-| Reject lan truyền | Reject bất kỳ cấp nào → các step còn lại đều `SKIPPED` |
-| Approval lan truyền | Duyệt xong cấp cuối → cập nhật status entity gốc |
-
-### 3.6 Sơ đồ trạng thái đầy đủ
-
-```
-                         ┌──────────────┐
-                         │    DRAFT     │
-                         └──────┬───────┘
-                                │ submit()
-                                ▼
-                    ┌───────────────────────┐
-                    │      IN_APPROVAL      │
-                    │  (Step L1: PENDING)   │
-                    └───┬───────┬───────────┘
-                        │       │
-              approveStep()   reject()
-                        │       │
-              (if more levels)  ▼
-                        │  ┌──────────┐
-                        │  │ REJECTED │
-                        │  └──────────┘
-                        ▼
-          ┌─────────────────────────────┐
-          │        IN_APPROVAL          │
-          │  (Step L2: PENDING, ...)    │
-          └──────┬────────┬─────────────┘
-                 │        │
-     last approve()    requestRevision()
-                 │        │
-                 ▼        ▼
-          ┌──────────┐  ┌───────────────┐
-          │ APPROVED │  │ NEED_REVISION │
-          └──────────┘  └───────┬───────┘
-                                │ resubmit()
-                                ▼
-                    ┌───────────────────────┐
-                    │      IN_APPROVAL      │
-                    │  (Reset to L1 PENDING)│
-                    └───────────────────────┘
-```
+Sau đó gán các permission này cho role approver tương ứng qua `role_permissions` hoặc UI quản trị role.
 
 ---
 
-## 4. Các bảng liên quan & dữ liệu
+## 3. Quản lý role và user
 
-### 4.1 Bảng phân quyền
+### Role API
 
-#### `roles`
-```sql
-CREATE TABLE roles (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    role_name       VARCHAR(100) UNIQUE NOT NULL,  -- Key kỹ thuật: APPROVAL_L1, ROLE_ADMIN
-    display_name    VARCHAR(200),                  -- Tên hiển thị: Trưởng phòng
-    description     TEXT,
-    is_system_role  BOOLEAN DEFAULT FALSE,         -- TRUE = không sửa/xóa được
-    created_at      DATETIME,
-    updated_at      DATETIME
-);
-```
-**Dữ liệu được tạo ra bởi:** Admin qua `POST /api/v1/admin/roles`, hoặc seeder khi khởi tạo hệ thống.
+Controller: `RoleController`, prefix `/api/v1/admin/roles`.
 
-#### `permissions`
-```sql
-CREATE TABLE permissions (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    permission_key  VARCHAR(200) UNIQUE NOT NULL,  -- Ví dụ: approval:level1
-    display_name    VARCHAR(300),
-    module_group    VARCHAR(200),                  -- Nhóm module lớn
-    group_name      VARCHAR(200),                  -- Nhóm con
-    description     TEXT,
-    created_at      DATETIME
-);
-```
-**Dữ liệu được tạo ra bởi:** Seeder (cố định, không tạo qua UI).
+| Method | URL | Quyền |
+|---|---|---|
+| `GET` | `/api/v1/admin/roles` | `role:view` |
+| `POST` | `/api/v1/admin/roles` | `role:create` |
+| `PUT` | `/api/v1/admin/roles/{roleId}` | `role:update` |
+| `DELETE` | `/api/v1/admin/roles/{roleId}` | `role:update` |
+| `GET` | `/api/v1/admin/roles/permissions` | `role:view` |
+| `GET` | `/api/v1/admin/roles/permissions/matrix` | `role:view` |
+| `PUT` | `/api/v1/admin/roles/{roleId}/permissions` | `role:update` |
 
-#### `role_permissions`
-```sql
-CREATE TABLE role_permissions (
-    role_id         BIGINT REFERENCES roles(id),
-    permission_id   BIGINT REFERENCES permissions(id),
-    PRIMARY KEY (role_id, permission_id)
-);
-```
-**Dữ liệu được tạo ra bởi:** Admin gán permission cho role qua `PUT /api/v1/admin/roles/{roleId}/permissions`.
+Ràng buộc nghiệp vụ:
 
-#### `user_roles`
-```sql
-CREATE TABLE user_roles (
-    user_id         VARCHAR(100) REFERENCES user_accounts(user_id),
-    role_id         BIGINT REFERENCES roles(id),
-    PRIMARY KEY (user_id, role_id)
-);
-```
-**Dữ liệu được tạo ra bởi:** Khi tạo user (`POST /api/v1/admin/users`) hoặc cập nhật user.
+- Role hệ thống `is_system_role = true` không được sửa/xóa.
+- Role đang gán cho user không được xóa.
+- Mỗi lần tạo/sửa/xóa/gán quyền role đều ghi audit qua `AdminAuditLogService`.
 
-#### `user_accounts`
-```sql
-CREATE TABLE user_accounts (
-    user_id         VARCHAR(100) PRIMARY KEY,
-    username        VARCHAR(200) UNIQUE NOT NULL,
-    email           VARCHAR(300),
-    full_name       VARCHAR(300),
-    status          ENUM('ACTIVE','INACTIVE','LOCKED'),
-    manager_user_id VARCHAR(100) REFERENCES user_accounts(user_id),  -- Cây tổ chức
-    auth_provider   ENUM('LOCAL','SSO'),
-    created_at      DATETIME,
-    updated_at      DATETIME
-);
-```
-**Dữ liệu được tạo ra bởi:** Admin tạo user qua `POST /api/v1/admin/users`.
+### User API
 
-#### `partner_group_access`
-```sql
-CREATE TABLE partner_group_access (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    partner_user_id VARCHAR(100) REFERENCES user_accounts(user_id),
-    group_id        BIGINT REFERENCES groups(id),
-    granted_at      DATETIME,
-    revoked_at      DATETIME  -- NULL = đang active
-);
-```
-**Dữ liệu được tạo ra bởi:** Admin cấp/thu hồi quyền xem group cho partner.
+Controller: `UserController`.
 
-### 4.2 Bảng phê duyệt
-
-#### `approval_requests`
-```sql
-CREATE TABLE approval_requests (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    request_type    VARCHAR(100),     -- REQUEST_GROUP_PLAN_ASSIGNMENT, REQUEST_RETAIL_PLAN_SCHEDULE
-    customer_segment VARCHAR(50),     -- GROUP, INDIVIDUAL
-    status          VARCHAR(50),      -- DRAFT, IN_APPROVAL, NEED_REVISION, APPROVED, REJECTED
-    requested_by    VARCHAR(100),     -- userId người nộp
-    entity_type     VARCHAR(100),     -- GROUP_PLAN_ASSIGNMENT, RETAIL_PLAN_SCHEDULE
-    entity_id       VARCHAR(200),     -- ID của entity gốc
-    description     TEXT,
-    contract_value  DECIMAL(20,2),    -- Giá trị hợp đồng → xác định số cấp
-    total_levels    INT,              -- Tổng số cấp cần phê duyệt
-    current_level   INT,             -- Cấp hiện tại đang chờ phê duyệt
-    payload         JSON,             -- Snapshot dữ liệu lúc submit
-    created_at      DATETIME,
-    updated_at      DATETIME,
-    INDEX idx_ar_status (status),
-    INDEX idx_ar_entity (entity_type, entity_id)
-);
-```
-**Dữ liệu được tạo ra bởi:**
-- Tự động khi tạo `GroupPlanAssignment` (service: `GroupPlanAssignmentService`)
-- Tự động khi tạo `RetailPlanSchedule` (service: `IndividualPlanConfigService`)
-
-#### `approval_request_steps`
-```sql
-CREATE TABLE approval_request_steps (
-    id                      BIGINT PRIMARY KEY AUTO_INCREMENT,
-    approval_request_id     BIGINT REFERENCES approval_requests(id),
-    step_level              INT,           -- 1, 2, 3
-    required_approval_level VARCHAR(50),   -- LEVEL_1, LEVEL_2, LEVEL_3
-    status                  VARCHAR(50),   -- PENDING, APPROVED, REJECTED, SKIPPED
-    decided_by              VARCHAR(100),  -- userId người quyết định
-    comment                 TEXT,          -- Ghi chú khi duyệt/từ chối
-    decided_at              DATETIME,
-    created_at              DATETIME,
-    INDEX idx_ars_request_level (approval_request_id, step_level),
-    INDEX idx_ars_status (status)
-);
-```
-**Dữ liệu được tạo ra bởi:** Tự động khi `submit()` hoặc `resubmit()` được gọi trong `MultiLevelApprovalService`.
-
-#### `approval_level_configs`
-```sql
-CREATE TABLE approval_level_configs (
-    id                BIGINT PRIMARY KEY AUTO_INCREMENT,
-    customer_segment  VARCHAR(50),     -- GROUP, INDIVIDUAL
-    min_value         DECIMAL(20,2),   -- Giá trị tối thiểu (NULL = không giới hạn dưới)
-    max_value         DECIMAL(20,2),   -- Giá trị tối đa (NULL = không giới hạn trên)
-    required_levels   INT,             -- Số cấp phê duyệt
-    description       TEXT,
-    is_active         BOOLEAN DEFAULT TRUE,
-    created_at        DATETIME
-);
-```
-**Dữ liệu được tạo ra bởi:** Seeder hoặc Admin cấu hình. **Không thay đổi thường xuyên.**
-
-### 4.3 Bảng entity gốc (trigger phê duyệt)
-
-#### `group_plan_assignments`
-```sql
-CREATE TABLE group_plan_assignments (
-    id                BIGINT PRIMARY KEY AUTO_INCREMENT,
-    group_id          BIGINT,
-    plan_template_id  BIGINT,
-    assignment_status VARCHAR(50),   -- REQUESTED → APPROVED → ACTIVE → STOPPED/EXPIRED
-    approved_by       VARCHAR(100),
-    approved_at       DATETIME,
-    apply_from        DATE,
-    apply_to          DATE,
-    created_by        VARCHAR(100),
-    created_at        DATETIME,
-    INDEX idx_gpa_group_status (group_id, assignment_status),
-    INDEX idx_gpa_apply_range (apply_from, apply_to)
-);
-```
-
-#### `retail_plan_schedules`
-```sql
-CREATE TABLE retail_plan_schedules (
-    id                BIGINT PRIMARY KEY AUTO_INCREMENT,
-    -- ... thông tin cá nhân
-    schedule_status   VARCHAR(50),   -- REQUESTED → APPROVED → ACTIVE → INACTIVE
-    approved_by       VARCHAR(100),
-    approved_at       DATETIME,
-    created_at        DATETIME
-);
-```
-
-**Luồng cập nhật status các bảng này:**
-
-| Sự kiện                      | Bảng cập nhật               | Cột thay đổi           |
-|------------------------------|-----------------------------|------------------------|
-| Tạo GroupPlanAssignment      | `group_plan_assignments`    | `assignment_status = REQUESTED` |
-| Tạo RetailPlanSchedule       | `retail_plan_schedules`     | `schedule_status = REQUESTED`   |
-| ApprovalRequest APPROVED     | entity gốc tương ứng        | status → `APPROVED`    |
-| ApprovalRequest REJECTED     | entity gốc tương ứng        | status → `REJECTED`/`INACTIVE` |
+| Method | URL | Quyền |
+|---|---|---|
+| `POST` | `/api/v1/admin/users` | `user:create` |
+| `GET` | `/api/v1/admin/users` | `user:view` hoặc `group:assign:owner` |
+| `GET` | `/api/v1/admin/users/{userId}` | `user:view` |
+| `PUT` | `/api/v1/admin/users/{userId}` | `user:update` |
+| `PATCH` | `/api/v1/admin/users/{userId}/deactivate` | `user:update` |
+| `PATCH` | `/api/v1/admin/users/{userId}/reactivate` | `user:update` |
+| `PATCH` | `/api/v1/admin/users/{userId}/unlock` | `user:update` |
+| `DELETE` | `/api/v1/admin/users/{userId}` | `user:update` |
+| `PUT` | `/api/v1/admin/users/{userId}/roles` | `user:update` và `role:update` |
+| `PATCH` | `/api/v1/admin/users/{userId}/password` | `user:update` |
+| `PATCH` | `/api/v1/admin/users/{userId}/manager` | `user:update` |
+| `GET` | `/api/v1/admin/users/{userId}/subordinates` | `user:view` hoặc `group:view:subordinates` |
+| `GET` | `/api/v1/users/me` | đã đăng nhập |
+| `PUT` | `/api/v1/users/me/password` | đã đăng nhập |
 
 ---
 
-## 5. Cấu hình Backend
+## 4. Data scope
 
-### 5.1 Service chính cần nắm
+Service: `DataScopeServiceImpl`.
 
-| File | Vị trí | Chức năng |
-|------|--------|-----------|
-| `MultiLevelApprovalService.java` | `service/` | Orchestrator toàn bộ luồng phê duyệt đa cấp |
-| `ApprovalRequestService.java` | `service/` | Phê duyệt đơn cấp (legacy, backward compat) |
-| `RoleService.java` | `service/` | Quản lý role và permission |
-| `UserService.java` | `service/` | Quản lý user account |
-| `DataScopeService.java` | `service/` | Kiểm soát phạm vi dữ liệu nhìn thấy |
-| `ApprovalNotificationService.java` | `service/` | Gửi email thông báo (async) |
-| `GroupPlanAssignmentService.java` | `service/` | Tạo GroupPlanAssignment + trigger approval |
-| `IndividualPlanConfigService.java` | `service/` | Tạo RetailPlanSchedule + trigger approval |
+| Trường hợp | Dữ liệu được xem |
+|---|---|
+| `ROLE_ADMIN` | Không giới hạn |
+| Có `group:view:own` hoặc `report:view:own` | Dữ liệu do chính user phụ trách |
+| Có `group:view:subordinates` hoặc `report:view:subordinates` | Dữ liệu của user và toàn bộ cấp dưới trong cây `manager_user_id` |
+| `ROLE_PARTNER` hoặc `report:view:partner` | Group được cấp trong `partner_group_access` |
 
-### 5.2 Controller & Endpoint mapping
+Các API partner access:
 
-| File | Vị trí | Prefix |
-|------|--------|--------|
-| `ApprovalRequestController.java` | `controller/` | `/api/v1/approval-requests` |
-
-**Chỉnh sửa số cấp phê duyệt:**
-→ Sửa dữ liệu trong bảng `approval_level_configs` hoặc sửa logic trong `MultiLevelApprovalService.resolveRequiredLevels()`.
-
-**Chỉnh sửa mapping Level → Role:**
-→ Sửa constant `LEVEL_ROLES` trong `MultiLevelApprovalService.java`:
-```java
-// Thay đổi tại đây nếu muốn đổi tên role cho từng cấp
-private static final Map<ApprovalLevel, String> LEVEL_ROLES = Map.of(
-    ApprovalLevel.LEVEL_1, "APPROVAL_L1",
-    ApprovalLevel.LEVEL_2, "APPROVAL_L2",
-    ApprovalLevel.LEVEL_3, "APPROVAL_L3"
-);
-```
-
-**Thêm loại entity mới vào luồng phê duyệt:**
-→ Sửa `propagateApproval()` và `propagateRejection()` trong `MultiLevelApprovalService.java` để xử lý `entityType` mới.
-
-### 5.3 Enum quan trọng
-
-File: `enums/CommercialEnums.java`
-
-```java
-// Thêm loại request mới vào đây
-enum RequestType {
-    CREATE_PLAN_TEMPLATE,
-    REQUEST_GROUP_PLAN_ASSIGNMENT,
-    REQUEST_RETAIL_PLAN_SCHEDULE,
-    CANCEL_SUBSCRIPTION,
-    SUSPEND_SUBSCRIPTION
-}
-
-// Trạng thái phê duyệt đa cấp
-enum MultiApprovalRequestStatus {
-    DRAFT, IN_APPROVAL, NEED_REVISION, APPROVED, REJECTED
-}
-
-// Trạng thái từng step
-enum ApprovalStepStatus {
-    PENDING, APPROVED, REJECTED, SKIPPED
-}
-
-// Các cấp phê duyệt
-enum ApprovalLevel {
-    LEVEL_1, LEVEL_2, LEVEL_3
-}
-```
-
-### 5.4 Security Configuration
-
-**Phân quyền tại controller** – file `ApprovalRequestController.java`:
-```java
-// Xem danh sách / chi tiết
-@PreAuthorize("hasAuthority('subscription:view')")
-
-// Nộp / tái nộp phê duyệt
-@PreAuthorize("hasAuthority('subscription:update')")
-
-// Phê duyệt / từ chối / yêu cầu sửa (bất kỳ cấp nào)
-@PreAuthorize("hasAnyAuthority('approval:level1', 'approval:level2', 'approval:level3')")
-```
-
-**Nếu muốn tách quyền theo từng cấp** – cần sửa annotation `@PreAuthorize` trong controller và thêm logic kiểm tra level trong service.
-
-### 5.5 Cấu hình Email Notification
-
-File: `service/ApprovalNotificationService.java`
-
-- Tất cả methods đều dùng `@Async` → gửi email không block luồng chính
-- Để thay đổi template email, sửa trong `ApprovalNotificationService`
-- Để thêm kênh thông báo khác (Slack, SMS), thêm method mới vào service này
+| Method | URL | Quyền |
+|---|---|---|
+| `POST` | `/api/v1/partner-access` | `partner:access:grant` |
+| `DELETE` | `/api/v1/partner-access/{accessId}` | `partner:access:revoke` |
+| `DELETE` | `/api/v1/partner-access/partner/{partnerUserId}/group/{groupId}` | `partner:access:revoke` |
+| `GET` | `/api/v1/partner-access/partner/{partnerUserId}` | `partner:access:grant` hoặc chính partner đó |
+| `GET` | `/api/v1/partner-access/partner/{partnerUserId}/history` | `partner:access:grant` |
 
 ---
 
-## 6. Cấu hình Frontend
+## 5. Luồng phê duyệt đa cấp
 
-### 6.1 API calls – nơi định nghĩa các call tới backend
+### Entity và trạng thái
 
-| File | Chức năng |
-|------|-----------|
-| `frontend/src/api/approvals.ts` | Tất cả API call liên quan phê duyệt |
-| `frontend/src/api/roles.ts` | Tất cả API call liên quan role/permission |
-| `frontend/src/api/users.ts` | API call quản lý user |
+Các bảng chính:
 
-**Sửa endpoint:** Nếu backend thay đổi URL → sửa trong file `.ts` tương ứng.
+| Bảng | Vai trò |
+|---|---|
+| `approval_requests` | Header của request phê duyệt |
+| `approval_request_steps` | Các step level 1-3 |
+| `approval_level_configs` | Cấu hình số cấp theo segment và giá trị hợp đồng |
+| `group_plan_assignments` | Entity gốc cho khách hàng đại lý |
+| `retail_plan_schedules` | Entity gốc cho khách hàng phổ thông |
 
-### 6.2 Views (giao diện)
+Trạng thái request:
 
-| File | Chức năng |
-|------|-----------|
-| `frontend/src/views/approvals/ApprovalList.vue` | Danh sách yêu cầu phê duyệt + filter |
-| `frontend/src/views/approvals/ApprovalDetail.vue` | Chi tiết + các nút hành động (Approve/Reject/Revision) |
-| `frontend/src/views/roles/` | Quản lý role và gán permission |
-| `frontend/src/views/individual/PlanConfigDetail.vue` | Chi tiết cấu hình gói cước cá nhân |
-| `frontend/src/views/plans/AddPlan.vue` | Thêm gói cước (trigger approval khi tạo) |
-
-**Thêm nút hành động mới trong phê duyệt** → sửa `ApprovalDetail.vue`:
-- Thêm dialog mới
-- Gọi API function tương ứng trong `approvals.ts`
-
-### 6.3 Router – kiểm soát truy cập trang
-
-File: `frontend/src/router/index.ts`
-
-```typescript
-// Thêm/sửa route mới cho approval
-{ path: '/approvals',     component: ApprovalList,   meta: { permission: 'approval:view' } }
-{ path: '/approvals/:id', component: ApprovalDetail, meta: { permission: 'approval:view' } }
-{ path: '/roles',         component: RoleList,        meta: { permission: 'role:view' } }
+```text
+DRAFT -> IN_APPROVAL -> APPROVED
+                   -> REJECTED
+                   -> NEED_REVISION -> IN_APPROVAL
 ```
 
-**Thêm page mới với kiểm soát quyền:**
-1. Thêm route với `meta.permission` tương ứng
-2. Đảm bảo permission key đã có trong DB và được gán cho role thích hợp
+Trạng thái step:
 
-### 6.4 Navigation Menu
+| Status | Ý nghĩa |
+|---|---|
+| `PENDING` | Đang chờ xử lý |
+| `APPROVED` | Step đã duyệt |
+| `REJECTED` | Step bị từ chối |
+| `SKIPPED` | Step bị bỏ qua, ví dụ admin bypass hoặc request đã reject |
 
-File: `frontend/src/common/nav.ts`
+### Tạo request
 
-Điều chỉnh menu item nào hiển thị với quyền nào tại đây. Mỗi menu item có `permissionKey` để kiểm soát hiển thị.
+Có hai luồng tạo approval tự động:
+
+| Entity | Service | Điều kiện tạo approval |
+|---|---|---|
+| `GROUP_PLAN_ASSIGNMENT` | `GroupPlanAssignmentServiceImpl.create()` | `assignmentStatus = REQUESTED` |
+| `RETAIL_PLAN_SCHEDULE` | `IndividualPlanConfigServiceImpl.requestApply()` | Tạo schedule với `scheduleStatus = REQUESTED` |
+
+Hai service tạo `ApprovalRequest` ở trạng thái `DRAFT`, sau đó gọi `MultiLevelApprovalService.createAndSubmit()`. Vì vậy request được chuyển ngay sang `IN_APPROVAL`, tạo steps và gửi email cho approver level 1.
+
+### Số cấp phê duyệt
+
+Backend đang ưu tiên `approvalLevel` được truyền từ request. Nếu không truyền thì dùng fallback trong service tạo entity, hiện mặc định là `1`.
+
+Hàm `resolveRequiredLevels(customerSegment, contractValue)` vẫn tồn tại và có fallback theo ngưỡng:
+
+| Segment | Giá trị | Số cấp fallback |
+|---|---:|---:|
+| `INDIVIDUAL` | `< 5,000,000` | 1 |
+| `INDIVIDUAL` | `5,000,000 - < 50,000,000` | 2 |
+| `INDIVIDUAL` | `>= 50,000,000` | 3 |
+| `GROUP` | `< 50,000,000` | 1 |
+| `GROUP` | `50,000,000 - < 500,000,000` | 2 |
+| `GROUP` | `>= 500,000,000` | 3 |
+
+Nhưng trong code hiện tại, `submit()` và `createAndSubmit()` gọi `resolveRequestedLevels(...)`, không gọi trực tiếp `resolveRequiredLevels(...)`. Vì vậy tài liệu triển khai cần hiểu `approvalLevel` là nguồn quyết định trực tiếp trong luồng hiện tại.
+
+### Level và quyền
+
+| Step | `required_approval_level` | Permission bắt buộc |
+|---|---|---|
+| 1 | `LEVEL_1` | `approval:level1` |
+| 2 | `LEVEL_2` | `approval:level2` |
+| 3 | `LEVEL_3` | `approval:level3` |
+
+`MultiLevelApprovalServiceImpl.validateCurrentApprover()` xử lý như sau:
+
+1. Tìm manager chain của `requested_by`.
+2. Nếu có manager ACTIVE trong chain có permission đúng level, chỉ user đó được duyệt step.
+3. Nếu không có manager phù hợp, fallback sang bất kỳ user ACTIVE nào có permission đúng level.
+4. Nếu không tìm thấy actor hợp lệ, trả lỗi `APPROVAL_WRONG_LEVEL`.
+
+`ROLE_ADMIN` có bypass riêng khi approve: admin có thể approve và service sẽ `SKIPPED` toàn bộ pending step còn lại, sau đó finalize request thành `APPROVED`.
+
+### Hành động approval
+
+Controller: `ApprovalRequestController`, prefix `/api/v1/approval-requests`.
+
+| Method | URL | Quyền | Service |
+|---|---|---|---|
+| `GET` | `/api/v1/approval-requests` | `subscription:view` hoặc `approval:level1..3` | `listAll()` |
+| `GET` | `/api/v1/approval-requests/{id}` | `subscription:view` hoặc `approval:level1..3` | `getById()` |
+| `POST` | `/api/v1/approval-requests/{id}/submit` | `subscription:update` | `submit()` |
+| `POST` | `/api/v1/approval-requests/{id}/approve` | `approval:level1..3` | `approveStep()` |
+| `POST` | `/api/v1/approval-requests/{id}/reject` | `approval:level1..3` | `reject()` |
+| `POST` | `/api/v1/approval-requests/{id}/revision` | `approval:level1..3` | `requestRevision()` |
+| `POST` | `/api/v1/approval-requests/{id}/resubmit` | `subscription:update` | `resubmit()` |
+| `GET` | `/api/v1/approval-requests/level-configs` | `subscription:view` | `listLevelConfigs()` |
+| `GET` | `/api/v1/approval-requests/legacy` | `subscription:view` | legacy single-level |
+| `POST` | `/api/v1/approval-requests/{id}/review` | `subscription:update` | legacy single-level |
+
+### Quy tắc nghiệp vụ
+
+| Quy tắc | Backend hiện tại |
+|---|---|
+| Submit | Chỉ submit request `DRAFT`; submit tạo lại toàn bộ steps |
+| Resubmit | Chỉ resubmit request `NEED_REVISION`; resubmit xóa và tạo lại steps |
+| Approve | Chỉ xử lý khi request `IN_APPROVAL` |
+| Self approve | Không cho `requested_by` tự approve |
+| Approver đúng cấp | Kiểm tra permission theo current step |
+| Reject | Set current step `REJECTED`, các pending step sau `SKIPPED`, request `REJECTED` |
+| Revision | Reset toàn bộ steps về `PENDING`, current level về `1`, request `NEED_REVISION` |
+| Fully approved | Request `APPROVED`, cập nhật entity gốc |
+
+### Propagate sang entity gốc
+
+| Entity | Khi approve cuối | Khi reject |
+|---|---|---|
+| `GROUP_PLAN_ASSIGNMENT` | `assignment_status = APPROVED`, set `approved_by`, `approved_at` | `assignment_status = AVAILABLE`, set `rejected_by`, `rejected_at`, `stop_reason` |
+| `RETAIL_PLAN_SCHEDULE` | `schedule_status = APPROVED`, set `approved_by`, `approved_at` | `schedule_status = INACTIVE` |
 
 ---
 
-## 7. API Endpoints
+## 6. API liên quan entity gốc
 
-### Phê duyệt
+### Group plan assignment
 
-| Method | URL | Quyền cần | Mô tả |
-|--------|-----|-----------|-------|
-| GET | `/api/v1/approval-requests` | `subscription:view` | Danh sách tất cả approval request |
-| GET | `/api/v1/approval-requests/{id}` | `subscription:view` | Chi tiết approval request |
-| POST | `/api/v1/approval-requests/{id}/submit` | `subscription:update` | Nộp phê duyệt (DRAFT → IN_APPROVAL) |
-| POST | `/api/v1/approval-requests/{id}/approve` | `approval:level*` | Phê duyệt một cấp |
-| POST | `/api/v1/approval-requests/{id}/reject` | `approval:level*` | Từ chối |
-| POST | `/api/v1/approval-requests/{id}/revision` | `approval:level*` | Yêu cầu sửa lại |
-| POST | `/api/v1/approval-requests/{id}/resubmit` | `subscription:update` | Tái nộp sau khi sửa |
-| GET | `/api/v1/approval-requests/level-configs` | `subscription:view` | Xem cấu hình số cấp phê duyệt |
+Controller: `GroupCommercialController`.
 
-### Phân quyền (Role & Permission)
+| Method | URL | Quyền |
+|---|---|---|
+| `GET` | `/api/v1/groups/plan-assignments` | `group:view` |
+| `GET` | `/api/v1/groups/plan-assignments/{assignmentId}` | `group:view` hoặc `approval:level1..3` |
+| `GET` | `/api/v1/groups/{groupId}/plan-assignments` | `group:view` |
+| `POST` | `/api/v1/groups/{groupId}/plan-assignments` | `group:create` |
+| `POST` | `/api/v1/groups/plan-assignments/{assignmentId}/review` | `group:update` hoặc `approval:level1..3` |
+| `POST` | `/api/v1/groups/{groupId}/add-plan` | `group:update` |
 
-| Method | URL | Quyền cần | Mô tả |
-|--------|-----|-----------|-------|
-| GET | `/api/v1/admin/roles` | `role:view` | Danh sách roles |
-| POST | `/api/v1/admin/roles` | `role:create` | Tạo role mới |
-| PUT | `/api/v1/admin/roles/{roleId}` | `role:update` | Cập nhật role |
-| DELETE | `/api/v1/admin/roles/{roleId}` | `role:update` | Xóa role |
-| GET | `/api/v1/admin/roles/permissions` | `role:view` | Cây permissions |
-| GET | `/api/v1/admin/roles/permissions/matrix` | `role:view` | Ma trận phân quyền |
-| PUT | `/api/v1/admin/roles/{roleId}/permissions` | `role:update` | Gán permissions cho role |
+### Retail plan schedule và individual plan config
+
+| Controller | Method | URL | Quyền |
+|---|---|---|---|
+| `RetailPlanScheduleController` | `GET` | `/api/v1/retail-plan-schedules` | `plan:view` |
+| `RetailPlanScheduleController` | `GET` | `/api/v1/retail-plan-schedules/{id}` | `plan:view` hoặc `approval:level1..3` |
+| `RetailPlanScheduleController` | `POST` | `/api/v1/retail-plan-schedules` | `plan:create` |
+| `RetailPlanScheduleController` | `POST` | `/api/v1/retail-plan-schedules/{id}/review` | `plan:update` |
+| `IndividualPlanConfigController` | `GET` | `/api/v1/individual/plan-configs` | `plan:view` |
+| `IndividualPlanConfigController` | `POST` | `/api/v1/individual/plan-configs` | `plan:create` |
+| `IndividualPlanConfigController` | `POST` | `/api/v1/individual/plan-configs/{id}/request-apply` | `plan:update` |
+| `IndividualPlanConfigController` | `POST` | `/api/v1/individual/plan-configs/{id}/approve` | `plan:update` |
+| `IndividualPlanConfigController` | `POST` | `/api/v1/individual/plan-configs/{id}/reject` | `plan:update` |
 
 ---
 
-## 8. Mã lỗi liên quan
+## 7. Notification
 
-File: `exception/ErrorCodes.java`
+Service: `ApprovalNotificationServiceImpl`.
 
-### Phê duyệt
+Notification chạy async và gửi email qua `MailService`.
 
-| Mã lỗi | Hằng số | Mô tả |
-|--------|---------|-------|
+| Sự kiện | Người nhận |
+|---|---|
+| Submit / resubmit | Approver level 1 |
+| Approve chưa phải level cuối | Approver level tiếp theo |
+| Fully approved | Người tạo request |
+| Rejected | Người tạo request |
+| Need revision | Người tạo request |
+
+Resolver người nhận approval dùng cùng logic với service duyệt: ưu tiên manager chain có permission đúng level, sau đó fallback sang user active có permission đúng level.
+
+---
+
+## 8. Error code liên quan
+
+File: `ErrorCodes.java`.
+
+| Code | Constant | Ý nghĩa |
+|---:|---|---|
 | 2013 | `APPROVAL_NOT_FOUND` | Không tìm thấy approval request |
-| 2014 | `APPROVAL_ALREADY_REVIEWED` | Đã được xem xét rồi |
-| 2015 | `APPROVAL_EXECUTION_FAILED` | Thực thi phê duyệt thất bại |
-| 2022 | `APPROVAL_STEP_NOT_FOUND` | Không tìm thấy step ở cấp hiện tại |
-| 2023 | `APPROVAL_NOT_IN_PROGRESS` | Request không ở trạng thái IN_APPROVAL |
-| 2024 | `APPROVAL_SELF_APPROVE` | Không được tự phê duyệt yêu cầu của mình |
-| 2025 | `APPROVAL_WRONG_LEVEL` | Sai cấp phê duyệt |
-| 2026 | `APPROVAL_NOT_REVISABLE` | Request không ở trạng thái NEED_REVISION |
+| 2014 | `APPROVAL_ALREADY_REVIEWED` | Approval legacy đã được review |
+| 2015 | `APPROVAL_EXECUTION_FAILED` | Thực thi approval lỗi |
+| 2022 | `APPROVAL_STEP_NOT_FOUND` | Không tìm thấy step hiện tại |
+| 2023 | `APPROVAL_NOT_IN_PROGRESS` | Request không ở trạng thái `IN_APPROVAL` hoặc submit sai trạng thái |
+| 2024 | `APPROVAL_SELF_APPROVE` | Người tạo tự duyệt request của mình |
+| 2025 | `APPROVAL_WRONG_LEVEL` | Actor không có quyền duyệt đúng cấp |
+| 2026 | `APPROVAL_NOT_REVISABLE` | Request không ở trạng thái `NEED_REVISION` khi resubmit |
 | 2027 | `APPROVAL_LEVEL_CONFIG_NOT_FOUND` | Không tìm thấy cấu hình số cấp |
-
-### Role & User
-
-| Mã lỗi | Hằng số | Mô tả |
-|--------|---------|-------|
 | 3011 | `USERNAME_ALREADY_EXISTS` | Username đã tồn tại |
 | 3012 | `EMAIL_ALREADY_EXISTS` | Email đã tồn tại |
 | 3013 | `CANNOT_MODIFY_SYSTEM_ROLE` | Không được sửa role hệ thống |
-| 3014 | `ROLE_IN_USE` | Role đang được gán cho user, không thể xóa |
+| 3014 | `ROLE_IN_USE` | Role đang được gán cho user |
 
 ---
 
-## Checklist nâng cấp thường gặp
+## 9. Checklist khi thay đổi approval
 
-### Thêm cấp phê duyệt mới (ví dụ LEVEL_4)
+### Thêm level phê duyệt mới
 
-- [ ] Thêm `LEVEL_4` vào enum `ApprovalLevel` trong `CommercialEnums.java`
-- [ ] Tạo Role `APPROVAL_L4` mới trong DB
-- [ ] Thêm mapping `LEVEL_4 → APPROVAL_L4` trong `LEVEL_ROLES` của `MultiLevelApprovalService.java`
-- [ ] Cập nhật bảng `approval_level_configs` thêm ngưỡng giá trị mới → 4 cấp
-- [ ] Thêm quyền `approval:level4` vào DB và gán cho role `APPROVAL_L4`
-- [ ] Cập nhật `@PreAuthorize` trong `ApprovalRequestController.java`
-- [ ] Cập nhật UI `ApprovalDetail.vue` hiển thị 4 steps
+- Thêm permission mới, ví dụ `approval:level4`.
+- Gán permission cho role approver tương ứng.
+- Tăng giới hạn trong `MultiLevelApprovalServiceImpl.LEVEL_ROLES` và `LEVEL_PERMISSION_KEYS`.
+- Cập nhật validate `approvalLevel must be between 1 and 3`.
+- Cập nhật `@PreAuthorize` ở `ApprovalRequestController` và các controller entity gốc đang cho approver xem chi tiết.
+- Cập nhật notification display name trong `ApprovalNotificationServiceImpl`.
+- Cập nhật UI hiển thị step và action.
 
-### Thêm loại entity mới vào luồng phê duyệt (ví dụ ContractRequest)
+### Thêm entity mới vào approval
 
-- [ ] Thêm `REQUEST_CONTRACT` vào enum `RequestType`
-- [ ] Khi tạo entity → gọi `MultiLevelApprovalService.createAndSubmit()`
-- [ ] Thêm case xử lý `entityType = "CONTRACT_REQUEST"` trong `propagateApproval()` và `propagateRejection()`
+- Thêm `RequestType` mới trong `CommercialEnums`.
+- Khi tạo entity, tạo `ApprovalRequest` ở `DRAFT` rồi gọi `createAndSubmit()`.
+- Set đúng `entity_type`, `entity_id`, `requested_by`, `customer_segment`, `request_payload`, `description`, `contract_value`, `total_levels`.
+- Bổ sung case trong `propagateApproval()` và `propagateRejection()`.
+- Mở quyền xem chi tiết entity cho `approval:level1..3` nếu approver cần xem payload gốc.
 
-### Thay đổi ngưỡng giá trị để tính số cấp phê duyệt
+### Đồng bộ permission seed
 
-- [ ] Chỉ cần UPDATE bảng `approval_level_configs` trong DB — không cần sửa code
+- Bỏ comment hoặc viết migration chính thức để insert `approval:level1..3`.
+- Gán permission approval cho role approver.
+- Nếu frontend dùng `approval:view`, thêm permission này hoặc đổi frontend/backend về cùng một key.

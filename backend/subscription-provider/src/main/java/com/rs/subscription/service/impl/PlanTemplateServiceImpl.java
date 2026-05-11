@@ -30,6 +30,11 @@ public class PlanTemplateServiceImpl implements PlanTemplateService {
         return planTemplateRepository.findAll().stream().map(this::toResponse).toList();
     }
 
+    public List<PlanTemplateResponse> listBySegment(String customerSegment) {
+        String normalized = CommercialEnums.normalize(customerSegment, CommercialEnums.CustomerSegment.class, "customerSegment");
+        return planTemplateRepository.findByCustomerSegment(normalized).stream().map(this::toResponse).toList();
+    }
+
     public PlanTemplateResponse getById(Long id) {
         return toResponse(findEntity(id));
     }

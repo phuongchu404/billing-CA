@@ -1,5 +1,6 @@
 import request from '@/utils/request'
 import type { ApprovalLevel, ApprovalStepStatus, CustomerSegment, MultiApprovalStatus } from '@/types/enums'
+import type { ApiResponse, PagedResponse } from '@/types'
 export type { CustomerSegment, MultiApprovalStatus } from '@/types/enums'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -68,8 +69,8 @@ export interface RevisionApprovalRequest {
 // ─── API calls ────────────────────────────────────────────────────────────────
 
 // GET /api/v1/approval-requests
-export const listApprovals = () =>
-  request.get<MultiLevelApprovalResponse[]>('/api/v1/approval-requests')
+export const listApprovals = (params?: { status?: string; customerSegment?: string; page?: number; size?: number }) =>
+  request.get<any, ApiResponse<PagedResponse<MultiLevelApprovalResponse>>>('/api/v1/approval-requests', { params })
 
 // GET /api/v1/approval-requests/{id}
 export const getApproval = (id: number) =>

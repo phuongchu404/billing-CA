@@ -352,7 +352,11 @@
             <el-option :label="$t('agency.dialogCEO')" :value="3" />
           </el-select>
         </div>
-        <p class="dlg-note" v-html="$t('agency.dialogRequestNote')"></p>
+        <i18n-t keypath="agency.dialogRequestNote" tag="p" class="dlg-note">
+          <template #status>
+            <b>{{ $t('agency.dialogPendingApprovalStatus') }}</b>
+          </template>
+        </i18n-t>
       </div>
       <template #footer>
         <el-button type="primary" :disabled="!can('group:update')" @click="confirmRequestApply"
@@ -370,7 +374,20 @@
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc" v-html="$t('agency.dialogApproveDesc', { planName: selectedPlan?.planName, agencyName: agency.groupName, agencyCode: agency.groupCode })"></p>
+        <i18n-t keypath="agency.dialogApproveDesc" tag="p" class="dlg-desc">
+          <template #action>
+            <b>{{ $t('agency.dialogConfirmAction') }}</b>
+          </template>
+          <template #planName>
+            <b class="dlg-plan-name">{{ selectedPlan?.planName }}</b>
+          </template>
+          <template #agencyName>
+            <b>{{ agency.groupName }}</b>
+          </template>
+          <template #agencyCode>
+            <b>{{ agency.groupCode }}</b>
+          </template>
+        </i18n-t>
         <div class="dlg-date-row">
           <span class="dlg-date-label">{{ $t('agency.dialogApplyPeriod') }}</span>
           <el-date-picker
@@ -383,11 +400,27 @@
             style="flex: 1"
           />
         </div>
-        <p class="dlg-note" v-html="$t('agency.dialogApproveNote')"></p>
+        <i18n-t keypath="agency.dialogApproveNote" tag="p" class="dlg-note">
+          <template #status>
+            <b>{{ $t('agency.dialogApprovedStatus') }}</b>
+          </template>
+        </i18n-t>
         <ul class="dlg-bullets">
-          <li v-html="$t('agency.dialogApproveBullet1')"></li>
-          <li v-html="$t('agency.dialogApproveBullet2')"></li>
-          <li v-html="$t('agency.dialogApproveBullet3')"></li>
+          <i18n-t keypath="agency.dialogApproveBullet1" tag="li">
+            <template #status>
+              <b>{{ $t('agency.dialogActiveStatus') }}</b>
+            </template>
+          </i18n-t>
+          <i18n-t keypath="agency.dialogApproveBullet2" tag="li">
+            <template #status>
+              <b>{{ $t('agency.dialogAvailableStatus') }}</b>
+            </template>
+          </i18n-t>
+          <i18n-t keypath="agency.dialogApproveBullet3" tag="li">
+            <template #status>
+              <b>{{ $t('agency.dialogAvailableStatus') }}</b>
+            </template>
+          </i18n-t>
         </ul>
       </div>
       <template #footer>
@@ -411,7 +444,23 @@
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc" v-html="$t('agency.dialogStopDesc', { planName: selectedPlan?.planName, agencyName: agency.groupName, agencyCode: agency.groupCode })"></p>
+        <i18n-t keypath="agency.dialogStopDesc" tag="p" class="dlg-desc">
+          <template #action>
+            <b>{{ $t('agency.dialogConfirmAction') }}</b>
+          </template>
+          <template #planName>
+            <b class="dlg-plan-name">{{ selectedPlan?.planName }}</b>
+          </template>
+          <template #agencyName>
+            <b>{{ agency.groupName }}</b>
+          </template>
+          <template #agencyCode>
+            <b>{{ agency.groupCode }}</b>
+          </template>
+          <template #status>
+            <b>{{ $t('agency.dialogAvailableStatus') }}</b>
+          </template>
+        </i18n-t>
       </div>
       <template #footer>
         <el-button type="primary" :disabled="!can('group:update')" @click="confirmStopApply">{{ $t('common.confirm') }}</el-button>
@@ -474,7 +523,11 @@
           </el-table-column>
         </el-table>
 
-        <p class="dlg-note" style="margin-top: 12px" v-html="$t('agency.dialogPlanNote')"></p>
+        <i18n-t keypath="agency.dialogPlanNote" tag="p" class="dlg-note" style="margin-top: 12px">
+          <template #label>
+            <b>{{ $t('agency.dialogPlanNoteLabel') }}</b>
+          </template>
+        </i18n-t>
       </div>
       <template #footer>
         <div class="dlg-footer-split">
@@ -523,10 +576,11 @@
         <el-button
           type="primary"
           :disabled="!exportMonth"
+          :loading="exporting"
           @click="confirmExport"
           >{{ $t('common.confirm') }}</el-button
         >
-        <el-button @click="exportVisible = false">{{ $t('common.cancel') }}</el-button>
+        <el-button :disabled="exporting" @click="exportVisible = false">{{ $t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
@@ -538,8 +592,12 @@
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc" v-html="$t('agency.dialogActivateConfirm', { code: agency.groupCode, name: agency.groupName })"></p>
-        <p class="dlg-desc" style="margin-top: 8px" v-html="$t('agency.dialogActivateNote')"></p>
+        <p class="dlg-desc">{{ $t('agency.dialogActivateConfirm', { code: agency.groupCode, name: agency.groupName }) }}</p>
+        <i18n-t keypath="agency.dialogActivateNote" tag="p" class="dlg-desc" style="margin-top: 8px">
+          <template #status>
+            <b>{{ $t('agency.dialogActiveAgencyStatus') }}</b>
+          </template>
+        </i18n-t>
       </div>
       <template #footer>
         <el-button type="primary" @click="confirmActivate">{{ $t('common.confirm') }}</el-button>
@@ -555,8 +613,22 @@
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
-        <p class="dlg-desc" v-html="$t('agency.dialogDisableDesc', { planName: selectedPlan?.planName, code: agency.groupCode, name: agency.groupName })"></p>
-        <p class="dlg-desc" style="margin-top: 8px" v-html="$t('agency.dialogDisableNote')"></p>
+        <i18n-t keypath="agency.dialogDisableDesc" tag="p" class="dlg-desc">
+          <template #planName>
+            <b>{{ selectedPlan?.planName }}</b>
+          </template>
+          <template #code>
+            {{ agency.groupCode }}
+          </template>
+          <template #name>
+            {{ agency.groupName }}
+          </template>
+        </i18n-t>
+        <i18n-t keypath="agency.dialogDisableNote" tag="p" class="dlg-desc" style="margin-top: 8px">
+          <template #action>
+            <b>{{ $t('agency.dialogConfirmAction') }}</b>
+          </template>
+        </i18n-t>
       </div>
       <template #footer>
         <el-button type="primary" :disabled="!can('group:update')" @click="confirmDisable">{{ $t('common.confirm') }}</el-button>
@@ -657,6 +729,8 @@ import {
   createGroupAssignment,
   reviewAssignment,
   getGroupPlanHistory,
+  downloadSettlementExport,
+  triggerBlobDownload,
 } from "@/api/groups";
 import { getPlanTemplate } from "@/api/planTemplates";
 import type {
@@ -822,6 +896,7 @@ const disableVisible = ref(false);
 
 const exportVisible = ref(false);
 const exportMonth = ref<string | null>(null);
+const exporting = ref(false);
 
 const activateVisible = ref(false);
 
@@ -1108,9 +1183,24 @@ async function confirmDisable() {
   disableVisible.value = false;
 }
 
-function confirmExport() {
-  // TODO: call export API with exportMonth.value
-  exportVisible.value = false;
+async function confirmExport() {
+  if (!exportMonth.value) return;
+  exporting.value = true;
+  try {
+    const blob = await downloadSettlementExport({
+      groupId: agencyId,
+      month: exportMonth.value,
+    });
+    triggerBlobDownload(
+      blob,
+      `doi-soat-${agency.value.groupCode}-${exportMonth.value}.xlsx`,
+    );
+    exportVisible.value = false;
+  } catch {
+    ElMessage.error(t('agency.errorExport'));
+  } finally {
+    exporting.value = false;
+  }
 }
 
 async function confirmActivate() {

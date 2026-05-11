@@ -72,6 +72,9 @@ public class RoleServiceImpl implements RoleService {
         if (Boolean.TRUE.equals(role.getIsSystemRole())) {
             throw new SmsException(ErrorCodes.CANNOT_MODIFY_SYSTEM_ROLE, "System roles cannot be deleted", 400);
         }
+        if ("ROLE_PARTNER".equals(role.getRoleName())) {
+            throw new SmsException(ErrorCodes.CANNOT_MODIFY_SYSTEM_ROLE, "ROLE_PARTNER cannot be deleted", 400);
+        }
         userRoleRepository.deleteAllByRoleRoleId(roleId);
         rolePermissionRepository.deleteAllByRoleRoleId(roleId);
         entityManager.flush();

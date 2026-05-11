@@ -17,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
   const permissions = computed(() => user.value?.permissions || [])
   function hasPermission(key?: string): boolean {
     if (!key) return true
+    if (isAdmin.value) return true
     const values = permissions.value
     return values.includes('*') || values.includes(key)
   }

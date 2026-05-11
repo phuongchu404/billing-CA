@@ -11,7 +11,11 @@
     <el-card shadow="never" v-loading="loading">
       <!-- Toolbar -->
       <div class="toolbar">
-        <el-button type="primary" :icon="Plus" :disabled="!can('user:create')" @click="openCreate"
+        <el-button
+          type="primary"
+          :icon="Plus"
+          :disabled="!can('user:create')"
+          @click="openCreate"
           >+ {{ t("users.newUser") }}</el-button
         >
       </div>
@@ -84,11 +88,7 @@
           <template #header>
             <div class="col-label">#</div>
             <div class="col-filter">
-              <el-button
-                :icon="RefreshRight"
-                link
-                @click.stop="resetFilters"
-              />
+              <el-button :icon="RefreshRight" link @click.stop="resetFilters" />
             </div>
           </template>
         </el-table-column>
@@ -109,7 +109,7 @@
 
         <el-table-column prop="status" sortable="custom" width="145">
           <template #header>
-            <div class="col-label">{{ t('common.status').toUpperCase() }}</div>
+            <div class="col-label">{{ t("common.status").toUpperCase() }}</div>
             <div class="col-filter" @click.stop>
               <el-select
                 v-model="filterStatus"
@@ -128,14 +128,18 @@
               class="status-badge"
               :class="row.status === 'ACTIVE' ? 'active' : 'revoked'"
             >
-              {{ row.status === "ACTIVE" ? t('users.statusActive') : t('users.statusRevoked') }}
+              {{
+                row.status === "ACTIVE"
+                  ? t("users.statusActive")
+                  : t("users.statusRevoked")
+              }}
             </span>
           </template>
         </el-table-column>
 
         <el-table-column prop="roleName" sortable="custom" min-width="150">
           <template #header>
-            <div class="col-label">{{ t('users.roles').toUpperCase() }}</div>
+            <div class="col-label">{{ t("users.roles").toUpperCase() }}</div>
             <div class="col-filter" @click.stop>
               <el-select
                 v-model="filterRole"
@@ -157,14 +161,16 @@
 
         <el-table-column prop="fullName" sortable="custom" min-width="170">
           <template #header>
-            <div class="col-label">{{ t('users.fullName').toUpperCase() }}</div>
+            <div class="col-label">{{ t("users.fullName").toUpperCase() }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="managerName" sortable="custom" min-width="160">
           <template #header>
-            <div class="col-label">{{ t('users.managerLabel').toUpperCase() }}</div>
+            <div class="col-label">
+              {{ t("users.managerLabel").toUpperCase() }}
+            </div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -175,21 +181,23 @@
 
         <el-table-column prop="email" sortable="custom" min-width="190">
           <template #header>
-            <div class="col-label">EMAIL</div>
+            <div class="col-label">{{ t("users.email").toUpperCase() }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="createdAt" sortable="custom" width="175">
           <template #header>
-            <div class="col-label">{{ t('users.createdAtLabel').toUpperCase() }}</div>
+            <div class="col-label">
+              {{ t("users.createdAtLabel").toUpperCase() }}
+            </div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column fixed="right" width="320">
+        <el-table-column fixed="right" width="380">
           <template #header>
-            <div class="col-label">{{ t('common.actions').toUpperCase() }}</div>
+            <div class="col-label">{{ t("common.actions").toUpperCase() }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
@@ -200,23 +208,23 @@
                   :icon="EditPen"
                   :disabled="!can('user:update')"
                   @click="openEdit(row)"
-                  >{{ t('users.editAction') }}</el-button
+                  >{{ t("users.editAction") }}</el-button
                 >
                 <el-button
                   size="small"
                   :icon="Connection"
                   :disabled="!can('user:update')"
                   @click="openAssignManager(row)"
-                  >{{ t('users.assignManagerAction') }}</el-button
+                  >{{ t("users.assignManagerAction") }}</el-button
                 >
                 <el-button
                   size="small"
                   :icon="Key"
                   :disabled="!can('user:update')"
                   @click="openResetPwd(row)"
-                  >{{ t('users.resetPassword') }}</el-button
+                  >{{ t("users.resetPassword") }}</el-button
                 >
-                <el-button
+                <!-- <el-button
                   size="small"
                   :icon="Delete"
                   type="warning"
@@ -224,7 +232,7 @@
                   :disabled="!can('user:update')"
                   @click="openDelete(row)"
                   >{{ t('users.deleteAccountAction') }}</el-button
-                >
+                > -->
               </template>
             </div>
           </template>
@@ -292,7 +300,7 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">{{ t('users.createTitle') }}</span>
+        <span class="dlg-title">{{ t("users.createTitle") }}</span>
       </template>
       <el-form
         ref="createFormRef"
@@ -306,7 +314,7 @@
             v-model="createForm.username"
             :placeholder="t('users.usernamePlaceholder')"
           />
-          <div class="field-hint">{{ t('users.usernameHint') }}</div>
+          <div class="field-hint">{{ t("users.usernameHint") }}</div>
         </el-form-item>
         <el-form-item :label="t('users.fullName')" prop="fullName">
           <el-input
@@ -328,7 +336,10 @@
             :placeholder="t('users.passwordPlaceholder')"
           />
         </el-form-item>
-        <el-form-item :label="t('users.confirmPasswordLabel')" prop="confirmPassword">
+        <el-form-item
+          :label="t('users.confirmPasswordLabel')"
+          prop="confirmPassword"
+        >
           <el-input
             v-model="createForm.confirmPassword"
             type="password"
@@ -342,7 +353,12 @@
             :placeholder="t('users.roleSelectPlaceholder')"
             style="width: 100%"
           >
-            <el-option v-for="r in allRoles" :key="r.roleId" :label="r.displayName" :value="r.roleId" />
+            <el-option
+              v-for="r in allRoles"
+              :key="r.roleId"
+              :label="r.displayName"
+              :value="r.roleId"
+            />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('users.managerSelectLabel')">
@@ -364,8 +380,12 @@
       </el-form>
       <template #footer>
         <div class="dlg-footer-right">
-          <el-button type="primary" :loading="saving" @click="handleCreate">{{ t('common.confirm') }}</el-button>
-          <el-button @click="createVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" :loading="saving" @click="handleCreate">{{
+            t("common.confirm")
+          }}</el-button>
+          <el-button @click="createVisible = false">{{
+            t("common.cancel")
+          }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -377,7 +397,7 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">{{ t('users.editTitle') }}</span>
+        <span class="dlg-title">{{ t("users.editTitle") }}</span>
       </template>
       <el-form
         ref="editFormRef"
@@ -388,25 +408,27 @@
       >
         <el-form-item :label="t('users.username') + ':'" prop="username">
           <el-input :value="editingUser?.username" disabled />
-          <div class="field-hint">{{ t('users.cannotChangeUsername') }}</div>
+          <div class="field-hint">{{ t("users.cannotChangeUsername") }}</div>
         </el-form-item>
         <el-form-item :label="t('users.fullName') + ':'" prop="fullName">
           <el-input v-model="editForm.fullName" />
         </el-form-item>
-        <el-form-item label="Email" prop="email">
+        <el-form-item :label="t('users.email')" prop="email">
           <el-input v-model="editForm.email" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dlg-footer-split">
-          <el-button type="warning" plain @click="openDeleteFromEdit"
-            >{{ t('users.deleteAccountAction') }}</el-button
-          >
+          <el-button type="warning" plain @click="openDeleteFromEdit">{{
+            t("users.deleteAccountAction")
+          }}</el-button>
           <div class="dlg-footer-right">
-            <el-button type="primary" :loading="saving" @click="handleEdit"
-              >{{ t('common.confirm') }}</el-button
-            >
-            <el-button @click="editVisible = false">{{ t('common.cancel') }}</el-button>
+            <el-button type="primary" :loading="saving" @click="handleEdit">{{
+              t("common.confirm")
+            }}</el-button>
+            <el-button @click="editVisible = false">{{
+              t("common.cancel")
+            }}</el-button>
           </div>
         </div>
       </template>
@@ -419,34 +441,54 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">{{ t('users.deleteTitle') }}</span>
+        <span class="dlg-title">{{ t("users.deleteTitle") }}</span>
       </template>
       <p class="delete-text">
-        {{ t('users.deleteConfirmText', { username: deleteTarget?.username, fullName: deleteTarget?.fullName }) }}
+        {{
+          t("users.deleteConfirmText", {
+            username: deleteTarget?.username,
+            fullName: deleteTarget?.fullName,
+          })
+        }}
       </p>
       <template #footer>
         <div class="dlg-footer-right">
-          <el-button type="primary" :loading="saving" @click="handleDelete"
-            >{{ t('common.confirm') }}</el-button
-          >
-          <el-button @click="deleteVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" :loading="saving" @click="handleDelete">{{
+            t("common.confirm")
+          }}</el-button>
+          <el-button @click="deleteVisible = false">{{
+            t("common.cancel")
+          }}</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- Assign Manager Dialog -->
-    <el-dialog v-model="assignManagerVisible" width="420px" :close-on-click-modal="false">
+    <el-dialog
+      v-model="assignManagerVisible"
+      width="420px"
+      :close-on-click-modal="false"
+    >
       <template #header>
-        <span class="dlg-title">{{ t('users.assignManagerTitle') }}</span>
+        <span class="dlg-title">{{ t("users.assignManagerTitle") }}</span>
       </template>
       <el-form label-width="130px" label-position="left">
         <el-form-item :label="t('users.username') + ':'">
-          <span>{{ assignManagerTarget?.fullName }} ({{ assignManagerTarget?.username }})</span>
+          <span
+            >{{ assignManagerTarget?.fullName }} ({{
+              assignManagerTarget?.username
+            }})</span
+          >
         </el-form-item>
         <el-form-item :label="t('users.managerSelectLabel') + ':'">
-          <el-select v-model="assignManagerId" clearable :placeholder="t('users.managerSelectClearPlaceholder')" style="width:100%">
+          <el-select
+            v-model="assignManagerId"
+            clearable
+            :placeholder="t('users.managerSelectClearPlaceholder')"
+            style="width: 100%"
+          >
             <el-option
-              v-for="u in users.filter(u => u.id !== assignManagerTarget?.id)"
+              v-for="u in users.filter((u) => u.id !== assignManagerTarget?.id)"
               :key="u.id"
               :label="`${u.fullName} (${u.username})`"
               :value="u.id"
@@ -456,8 +498,15 @@
       </el-form>
       <template #footer>
         <div class="dlg-footer-right">
-          <el-button type="primary" :loading="saving" @click="handleAssignManager">{{ t('common.confirm') }}</el-button>
-          <el-button @click="assignManagerVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button
+            type="primary"
+            :loading="saving"
+            @click="handleAssignManager"
+            >{{ t("common.confirm") }}</el-button
+          >
+          <el-button @click="assignManagerVisible = false">{{
+            t("common.cancel")
+          }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -469,7 +518,7 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">{{ t('users.resetPwdTitle') }}</span>
+        <span class="dlg-title">{{ t("users.resetPwdTitle") }}</span>
       </template>
       <el-form label-width="130px" label-position="left">
         <el-form-item :label="t('users.newPassword') + ':'">
@@ -483,10 +532,12 @@
       </el-form>
       <template #footer>
         <div class="dlg-footer-right">
-          <el-button type="primary" :loading="saving" @click="handleResetPwd"
-            >{{ t('common.confirm') }}</el-button
-          >
-          <el-button @click="resetPwdVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" :loading="saving" @click="handleResetPwd">{{
+            t("common.confirm")
+          }}</el-button>
+          <el-button @click="resetPwdVisible = false">{{
+            t("common.cancel")
+          }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -569,8 +620,7 @@ const filteredUsers = computed(() => {
   if (filterStatus.value) {
     if (filterStatus.value === "ACTIVE")
       list = list.filter((u) => u.status === "ACTIVE");
-    else
-      list = list.filter((u) => u.status !== "ACTIVE");
+    else list = list.filter((u) => u.status !== "ACTIVE");
   }
   if (filterRole.value)
     list = list.filter((u) => u.roleName === filterRole.value);
@@ -688,7 +738,8 @@ const createRules = computed(() => ({
     { required: true, message: t("common.required") },
     {
       validator: (_: any, value: string, callback: Function) => {
-        if (value !== createForm.password) callback(new Error(t("users.passwordMismatch")));
+        if (value !== createForm.password)
+          callback(new Error(t("users.passwordMismatch")));
         else callback();
       },
     },
@@ -836,7 +887,10 @@ async function handleAssignManager() {
   if (!assignManagerTarget.value) return;
   saving.value = true;
   try {
-    await assignManager(assignManagerTarget.value.id, assignManagerId.value || null);
+    await assignManager(
+      assignManagerTarget.value.id,
+      assignManagerId.value || null,
+    );
     ElMessage.success(t("users.managerUpdated"));
     assignManagerVisible.value = false;
     await load();
@@ -992,7 +1046,3 @@ onMounted(load);
   margin: 0;
 }
 </style>
-
-
-
-

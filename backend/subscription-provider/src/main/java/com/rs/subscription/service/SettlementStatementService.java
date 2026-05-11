@@ -22,4 +22,11 @@ public interface SettlementStatementService {
     List<SettlementStatementResponse> listByGroup(Long groupId);
 
     SettlementStatementResponse create(CreateSettlementStatementRequest request);
+
+    /**
+     * Xuất Excel đối soát.
+     * @param groupId null = tất cả đại lý
+     * @param month   "YYYY-MM" (null = không lọc tháng)
+     */
+    byte[] exportToExcel(Long groupId, String month);
 }

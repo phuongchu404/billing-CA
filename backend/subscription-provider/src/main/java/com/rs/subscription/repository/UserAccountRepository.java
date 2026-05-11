@@ -54,6 +54,15 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
         """)
     List<UserAccount> findActiveUsersByRoleName(@Param("roleName") String roleName);
 
+    // Phân trang user theo role name
+    @Query("""
+        SELECT DISTINCT u FROM UserAccount u
+        JOIN u.userRoles ur
+        JOIN ur.role r
+        WHERE r.roleName = :roleName
+        """)
+    Page<UserAccount> findByRoleName(@Param("roleName") String roleName, Pageable pageable);
+
     // Tìm user theo username để lấy email (gửi notification cho requester)
     @Query(value = """
         SELECT DISTINCT u.* FROM user_accounts u

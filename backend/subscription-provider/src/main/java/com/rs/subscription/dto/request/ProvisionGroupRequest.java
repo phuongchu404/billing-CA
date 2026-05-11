@@ -36,4 +36,8 @@ public class ProvisionGroupRequest {
     @Valid
     @NotEmpty
     private List<PlanPricingRuleRequest> pricingRules;
+
+    /** Tùy chọn: tạo tài khoản đối tác và cấp quyền xem group này luôn. */
+    @Valid
+    private PartnerAccountRequest partnerAccount;
 }

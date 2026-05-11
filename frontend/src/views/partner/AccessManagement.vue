@@ -33,8 +33,10 @@
       </div>
 
       <!-- Access list -->
-      <el-table :data="accessList" border :empty-text="t('partnerAccess.emptyText')">
-        <el-table-column type="index" width="55" label="#" />
+      <el-table :data="pagedAccessList" border :empty-text="t('partnerAccess.emptyText')">
+        <el-table-column width="55" label="#">
+          <template #default="{ $index }">{{ (currentPage - 1) * pageSize + $index + 1 }}</template>
+        </el-table-column>
         <el-table-column prop="groupCode" :label="t('partnerAccess.colGroupCode').toUpperCase()" width="120" />
         <el-table-column prop="groupName" :label="t('partnerAccess.colGroupName').toUpperCase()" min-width="200" />
         <el-table-column prop="grantedBy" :label="t('partnerAccess.colGrantedBy').toUpperCase()" width="150" />
@@ -60,6 +62,17 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="accessList.length"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+        />
+      </div>
     </el-card>
 
     <!-- Grant Access Dialog -->
@@ -96,7 +109,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { listUsers } from '@/api/users'
+import { listPartnerUsers } from '@/api/users'
 import { listGroups } from '@/api/groups'
 import { grantPartnerAccess, getPartnerAccessHistory, revokePartnerAccess } from '@/api/partnerAccess'
 import { usePermission } from '@/composables/usePermission'
@@ -114,7 +127,14 @@ const allGroups = ref<GroupListItem[]>([])
 const selectedPartner = ref<number | null>(null)
 const accessList = ref<PartnerGroupAccess[]>([])
 
-// Groups chưa được cấp quyền cho partner này
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const pagedAccessList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return accessList.value.slice(start, start + pageSize.value)
+})
+
 const availableGroups = computed(() => {
   const grantedIds = new Set(accessList.value.filter(a => a.active).map(a => a.groupId))
   return allGroups.value.filter(g => !grantedIds.has(g.groupId))
@@ -132,13 +152,11 @@ async function loadInitialData() {
   loading.value = true
   try {
     const [usersRes, groupsRes] = await Promise.all([
-      listUsers({ page: 0, size: 500 }),
+      listPartnerUsers({ page: 0, size: 200 }),
       listGroups(),
     ])
     if (usersRes.success && usersRes.data) {
-      partnerUsers.value = usersRes.data.content.filter(u =>
-        u.roles?.some(r => r.roleName === 'ROLE_PARTNER')
-      )
+      partnerUsers.value = usersRes.data.content
     }
     if (groupsRes.success && groupsRes.data) {
       allGroups.value = groupsRes.data
@@ -149,7 +167,8 @@ async function loadInitialData() {
 }
 
 async function onPartnerChange(partnerId: number | null) {
-  if (partnerId == null) { accessList.value = []; return }
+  if (partnerId == null) { accessList.value = []; currentPage.value = 1; return }
+  currentPage.value = 1
   loading.value = true
   try {
     const res = await getPartnerAccessHistory(partnerId)
@@ -175,7 +194,6 @@ async function handleRevoke(row: PartnerGroupAccess) {
   }
 }
 
-// ── Grant dialog ──
 const grantVisible = ref(false)
 const grantGroupId = ref<number | null>(null)
 
@@ -206,4 +224,5 @@ onMounted(loadInitialData)
 .page-subtitle { font-size: 13px; color: var(--el-text-color-secondary); }
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
 .dlg-title { font-size: 15px; font-weight: 700; }
+.pagination-wrap { display: flex; justify-content: flex-end; margin-top: 16px; }
 </style>

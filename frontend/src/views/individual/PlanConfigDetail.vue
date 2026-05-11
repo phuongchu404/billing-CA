@@ -2,8 +2,8 @@
   <div class="plan-config-detail">
     <div class="page-header">
       <div>
-        <h2>Chi tiết gói cước</h2>
-        <p class="page-subtitle">Khách hàng phổ thông</p>
+        <h2>{{ t('individualPlan.detailTitle') }}</h2>
+        <p class="page-subtitle">{{ t('individualPlan.subtitle') }}</p>
       </div>
     </div>
 
@@ -15,57 +15,57 @@
         plain
         @click="requestApplyVisible = true"
       >
-        Y/C Áp Dụng
+        {{ t('agency.btnRequestApply') }}
       </el-button>
-      <el-button :icon="Remove" @click="deactivateVisible = true">Vô Hiệu Hóa</el-button>
+      <el-button :icon="Remove" @click="deactivateVisible = true">{{ t('common.deactivate') }}</el-button>
     </div>
 
     <!-- THÔNG TIN GÓI CƯỚC -->
     <div class="section-card" v-loading="loading">
       <div class="section-header" @click="toggleSection('info')">
-        <span class="section-title">THÔNG TIN GÓI CƯỚC</span>
+        <span class="section-title">{{ t('agency.planSection') }}</span>
         <el-icon class="chevron" :class="{ rotated: !openSections.has('info') }"><ArrowDown /></el-icon>
       </div>
       <div v-show="openSections.has('info')" class="info-grid" v-if="info">
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">Tên gói cước:</span>
+            <span class="info-label">{{ t('agency.dialogPlanName') }}</span>
             <span class="info-value">{{ info.name }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">Trạng thái:</span>
+            <span class="info-label">{{ t('agency.statusField') }}</span>
             <span class="info-value">{{ statusLabel(info.status as any) }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">Áp dụng từ:</span>
+            <span class="info-label">{{ t('agency.colApplyFrom') }}:</span>
             <span class="info-value">{{ info.applyFrom ?? '' }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">Áp dụng đến:</span>
+            <span class="info-label">{{ t('agency.colApplyTo') }}:</span>
             <span class="info-value">{{ info.applyUntil ?? '' }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item info-item--full">
-            <span class="info-label">Lịch sử áp dụng:</span>
+            <span class="info-label">{{ t('individualPlan.applyHistory') }}</span>
             <span class="info-value">{{ info.applyHistory }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">Người tạo:</span>
+            <span class="info-label">{{ t('agency.createdByField') }}</span>
             <span class="info-value">{{ info.createdBy }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">Thời gian tạo:</span>
+            <span class="info-label">{{ t('agency.createdAtField') }}</span>
             <span class="info-value">{{ info.createdAt }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">Thời gian cập nhật:</span>
+            <span class="info-label">{{ t('agency.updatedAtField') }}</span>
             <span class="info-value">{{ info.updatedAt }}</span>
           </div>
         </div>
@@ -75,12 +75,12 @@
     <!-- CẤU HÌNH GÓI CƯỚC SMARTCA -->
     <div class="section-card">
       <div class="section-header" @click="toggleSection('config')">
-        <span class="section-title">CẤU HÌNH GÓI CƯỚC SMARTCA</span>
+        <span class="section-title">{{ t('agency.configSection') }}</span>
         <el-icon class="chevron" :class="{ rotated: !openSections.has('config') }"><ArrowDown /></el-icon>
       </div>
       <div v-show="openSections.has('config')">
         <div class="category-tabs">
-          <span class="tab-prefix-label">Phân loại</span>
+          <span class="tab-prefix-label">{{ t('individualPlan.category') }}</span>
           <div class="cat-tab-group">
             <button
               v-for="tab in TABS"
@@ -104,46 +104,46 @@
 
           <el-table-column prop="subject" sortable min-width="130">
             <template #header>
-              <span>PHÂN LOẠI ĐỐI TƯỢNG</span>
+              <span>{{ t('individualPlan.colSubjectType') }}</span>
             </template>
             <template #default>{{ subjectLabel(activeTab) }}</template>
           </el-table-column>
 
           <el-table-column prop="durationMonths" sortable width="160" align="center">
             <template #header>
-              <span>THỜI HẠN</span><br /><span>CHỨNG THƯ</span>
+              <span>{{ t('individualPlan.durationHeader1') }}</span><br /><span>{{ t('individualPlan.durationHeader2') }}</span>
             </template>
-            <template #default="{ row }">{{ row.durationMonths }} tháng</template>
+            <template #default="{ row }">{{ row.durationMonths }} {{ t('agency.monthUnit') }}</template>
           </el-table-column>
 
           <el-table-column prop="condition" sortable width="150" align="center">
             <template #header>
-              <span>ĐIỀU KIỆN</span>
+              <span>{{ t('agency.colCondition') }}</span>
             </template>
             <template #default="{ row }">{{ conditionLabel(row.condition) }}</template>
           </el-table-column>
 
           <el-table-column prop="minValue" sortable width="160" align="center">
             <template #header>
-              <span>GIÁ TRỊ MIN</span><br /><span>(CỦA ĐIỀU KIỆN)</span>
+              <span>{{ t('individualPlan.minHeader') }}</span><br /><span>{{ t('individualPlan.conditionHeader') }}</span>
             </template>
             <template #default="{ row }">{{ row.minValue }}</template>
           </el-table-column>
 
           <el-table-column prop="maxValue" sortable width="180" align="center">
             <template #header>
-              <span>GIÁ TRỊ MAX</span><br /><span>(CỦA ĐIỀU KIỆN)</span>
+              <span>{{ t('individualPlan.maxHeader') }}</span><br /><span>{{ t('individualPlan.conditionHeader') }}</span>
             </template>
             <template #default="{ row }">
-              {{ row.maxValue != null ? row.maxValue : 'Không giới hạn' }}
+              {{ row.maxValue != null ? row.maxValue : t('agency.unlimited') }}
             </template>
           </el-table-column>
 
           <el-table-column prop="fee" sortable width="140" align="right">
             <template #header>
-              <span>PHÍ/ ĐIỀU KIỆN</span>
+              <span>{{ t('agency.colFeePerCondition') }}</span>
             </template>
-            <template #default="{ row }">{{ formatFee(row.fee) }} vnd</template>
+            <template #default="{ row }">{{ formatFee(row.fee) }} {{ t('agency.vnd') }}</template>
           </el-table-column>
         </el-table>
       </div>
@@ -152,7 +152,7 @@
     <!-- LỊCH SỬ CẬP NHẬT TRẠNG THÁI -->
     <div class="section-card">
       <div class="section-header" @click="toggleSection('history')">
-        <span class="section-title">LỊCH SỬ CẬP NHẬT TRẠNG THÁI</span>
+        <span class="section-title">{{ t('individualPlan.statusHistory') }}</span>
         <el-icon class="chevron" :class="{ rotated: !openSections.has('history') }"><ArrowDown /></el-icon>
       </div>
       <div v-show="openSections.has('history')">
@@ -168,7 +168,7 @@
 
           <el-table-column prop="status" sortable min-width="140">
             <template #header>
-              <div class="col-label">TRẠNG THÁI</div>
+              <div class="col-label">{{ t('common.status') }}</div>
               <div class="col-filter"></div>
             </template>
             <template #default="{ row }">{{ statusLabel(row.status) }}</template>
@@ -176,14 +176,14 @@
 
           <el-table-column prop="updatedAt" sortable width="190">
             <template #header>
-              <div class="col-label">THỜI GIAN CẬP NHẬT</div>
+              <div class="col-label">{{ t('agency.updatedAtField') }}</div>
               <div class="col-filter"></div>
             </template>
           </el-table-column>
 
           <el-table-column prop="updatedBy" sortable width="180">
             <template #header>
-              <div class="col-label">TÀI KHOẢN CẬP NHẬT</div>
+              <div class="col-label">{{ t('individualPlan.updatedBy') }}</div>
               <div class="col-filter"></div>
             </template>
           </el-table-column>
@@ -194,70 +194,68 @@
     <!-- Dialog 1: YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC -->
     <el-dialog v-model="requestApplyVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC</span>
+        <span class="dlg-title">{{ t('agency.dialogRequestApply') }}</span>
       </template>
       <div class="dlg-name-row">
-        <span>Tên: <b>{{ info?.name }}</b></span>
+        <span>{{ t('common.name') }}: <b>{{ info?.name }}</b></span>
       </div>
       <el-form label-width="140px" style="margin-top: 16px">
-        <el-form-item label="Thời gian áp dụng">
+        <el-form-item :label="t('agency.dialogApplyPeriod')">
           <el-date-picker
             v-model="requestApplyDateRange"
             type="daterange"
             range-separator="-"
-            start-placeholder="Từ"
-            end-placeholder="Đến"
+            :start-placeholder="t('agency.dateFrom')"
+            :end-placeholder="t('agency.dateTo')"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="Cáº¥p phÃª duyá»‡t">
+        <el-form-item :label="t('agency.dialogApprovalLevel')">
           <el-select v-model="requestApprovalLevel" style="width: 100%">
-            <el-option label="TrÆ°á»Ÿng phÃ²ng kinh doanh" :value="1" />
-            <el-option label="CFO (Finance Manager)" :value="2" />
-            <el-option label="CEO" :value="3" />
+            <el-option :label="t('agency.dialogSalesManager')" :value="1" />
+            <el-option :label="t('agency.dialogCFO')" :value="2" />
+            <el-option :label="t('agency.dialogCEO')" :value="3" />
           </el-select>
         </el-form-item>
       </el-form>
       <p class="dlg-note">
-        Khi bấm nút Xác Nhận, hệ thống sẽ tự động tạo yêu cầu phê duyệt nhiều cấp và gửi email thông báo
-        cho người phê duyệt cấp 1. Số cấp duyệt được xác định theo giá trị gói cước.
+        {{ t('individualPlan.requestApplyMultiLevelNote') }}
       </p>
       <template #footer>
-        <el-button type="primary" :loading="requestApplyLoading" @click="confirmRequestApply">Xác Nhận</el-button>
-        <el-button @click="requestApplyVisible = false">Huỷ Bỏ</el-button>
+        <el-button type="primary" :loading="requestApplyLoading" @click="confirmRequestApply">{{ t('common.confirm') }}</el-button>
+        <el-button @click="requestApplyVisible = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Approval success -->
-    <el-dialog v-model="approvalSuccessVisible" title="YÊU CẦU ĐÃ ĐƯỢC GỬI" width="440px" align-center>
+    <el-dialog v-model="approvalSuccessVisible" :title="t('agency.approvalSuccessTitle')" width="440px" align-center>
       <div style="text-align:center; padding: 8px 0 16px">
         <el-icon style="font-size:48px; color:#67c23a"><CircleCheck /></el-icon>
         <p style="margin:12px 0 4px; font-size:15px; font-weight:600; color:#303133">
-          Yêu cầu áp dụng đã được gửi!
+          {{ t('individualPlan.requestApplySent') }}
         </p>
         <p style="font-size:13px; color:#606266; margin:0">
-          Email thông báo đã được gửi đến người phê duyệt cấp 1.<br />
-          Theo dõi tiến trình duyệt tại màn Phê duyệt.
+          {{ t('agency.approvalSuccessDesc1') }}<br />
+          {{ t('agency.approvalSuccessDesc2') }}
         </p>
       </div>
       <template #footer>
-        <el-button type="primary" @click="goToApproval">Xem tiến trình duyệt</el-button>
-        <el-button @click="approvalSuccessVisible = false">Đóng</el-button>
+        <el-button type="primary" @click="goToApproval">{{ t('agency.viewApprovalProgress') }}</el-button>
+        <el-button @click="approvalSuccessVisible = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog 4: VÔ HIỆU HOÁ -->
     <el-dialog v-model="deactivateVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">VÔ HIỆU HOÁ</span>
+        <span class="dlg-title">{{ t('agency.dialogDisableTitle') }}</span>
       </template>
       <p class="dlg-body">
-        Bạn đang vô hiệu hoá gói cước {{ info?.name }}.
-        Cấu hình gói cước này sẽ không còn khả dụng. Nhấn "Xác Nhận" để vô hiệu hoá.
+        {{ t('individualPlan.deactivateDesc', { name: info?.name }) }}
       </p>
       <template #footer>
-        <el-button type="primary" @click="confirmDeactivate">Xác Nhận</el-button>
-        <el-button @click="deactivateVisible = false">Hủy Bỏ</el-button>
+        <el-button type="primary" @click="confirmDeactivate">{{ t('common.confirm') }}</el-button>
+        <el-button @click="deactivateVisible = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -269,6 +267,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Promotion, Remove, ArrowDown, Refresh, CircleCheck } from '@element-plus/icons-vue'
 // CircleCheck already imported above — used in approval success dialog
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import {
   getIndividualPlanConfigDetail,
   requestApplyPlanConfig,
@@ -281,6 +280,7 @@ type PlanStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'PENDING' | 'APPROVED' | 'APPLYI
 
 const route = useRoute()
 const router = useRouter()
+const { t, locale } = useI18n()
 
 const planId = Number(route.params.id)
 const loading = ref(false)
@@ -289,9 +289,9 @@ const activeTab = ref<TabKey>('INDIVIDUAL')
 const historyPage = ref(1)
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: 'INDIVIDUAL', label: 'Cá nhân' },
-  { key: 'ORGANIZATION', label: 'Tổ chức' },
-  { key: 'INDIVIDUAL_OF_ORG', label: 'Cá nhân thuộc Tổ chức' },
+  { key: 'INDIVIDUAL', label: t('approvals.subjectIndividual') },
+  { key: 'ORGANIZATION', label: t('approvals.subjectOrganization') },
+  { key: 'INDIVIDUAL_OF_ORG', label: t('approvals.subjectIndividualOfOrg') },
 ]
 
 // Dialog state
@@ -323,20 +323,20 @@ function toggleSection(key: string) {
 
 function statusLabel(status: PlanStatus): string {
   const map: Record<PlanStatus, string> = {
-    AVAILABLE: 'Khả dụng',
-    UNAVAILABLE: 'Không khả dụng',
-    PENDING: 'Chờ duyệt',
-    APPROVED: 'Đã duyệt',
-    APPLYING: 'Đang áp dụng',
+    AVAILABLE: t('individualPlan.statusAvailable'),
+    UNAVAILABLE: t('individualPlan.statusUnavailable'),
+    PENDING: t('individualPlan.statusPending'),
+    APPROVED: t('individualPlan.statusApproved'),
+    APPLYING: t('individualPlan.statusApplying'),
   }
   return map[status] ?? status
 }
 
 function subjectLabel(tab: TabKey): string {
   const map: Record<TabKey, string> = {
-    INDIVIDUAL: 'Cá nhân',
-    ORGANIZATION: 'Tổ chức',
-    INDIVIDUAL_OF_ORG: 'Cá nhân thuộc Tổ chức',
+    INDIVIDUAL: t('approvals.subjectIndividual'),
+    ORGANIZATION: t('approvals.subjectOrganization'),
+    INDIVIDUAL_OF_ORG: t('approvals.subjectIndividualOfOrg'),
   }
   return map[tab]
 }
@@ -346,13 +346,13 @@ function isTabCompleted(tab: TabKey): boolean {
 }
 
 function conditionLabel(condition: string): string {
-  if (condition === 'SIGNING_COUNT') return 'Lượt ký'
-  if (condition === 'CERTIFICATE_COUNT') return 'Số chứng thư'
+  if (condition === 'SIGNING_COUNT') return t('agency.conditionSigning')
+  if (condition === 'CERTIFICATE_COUNT') return t('agency.conditionCertificate')
   return condition
 }
 
 function formatFee(fee: number): string {
-  return fee.toLocaleString('vi-VN')
+  return fee.toLocaleString(locale.value === 'vi' ? 'vi-VN' : 'en-US')
 }
 
 async function load() {
@@ -369,7 +369,7 @@ async function load() {
       statusHistory.value = res.data.statusHistory ?? []
     }
   } catch {
-    ElMessage.error('Không thể tải thông tin gói cước')
+    ElMessage.error(t('individualPlan.loadDetailError'))
   } finally {
     loading.value = false
   }
@@ -377,7 +377,7 @@ async function load() {
 
 async function confirmRequestApply() {
   if (!requestApplyDateRange.value) {
-    ElMessage.warning('Vui lòng chọn thời gian áp dụng')
+    ElMessage.warning(t('individualPlan.warningApplyPeriod'))
     return
   }
   const [from, to] = requestApplyDateRange.value
@@ -396,7 +396,7 @@ async function confirmRequestApply() {
     approvalSuccessVisible.value = true
     load()
   } catch {
-    ElMessage.error('Gửi yêu cầu thất bại')
+    ElMessage.error(t('individualPlan.requestApplyFailed'))
   } finally {
     requestApplyLoading.value = false
   }
@@ -410,11 +410,11 @@ function goToApproval() {
 async function confirmDeactivate() {
   try {
     await deactivatePlanConfig(planId)
-    ElMessage.success('Đã vô hiệu hóa gói cước')
+    ElMessage.success(t('individualPlan.deactivateSuccess'))
     deactivateVisible.value = false
     router.push('/individual-plan-config')
   } catch {
-    ElMessage.error('Vô hiệu hóa thất bại')
+    ElMessage.error(t('individualPlan.deactivateFailed'))
   }
 }
 

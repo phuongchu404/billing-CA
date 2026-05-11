@@ -31,6 +31,8 @@ public interface UserService {
 
     PagedResponse<UserResponse> listUsers(String status, String query, int page, int size);
 
+    PagedResponse<UserResponse> listUsersByRole(String roleName, int page, int size);
+
     UserResponse getUserById(Long userId);
 
     UserResponse updateUser(Long userId, UpdateUserRequest req);

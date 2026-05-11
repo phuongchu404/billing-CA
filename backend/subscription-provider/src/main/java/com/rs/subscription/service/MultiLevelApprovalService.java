@@ -34,6 +34,8 @@ public interface MultiLevelApprovalService {
 
     List<MultiLevelApprovalResponse> listAll();
 
+    com.rs.subscription.dto.PagedResponse<MultiLevelApprovalResponse> listPaged(String status, String customerSegment, int page, int size);
+
     MultiLevelApprovalResponse getById(Long id);
 
     List<ApprovalLevelConfigResponse> listLevelConfigs();

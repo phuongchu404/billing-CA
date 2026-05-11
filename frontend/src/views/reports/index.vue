@@ -2,11 +2,11 @@
   <div class="reports-page">
     <!-- Header -->
     <div class="page-header">
-      <h2>DASHBOARD - BÁO CÁO THỐNG KÊ</h2>
+      <h2>{{ t('reports.dashboardTitle') }}</h2>
       <div class="type-switcher">
-        <span class="switcher-label">Khách hàng</span>
-        <button v-if="canViewGroup"      class="type-btn" :class="{ active: selectedType === 'GROUP' }"      @click="setType('GROUP')">Đại lý</button>
-        <button v-if="canViewIndividual" class="type-btn" :class="{ active: selectedType === 'INDIVIDUAL' }" @click="setType('INDIVIDUAL')">Phổ thông</button>
+        <span class="switcher-label">{{ t('reports.customer') }}</span>
+        <button v-if="canViewGroup"      class="type-btn" :class="{ active: selectedType === 'GROUP' }"      @click="setType('GROUP')">{{ t('reports.groupCustomer') }}</button>
+        <button v-if="canViewIndividual" class="type-btn" :class="{ active: selectedType === 'INDIVIDUAL' }" @click="setType('INDIVIDUAL')">{{ t('reports.individualCustomer') }}</button>
       </div>
     </div>
 
@@ -14,7 +14,7 @@
     <IndividualReport v-if="selectedType === 'INDIVIDUAL'" />
 
     <!-- Không có quyền xem tab nào -->
-    <el-empty v-if="!canViewGroup && !canViewIndividual" description="Bạn không có quyền xem báo cáo" />
+    <el-empty v-if="!canViewGroup && !canViewIndividual" :description="t('reports.noPermission')" />
 
     <!-- Stat cards -->
     <el-row v-if="selectedType === 'GROUP'" :gutter="16" style="margin-bottom: 20px" v-loading="loading">
@@ -27,7 +27,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ report?.stats.activePartners ?? 0 }}</div>
-              <div class="stat-label">SL đại lý đang hoạt động</div>
+              <div class="stat-label">{{ t('reports.activePartners') }}</div>
             </div>
           </div>
         </el-card>
@@ -42,10 +42,10 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ (report?.stats.newCts ?? 0).toLocaleString('vi-VN') }}</div>
-              <div class="stat-label">SL CTS mới được tạo trong tháng này</div>
+              <div class="stat-label">{{ t('reports.newCtsThisMonth') }}</div>
               <div class="stat-growth" :class="(report?.stats.newCtsPct ?? 0) >= 0 ? 'positive' : 'negative'">
                 {{ (report?.stats.newCtsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.newCtsPct ?? 0 }}%
-                <span class="growth-note">so với tháng trước</span>
+                <span class="growth-note">{{ t('reports.comparedPreviousMonth') }}</span>
               </div>
             </div>
           </div>
@@ -61,10 +61,10 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ (report?.stats.signings ?? 0).toLocaleString('vi-VN') }}</div>
-              <div class="stat-label">SL lượt ký trong tháng này</div>
+              <div class="stat-label">{{ t('reports.signingsThisMonth') }}</div>
               <div class="stat-growth" :class="(report?.stats.signingsPct ?? 0) >= 0 ? 'positive' : 'negative'">
                 {{ (report?.stats.signingsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.signingsPct ?? 0 }}%
-                <span class="growth-note">so với tháng trước</span>
+                <span class="growth-note">{{ t('reports.comparedPreviousMonth') }}</span>
               </div>
             </div>
           </div>
@@ -81,8 +81,8 @@
             <div class="stat-info">
               <div class="stat-value" style="color: #F56C6C">{{ report?.stats.expiringSoon ?? 0 }}</div>
               <div class="stat-label">
-                đại lý có gói cước hiệu lực dưới 3 tháng (không có gói tiếp).
-                <el-button link type="primary" style="padding: 0; font-size: 12px" @click="openExpiringDialog">Xem chi tiết</el-button>
+                {{ t('reports.expiringSoonSummary') }}
+                <el-button link type="primary" style="padding: 0; font-size: 12px" @click="openExpiringDialog">{{ t('common.detail') }}</el-button>
               </div>
             </div>
           </div>
@@ -101,13 +101,13 @@
     <el-row v-if="selectedType === 'GROUP'" :gutter="16" style="margin-bottom: 16px">
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="chart-title">SL chứng thư số được tạo</span></template>
+          <template #header><span class="chart-title">{{ t('reports.certCreatedChart') }}</span></template>
           <div ref="certChartRef" style="height: 300px" />
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="chart-title">SL lượt ký theo tháng</span></template>
+          <template #header><span class="chart-title">{{ t('reports.signingsByMonthChart') }}</span></template>
           <div ref="signingChartRef" style="height: 300px" />
         </el-card>
       </el-col>
@@ -116,31 +116,30 @@
     <!-- Expiring soon dialog -->
     <el-dialog
       v-model="expiringDialogVisible"
-      title="GÓI CƯỚC SẮP HẾT HẠN"
+      :title="t('reports.expiringPlanTitle')"
       width="680px"
       :close-on-click-modal="false"
     >
       <p class="dlg-desc">
-        (Các) Đại lý dưới đây có gói cước sẽ hết hiệu lực trong vòng 3 tháng và chưa có gói cước kế tiếp.
-        Vui lòng tạo gói cước mới để đảm bảo sử dụng dịch vụ không bị gián đoạn.
+        {{ t('reports.expiringPlanDesc') }}
       </p>
       <el-table :data="expiringRows" border style="width: 100%" size="small">
         <el-table-column type="index" label="#" width="48" align="center" />
-        <el-table-column prop="code" label="MÃ ĐẠI LÝ" sortable min-width="110" />
-        <el-table-column prop="name" label="TÊN ĐẠI LÝ" sortable min-width="160" />
-        <el-table-column prop="plan" label="GÓI CƯỚC HIỆN TẠI" min-width="150" />
-        <el-table-column prop="expiry" label="ÁP DỤNG ĐẾN" sortable width="130" align="center" />
-        <el-table-column label="HÀNH ĐỘNG" width="100" align="center">
+        <el-table-column prop="code" :label="t('agency.colCode')" sortable min-width="110" />
+        <el-table-column prop="name" :label="t('agency.colName')" sortable min-width="160" />
+        <el-table-column prop="plan" :label="t('reports.currentPlan')" min-width="150" />
+        <el-table-column prop="expiry" :label="t('agency.colApplyTo')" sortable width="130" align="center" />
+        <el-table-column :label="t('common.actions')" width="100" align="center">
           <template #default>
             <el-button size="small" plain round>
-              <el-icon><View /></el-icon> Chi tiết
+              <el-icon><View /></el-icon> {{ t('common.detail') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
-      <div class="dlg-updated">Thời gian cập nhật: {{ report?.lastUpdated ?? '' }}</div>
+      <div class="dlg-updated">{{ t('reports.updatedAt', { time: report?.lastUpdated ?? '' }) }}</div>
       <template #footer>
-        <el-button @click="expiringDialogVisible = false">Đóng</el-button>
+        <el-button @click="expiringDialogVisible = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
 
@@ -148,14 +147,14 @@
     <el-row v-if="selectedType === 'GROUP'" :gutter="16">
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="chart-title">Tỉ lệ lượt ký/ 1 CTS</span></template>
+          <template #header><span class="chart-title">{{ t('reports.signingPerCertRatio') }}</span></template>
           <table class="ratio-table">
             <thead>
               <tr>
-                <th class="col-agency">ĐẠI LÝ</th>
-                <th class="col-metric">CÁ NHÂN</th>
-                <th class="col-metric">TỔ CHỨC</th>
-                <th class="col-metric">CN THUỘC TC</th>
+                <th class="col-agency">{{ t('reports.groupCustomer').toUpperCase() }}</th>
+                <th class="col-metric">{{ t('individualReport.filterIndividual').toUpperCase() }}</th>
+                <th class="col-metric">{{ t('individualReport.filterOrganization').toUpperCase() }}</th>
+                <th class="col-metric">{{ t('reports.individualOfOrgShort').toUpperCase() }}</th>
               </tr>
             </thead>
             <tbody>
@@ -171,7 +170,7 @@
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
-          <template #header><span class="chart-title">Tỉ lệ tăng trưởng SL lượt ký với tháng trước đó</span></template>
+          <template #header><span class="chart-title">{{ t('reports.signingGrowthChart') }}</span></template>
           <div ref="growthChartRef" style="height: 300px" />
         </el-card>
       </el-col>
@@ -187,14 +186,16 @@ import IndividualReport from './IndividualReport.vue'
 import { getGroupReport } from '@/api/reports'
 import type { GroupReportResponse } from '@/api/reports'
 import { usePermission } from '@/composables/usePermission'
+import { useI18n } from 'vue-i18n'
 
 type CustomerType = 'GROUP' | 'INDIVIDUAL'
 
 const { can } = usePermission()
+const { t, locale } = useI18n()
 const canViewGroup      = computed(() => can('report:group:view'))
 const canViewIndividual = computed(() => can('report:individual:view'))
 
-// Auto-select tab đầu tiên có quyền
+// Auto-select the first tab the current user can view.
 const defaultTab: CustomerType = (() => {
   if (can('report:group:view')) return 'GROUP'
   if (can('report:individual:view')) return 'INDIVIDUAL'
@@ -231,7 +232,7 @@ function buildMonthOptions(count = 12) {
     const d = new Date(now.getFullYear(), now.getMonth() - idx, 1)
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     return {
-      label: `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`,
+      label: t('individualReport.month', { m: d.getMonth() + 1, y: d.getFullYear() }),
       value,
     }
   })
@@ -278,7 +279,7 @@ function renderCertChart() {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: {
       bottom: 0,
-      data: ['Cá nhân', 'Tổ chức', 'Cá nhân thuộc tổ chức'],
+      data: [t('individualReport.filterIndividual'), t('individualReport.filterOrganization'), t('individualReport.filterIndividualOfOrg')],
       itemWidth: 12,
       itemHeight: 12,
       textStyle: { fontSize: 12 },
@@ -287,9 +288,9 @@ function renderCertChart() {
     xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
     yAxis: { type: 'category', data: agencies, inverse: true, axisLabel: { fontSize: 12 } },
     series: [
-      { name: 'Cá nhân', type: 'bar', stack: 'total', data: certData.individual, itemStyle: { color: '#1B60CB' } },
-      { name: 'Tổ chức', type: 'bar', stack: 'total', data: certData.organization, itemStyle: { color: '#5B9BD5' } },
-      { name: 'Cá nhân thuộc tổ chức', type: 'bar', stack: 'total', data: certData.individualOfOrg, itemStyle: { color: '#D4E6F1' } },
+      { name: t('individualReport.filterIndividual'), type: 'bar', stack: 'total', data: certData.individual, itemStyle: { color: '#1B60CB' } },
+      { name: t('individualReport.filterOrganization'), type: 'bar', stack: 'total', data: certData.organization, itemStyle: { color: '#5B9BD5' } },
+      { name: t('individualReport.filterIndividualOfOrg'), type: 'bar', stack: 'total', data: certData.individualOfOrg, itemStyle: { color: '#D4E6F1' } },
     ],
   }, true)
 }
@@ -313,7 +314,7 @@ function renderSigningChart() {
           position: 'insideRight',
           color: '#fff',
           fontSize: 11,
-          formatter: (p: any) => (p.value > 0 ? p.value.toLocaleString('vi-VN') : ''),
+          formatter: (p: any) => (p.value > 0 ? p.value.toLocaleString(locale.value === 'vi' ? 'vi-VN' : 'en-US') : ''),
         },
       },
     ],
@@ -334,15 +335,15 @@ function renderGrowthChart() {
         const idx = params[0].dataIndex
         const meta = growthData[idx]
         return [
-          `SL lượt ký tháng này: ${meta.current.toLocaleString('vi-VN')}`,
-          `SL lượt ký tháng trước: ${meta.prev.toLocaleString('vi-VN')}`,
-          `Tỉ lệ tăng: ${meta.growth}%`,
+          t('reports.currentMonthSignings', { value: meta.current.toLocaleString(locale.value === 'vi' ? 'vi-VN' : 'en-US') }),
+          t('reports.previousMonthSignings', { value: meta.prev.toLocaleString(locale.value === 'vi' ? 'vi-VN' : 'en-US') }),
+          t('reports.growthRate', { value: meta.growth }),
         ].join('<br/>')
       },
     },
     legend: {
       bottom: 0,
-      data: ['% Tăng trưởng'],
+      data: [t('reports.growthPercent')],
       itemWidth: 12,
       itemHeight: 12,
       textStyle: { fontSize: 11 },
@@ -356,7 +357,7 @@ function renderGrowthChart() {
     },
     series: [
       {
-        name: '% Tăng trưởng = (Tháng hiện tại - Tháng trước) / Tháng trước × 100%',
+        name: t('reports.growthFormula'),
         type: 'bar',
         data: growthValues.map(v => ({ value: v, itemStyle: { color: '#1B60CB' } })),
         label: { show: false },

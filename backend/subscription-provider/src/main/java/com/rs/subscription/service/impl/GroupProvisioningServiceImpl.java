@@ -5,16 +5,22 @@ import com.rs.subscription.service.*;
 import com.rs.subscription.dto.request.AddGroupPlanRequest;
 import com.rs.subscription.dto.request.CreateGroupPlanAssignmentRequest;
 import com.rs.subscription.dto.request.CreatePlanTemplateRequest;
+import com.rs.subscription.dto.request.CreateUserRequest;
+import com.rs.subscription.dto.request.GrantPartnerAccessRequest;
+import com.rs.subscription.dto.request.PartnerAccountRequest;
 import com.rs.subscription.dto.request.ProvisionGroupRequest;
 import com.rs.subscription.dto.request.UpsertGroupRequest;
 import com.rs.subscription.dto.response.GroupDetailResponse;
 import com.rs.subscription.dto.response.GroupPlanAssignmentResponse;
 import com.rs.subscription.dto.response.PlanTemplateResponse;
 import com.rs.subscription.dto.response.ProvisionGroupResponse;
+import com.rs.subscription.dto.response.UserResponse;
 import com.rs.subscription.entity.Group;
+import com.rs.subscription.entity.Role;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.GroupRepository;
+import com.rs.subscription.repository.RoleRepository;
 import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +35,9 @@ public class GroupProvisioningServiceImpl implements GroupProvisioningService {
     private final GroupRepository groupRepository;
     private final PlanTemplateService planTemplateService;
     private final GroupPlanAssignmentService groupPlanAssignmentService;
+    private final UserService userService;
+    private final PartnerGroupAccessService partnerGroupAccessService;
+    private final RoleRepository roleRepository;
 
     @Transactional
     public ProvisionGroupResponse provision(ProvisionGroupRequest req) {
@@ -77,7 +86,34 @@ public class GroupProvisioningServiceImpl implements GroupProvisioningService {
         response.setGroup(group);
         response.setPlanTemplate(planTemplate);
         response.setAssignment(assignment);
+
+        // 4. Tùy chọn: tạo tài khoản đối tác và cấp quyền xem group vừa tạo
+        if (req.getPartnerAccount() != null) {
+            UserResponse partnerUser = createPartnerUser(req.getPartnerAccount(), group.getGroupName(), actor);
+            GrantPartnerAccessRequest grantReq = new GrantPartnerAccessRequest();
+            grantReq.setPartnerUserId(partnerUser.getUserId());
+            grantReq.setGroupId(group.getGroupId());
+            partnerGroupAccessService.grant(grantReq, actor);
+            response.setPartnerUser(partnerUser);
+        }
+
         return response;
+    }
+
+    private UserResponse createPartnerUser(PartnerAccountRequest pa, String groupName, String actor) {
+        Role partnerRole = roleRepository.findByRoleName("ROLE_PARTNER")
+            .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED,
+                "ROLE_PARTNER not found. Please seed the roles table.", 500));
+
+        CreateUserRequest req = new CreateUserRequest();
+        req.setUsername(pa.getUsername());
+        req.setEmail(pa.getEmail());
+        req.setFullName(pa.getFullName() != null && !pa.getFullName().isBlank()
+            ? pa.getFullName() : groupName);
+        req.setPassword(pa.getPassword());
+        req.setConfirmPassword(pa.getConfirmPassword());
+        req.setRoleIds(java.util.List.of(partnerRole.getRoleId()));
+        return userService.createUser(req, actor);
     }
 
     @Transactional

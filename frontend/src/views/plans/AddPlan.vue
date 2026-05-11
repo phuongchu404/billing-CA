@@ -1,49 +1,49 @@
 <template>
   <div>
     <div class="page-header">
-      <h2>Thêm mới gói cước</h2>
-      <span class="breadcrumb">Khách hàng đại lý</span>
+      <h2>{{ $t('agency.addPlanTitle') }}</h2>
+      <span class="breadcrumb">{{ $t('agency.breadcrumb') }}</span>
     </div>
 
     <el-button :icon="Document" style="margin-bottom:20px" @click="templateVisible = true">
-      Chọn Gói Cước Mẫu
+      {{ $t('agency.chooseTemplate') }}
     </el-button>
 
     <!-- THÔNG TIN ĐẠI LÝ (read-only) -->
     <el-card shadow="never" class="section-card">
-      <div class="section-title">THÔNG TIN ĐẠI LÝ</div>
+      <div class="section-title">{{ $t('agency.infoSection') }}</div>
       <div class="info-grid">
         <div class="info-row two-col">
-          <span><b>Tên đại lý:</b> {{ agency.groupName }}</span>
-          <span><b>Mã đại lý:</b> {{ agency.groupCode }}</span>
+          <span><b>{{ $t('agency.agencyNameField') }}</b> {{ agency.groupName }}</span>
+          <span><b>{{ $t('agency.agencyCodeField') }}</b> {{ agency.groupCode }}</span>
         </div>
         <div class="info-row">
-          <span><b>Email nhân sự phụ trách:</b> {{ agency.picEmails.join(', ') }}</span>
+          <span><b>{{ $t('agency.picField') }}</b> {{ agency.picEmails.join(', ') }}</span>
         </div>
         <div class="info-row">
-          <span><b>Email người đại diện đại lý:</b> {{ agency.contactEmails.join(', ') }}</span>
+          <span><b>{{ $t('agency.representativeField') }}</b> {{ agency.contactEmails.join(', ') }}</span>
         </div>
         <div class="info-row">
-          <span><b>Mã hợp đồng tham chiếu:</b> {{ agency.refContractNo }}</span>
+          <span><b>{{ $t('agency.refContractField') }}</b> {{ agency.refContractNo }}</span>
         </div>
       </div>
     </el-card>
 
     <!-- THÔNG TIN GÓI CƯỚC -->
     <el-card shadow="never" class="section-card">
-      <div class="section-title">THÔNG TIN GÓI CƯỚC</div>
+      <div class="section-title">{{ $t('agency.planSection') }}</div>
       <el-form :model="form" label-width="220px" label-position="left">
-        <el-form-item label="Tên gói cước">
-          <el-input v-model="form.planName" placeholder="Nhập tên gói cước" />
-          <div class="field-hint">Nhập tên gói cước không trùng với gói cước đã có</div>
+        <el-form-item :label="$t('agency.planNameLabel')">
+          <el-input v-model="form.planName" :placeholder="$t('agency.planNamePlaceholder')" />
+          <div class="field-hint">{{ $t('agency.planNameHint') }}</div>
         </el-form-item>
-        <el-form-item label="Thời gian áp dụng (không bắt buộc)">
+        <el-form-item :label="$t('agency.applyDateLabel')">
           <el-date-picker
             v-model="form.applyDateRange"
             type="daterange"
-            start-placeholder="Từ"
+            :start-placeholder="$t('agency.dateFrom')"
             range-separator="-"
-            end-placeholder="Đến"
+            :end-placeholder="$t('agency.dateTo')"
             value-format="YYYY-MM-DD"
             style="width:100%"
           />
@@ -51,48 +51,48 @@
       </el-form>
       <div class="plan-notes">
         <p>
-          Gói cước mới sẽ được tạo ở trạng thái <b>"Khả dụng"</b> và cho phép Yêu cầu áp dụng.
-          Hệ thống chỉ gửi yêu cầu duyệt khi bấm Yêu cầu áp dụng.
+          {{ $t('agency.addPlanAvailablePrefix') }} <b>{{ $t('agency.applyNoteAvailableStatus') }}</b>
+          {{ $t('agency.addPlanAvailableSuffix') }}
         </p>
       </div>
     </el-card>
 
     <!-- CẤU HÌNH GÓI CƯỚC SMARTCA -->
     <el-card shadow="never" class="section-card">
-      <div class="section-title">CẤU HÌNH GÓI CƯỚC SMARTCA</div>
+      <div class="section-title">{{ $t('agency.configSection') }}</div>
       <el-table :data="configRows" border>
         <el-table-column type="index" width="50" />
-        <el-table-column label="ĐỐI TƯỢNG" width="160" sortable>
+        <el-table-column :label="$t('agency.colSubject')" width="160" sortable>
           <template #default="{ row }">
             <span class="subject-label">{{ row.subject }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="THỜI HẠN CHỨNG THƯ" width="165" sortable>
+        <el-table-column :label="$t('agency.colCtsDuration')" width="165" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number v-model="row.duration" :min="0" :max="48" controls-position="right" style="width:80px" size="small" />
-              <span>tháng</span>
+              <span>{{ $t('agency.monthUnit') }}</span>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="ĐIỀU KIỆN" width="150" sortable>
+        <el-table-column :label="$t('agency.colCondition')" width="150" sortable>
           <template #default="{ row }">
             <el-select v-model="row.condition" size="small" style="width:100%">
-              <el-option label="Lượt ký" value="signing" />
-              <el-option label="Số chứng thư" value="certificate" />
+              <el-option :label="$t('agency.conditionSigning')" value="signing" />
+              <el-option :label="$t('agency.conditionCertificate')" value="certificate" />
             </el-select>
           </template>
         </el-table-column>
 
-        <el-table-column label="GIÁ TRỊ MIN (CỦA ĐIỀU KIỆN)" width="175" sortable>
+        <el-table-column :label="$t('agency.colMinValue')" width="175" sortable>
           <template #default="{ row }">
             <el-input-number v-model="row.minValue" :min="1" controls-position="right" style="width:100%" size="small" />
           </template>
         </el-table-column>
 
-        <el-table-column label="GIÁ TRỊ MAX (CỦA ĐIỀU KIỆN)" width="175" sortable>
+        <el-table-column :label="$t('agency.colMaxValue')" width="175" sortable>
           <template #default="{ row }">
             <el-input-number
               v-model="row.maxValue"
@@ -101,88 +101,82 @@
               controls-position="right"
               style="width:100%"
               size="small"
-              placeholder="Để trống là không giới hạn số lượng"
+              :placeholder="$t('agency.maxValuePlaceholder')"
             />
           </template>
         </el-table-column>
 
-        <el-table-column label="PHÍ/ ĐIỀU KIỆN" sortable>
+        <el-table-column :label="$t('agency.colFeePerCondition')" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number v-model="row.fee" :min="0" controls-position="right" style="flex:1" size="small" />
-              <span>vnđ</span>
+              <span>{{ $t('agency.vnd') }}</span>
             </div>
           </template>
         </el-table-column>
       </el-table>
 
       <div class="guide-toggle" @click="showGuide = !showGuide">
-        Hướng dẫn cấu hình
+        {{ $t('agency.guideToggle') }}
         <el-icon><ArrowUp v-if="showGuide" /><ArrowDown v-else /></el-icon>
       </div>
 
       <div v-show="showGuide" class="guide-content">
         <ul>
-          <li>Thiết lập chi tiết các thông số:</li>
+          <li>{{ $t('agency.guideIntro') }}</li>
           <li>
-            <b>Thời hạn chứng thư:</b> Nhập số tháng hiệu lực của chứng thư số
-            (VD: 1, 3, 12, 24... giới hạn là 48 tháng). Nhập 0 nếu không cung cấp dịch vụ cho phân loại đối tượng tương ứng.
+            <b>{{ $t('agency.guideDurationLabel') }}</b> {{ $t('agency.guideDurationText') }}
           </li>
           <li>
-            <b>Điều kiện:</b> Nhập vào danh sách thả xuống để chọn tiêu chí tính phí (Lượt ký hoặc Số chứng thư).
+            <b>{{ $t('agency.guideConditionLabel') }}</b> {{ $t('agency.guideConditionText') }}
           </li>
           <li>
-            <b>Giá trị Min (của điều kiện):</b> Nhập giá trị bắt đầu áp dụng mức phí (giá trị tính từ 1).
-            <b>Giá trị Max (của điều kiện):</b> Nhập giá trị tối đa áp dụng mức phí.
-            (VD: Nếu bán gói theo lượt ký từ 1 đến 100 lượt, điền Min = 1, Max = 100.
-            Nếu không giới hạn số lượng, để trống ô Max)
+            <b>{{ $t('agency.guideMinLabel') }}</b> {{ $t('agency.guideMinText') }}
+            <b>{{ $t('agency.guideMaxLabel') }}</b> {{ $t('agency.guideMaxText') }}
             <br />
-            <u>Lưu ý:</u> Khi số chứng thư đạt 85% giá trị Max, hệ thống sẽ gửi email thông báo
-            tới Nhân sự phụ trách và Đại diện đại lý.
+            <u>{{ $t('agency.guideNoteLabel') }}</u> {{ $t('agency.guideNoteText') }}
           </li>
           <li>
-            <b>Phí/ Điều kiện:</b> Nhập số tiền (VND) tương ứng với điều kiện
-            (phí trên 1 chứng thư/ lượt ký). Nhập 0 với mức miễn phí hoặc đối soát ngoài).
+            <b>{{ $t('agency.guideFeeLabel') }}</b> {{ $t('agency.guideFeeText') }}
           </li>
         </ul>
       </div>
     </el-card>
 
     <div class="footer-btns">
-      <el-button type="primary" @click="handleSubmit">Xác Nhận</el-button>
-      <el-button @click="handleCancel">Hủy Bỏ</el-button>
+      <el-button type="primary" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
+      <el-button @click="handleCancel">{{ $t('common.cancel') }}</el-button>
     </div>
 
     <!-- Dialog: Approval success -->
-    <el-dialog v-model="approvalSuccessVisible" title="YÊU CẦU ĐÃ ĐƯỢC GỬI" width="440px" align-center :close-on-click-modal="false">
+    <el-dialog v-model="approvalSuccessVisible" :title="$t('agency.approvalSuccessTitle')" width="440px" align-center :close-on-click-modal="false">
       <div style="text-align:center; padding: 8px 0 16px">
         <el-icon style="font-size:48px; color:#67c23a"><CircleCheck /></el-icon>
         <p style="margin:12px 0 4px; font-size:15px; font-weight:600; color:#303133">
-          Gói cước đã được tạo và gửi yêu cầu duyệt!
+          {{ $t('agency.addPlanApprovalSuccess') }}
         </p>
         <p style="font-size:13px; color:#606266; margin:0">
-          Email thông báo đã được gửi đến người phê duyệt cấp 1.<br />
-          Theo dõi tiến trình duyệt tại màn Phê duyệt.
+          {{ $t('agency.approvalSuccessDesc1') }}<br />
+          {{ $t('agency.approvalSuccessDesc2') }}
         </p>
       </div>
       <template #footer>
-        <el-button type="primary" @click="goToApproval">Xem tiến trình duyệt</el-button>
-        <el-button @click="router.push('/plans/' + agencyId)">Về danh sách gói cước</el-button>
+        <el-button type="primary" @click="goToApproval">{{ $t('agency.viewApprovalProgress') }}</el-button>
+        <el-button @click="router.push('/plans/' + agencyId)">{{ $t('agency.backToPlanList') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ===== DIALOG: CHỌN GÓI CƯỚC MẪU ===== -->
-    <el-dialog v-model="templateVisible" title="CHỌN GÓI CƯỚC MẪU" width="460px" :close-on-click-modal="false">
+    <el-dialog v-model="templateVisible" :title="$t('agency.chooseTemplateTitle')" width="460px" :close-on-click-modal="false">
       <div class="dlg-body">
         <p class="dlg-desc">
-          Chọn một gói cước đã có, hệ thống tự động điền (copy) toàn bộ thông số
-          cấu hình xuống phía dưới cho gói cước mới này.
+          {{ $t('agency.chooseTemplateDesc') }}
         </p>
         <div class="dlg-select-row">
-          <span class="dlg-select-label">Gói cước</span>
+          <span class="dlg-select-label">{{ $t('agency.dialogPlanName') }}</span>
           <el-select
             v-model="selectedTemplate"
-            placeholder="Chọn gói cước đã có của khách hàng đại lý"
+            :placeholder="$t('agency.chooseTemplatePlaceholder')"
             style="flex:1"
             clearable
           >
@@ -196,8 +190,8 @@
         </div>
       </div>
       <template #footer>
-        <el-button type="primary" :disabled="!selectedTemplate" @click="confirmTemplate">Xác Nhận</el-button>
-        <el-button @click="templateVisible = false">Hủy Bỏ</el-button>
+        <el-button type="primary" :disabled="!selectedTemplate" @click="confirmTemplate">{{ $t('common.confirm') }}</el-button>
+        <el-button @click="templateVisible = false">{{ $t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -208,6 +202,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Document, ArrowUp, ArrowDown, CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { getGroup, addGroupPlan } from '@/api/groups'
 import { listPlanTemplates, getPlanTemplate } from '@/api/planTemplates'
 import type { GroupDetail, AddGroupPlanRequest } from '@/types/group'
@@ -215,6 +210,7 @@ import type { PlanTemplate, PlanPricingRuleRequest } from '@/types/planTemplate'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const agencyId = Number(route.params.id)
 
@@ -250,9 +246,9 @@ const form = reactive({
 })
 
 const configRows = reactive<ConfigRow[]>([
-  { subject: 'Cá nhân', subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0 },
-  { subject: 'Tổ chức', subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
-  { subject: 'Cá nhân thuộc tổ chức', subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: t('agency.subjectIndividual'), subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0 },
+  { subject: t('agency.subjectOrganization'), subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: t('agency.subjectIndividualOfOrg'), subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
 ])
 
 const showGuide = ref(true)
@@ -274,10 +270,10 @@ async function loadAgency() {
     if (res.success && res.data) {
       Object.assign(agency, res.data)
     } else {
-      ElMessage.error(res.message || 'Không tìm thấy đại lý')
+      ElMessage.error(res.message || t('agency.errorAgencyNotFound'))
     }
   } catch {
-    ElMessage.error('Lỗi kết nối server')
+    ElMessage.error(t('agency.errorServer'))
   } finally {
     loadingAgency.value = false
   }
@@ -292,7 +288,7 @@ async function loadTemplateOptions() {
         .map(t => ({ label: t.planName, value: t.planTemplateId }))
     }
   } catch {
-    // silently ignore
+    // Optional template suggestions; ignore failures here.
   }
 }
 
@@ -302,7 +298,7 @@ async function confirmTemplate() {
     const res = await getPlanTemplate(selectedTemplate.value)
     if (res.success && res.data) {
       const tmpl: PlanTemplate = res.data
-      // Copy pricing rules vào configRows
+      // Copy pricing rules into config rows.
       tmpl.pricingRules.forEach((rule, i) => {
         if (i < configRows.length) {
           configRows[i].duration = rule.certificateValidityValue
@@ -314,14 +310,14 @@ async function confirmTemplate() {
       })
     }
   } catch {
-    ElMessage.error('Không thể tải template')
+    ElMessage.error(t('agency.errorLoadTemplate'))
   }
   templateVisible.value = false
 }
 
 async function handleSubmit() {
   if (!form.planName.trim()) {
-    ElMessage.warning('Vui lòng nhập tên gói cước')
+    ElMessage.warning(t('agency.warningPlanName'))
     return
   }
 
@@ -351,13 +347,13 @@ async function handleSubmit() {
 
     const res = await addGroupPlan(agencyId, req)
     if (res.success) {
-      ElMessage.success('Tạo gói cước thành công!')
+      ElMessage.success(t('agency.successCreatePlan'))
       router.push('/plans/' + agencyId)
     } else {
-      ElMessage.error(res.message || 'Không thể tạo gói cước')
+      ElMessage.error(res.message || t('agency.errorCreatePlan'))
     }
   } catch {
-    ElMessage.error('Lỗi kết nối server')
+    ElMessage.error(t('agency.errorServer'))
   } finally {
     submitting.value = false
   }

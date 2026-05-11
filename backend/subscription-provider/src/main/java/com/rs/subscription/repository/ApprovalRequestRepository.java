@@ -18,6 +18,14 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
 
     List<ApprovalRequest> findAllByOrderByCreatedAtDesc();
 
+    Page<ApprovalRequest> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    Page<ApprovalRequest> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    Page<ApprovalRequest> findByCustomerSegmentOrderByCreatedAtDesc(String customerSegment, Pageable pageable);
+
+    Page<ApprovalRequest> findByStatusAndCustomerSegmentOrderByCreatedAtDesc(String status, String customerSegment, Pageable pageable);
+
     Optional<ApprovalRequest> findByEntityTypeAndEntityId(String entityType, String entityId);
 
     List<ApprovalRequest> findAllByEntityTypeAndEntityIdOrderByCreatedAtDesc(String entityType, String entityId);

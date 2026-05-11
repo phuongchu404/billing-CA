@@ -9,9 +9,9 @@
       <!-- Top bar -->
       <div class="top-bar">
         <el-button :icon="Upload" type="primary" @click="exportData"
-          >Xuất Dữ Liệu</el-button
+          >{{ t('auditLogs.exportData') }}</el-button
         >
-        <span class="last-updated">Lần cập nhật cuối: {{ lastUpdated }}</span>
+        <span class="last-updated">{{ t('auditLogs.lastUpdated', { time: lastUpdated }) }}</span>
       </div>
 
       <!-- Pagination top -->
@@ -47,7 +47,7 @@
             <tr class="header-row">
               <th class="th-num">#</th>
               <th class="th-sort" @click="setSort('action')">
-                THAO TÁC
+                {{ t('auditLogs.action') }}
                 <SortIndicator
                   field="action"
                   :current="sortField"
@@ -55,7 +55,7 @@
                 />
               </th>
               <th class="th-sort" @click="setSort('message')">
-                THÔNG ĐIỆP
+                {{ t('auditLogs.message') }}
                 <SortIndicator
                   field="message"
                   :current="sortField"
@@ -63,7 +63,7 @@
                 />
               </th>
               <th class="th-sort" @click="setSort('actor')">
-                TÀI KHOẢN
+                {{ t('auditLogs.account') }}
                 <SortIndicator
                   field="actor"
                   :current="sortField"
@@ -71,14 +71,14 @@
                 />
               </th>
               <th class="th-sort" @click="setSort('createdAt')">
-                THỜI GIAN
+                {{ t('auditLogs.createdAt') }}
                 <SortIndicator
                   field="createdAt"
                   :current="sortField"
                   :dir="sortDir"
                 />
               </th>
-              <th class="th-actions">HÀNH ĐỘNG</th>
+              <th class="th-actions">{{ t('common.actions') }}</th>
             </tr>
             <!-- Filter row -->
             <tr class="filter-row">
@@ -99,10 +99,10 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" style="text-align:center;padding:24px;color:#909399">Đang tải...</td>
+              <td colspan="6" style="text-align:center;padding:24px;color:#909399">{{ t('common.loading') }}</td>
             </tr>
             <tr v-else-if="pagedLogs.length === 0">
-              <td colspan="6" style="text-align:center;padding:24px;color:#909399">Không có dữ liệu</td>
+              <td colspan="6" style="text-align:center;padding:24px;color:#909399">{{ t('common.noData') }}</td>
             </tr>
             <tr v-for="(log, i) in pagedLogs" :key="log.id" class="data-row">
               <td class="td-num">{{ (page - 1) * size + i + 1 }}</td>
@@ -116,7 +116,7 @@
                   :icon="InfoFilled"
                   plain
                   @click="openDetail(log)"
-                  >Chi tiết</el-button
+                  >{{ t('common.detail') }}</el-button
                 >
               </td>
             </tr>
@@ -127,7 +127,7 @@
       <!-- Pagination bottom -->
       <div class="pagination-bar">
         <div class="pagination-info">
-          Hiển thị
+          {{ t('common.showing') }}
           <el-select
             v-model="size"
             style="width: 68px"
@@ -138,7 +138,7 @@
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
           </el-select>
-          trong tổng số {{ total }} logs
+          {{ t('auditLogs.totalLogs', { total }) }}
         </div>
         <div class="pagination-btns">
           <button class="pg-btn" :disabled="page === 1" @click="goPage(1)">
@@ -185,26 +185,26 @@
       :close-on-click-modal="false"
     >
       <template #header>
-        <span class="dlg-title">CHI TIẾT LOGS</span>
+        <span class="dlg-title">{{ t('auditLogs.detailTitle') }}</span>
       </template>
       <div class="dlg-meta">
         <div class="dlg-meta-row">
-          <span><strong>Thao tác:</strong> {{ detailLog?.action }}</span>
-          <span><strong>Đối tượng:</strong> {{ detailLog?.entityType }}</span>
+          <span><strong>{{ t('auditLogs.actionLabel') }}</strong> {{ detailLog?.action }}</span>
+          <span><strong>{{ t('auditLogs.entityTypeLabel') }}</strong> {{ detailLog?.entityType }}</span>
         </div>
         <div class="dlg-meta-row">
-          <span><strong>ID đối tượng:</strong> {{ detailLog?.entityId }}</span>
+          <span><strong>{{ t('auditLogs.entityIdLabel') }}</strong> {{ detailLog?.entityId }}</span>
         </div>
         <div class="dlg-meta-row">
-          <span><strong>Thời gian:</strong> {{ formatDate(detailLog?.createdAt ?? '') }}</span>
-          <span><strong>Tài khoản:</strong> {{ detailLog?.actor }}</span>
+          <span><strong>{{ t('auditLogs.createdAtLabel') }}</strong> {{ formatDate(detailLog?.createdAt ?? '') }}</span>
+          <span><strong>{{ t('auditLogs.accountLabel') }}</strong> {{ detailLog?.actor }}</span>
         </div>
         <div class="dlg-meta-row" v-if="detailLog?.details">
-          <span><strong>Chi tiết:</strong> {{ detailLog?.details }}</span>
+          <span><strong>{{ t('auditLogs.detailsLabel') }}</strong> {{ detailLog?.details }}</span>
         </div>
       </div>
       <template #footer>
-        <el-button @click="detailVisible = false">Đóng</el-button>
+        <el-button @click="detailVisible = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -224,7 +224,7 @@ import { ElIcon, ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { listAuditLogs, type AdminAuditLogEntry } from "@/api/auditLogs";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 // ── Sort indicator ──
 const SortIndicator = defineComponent({
@@ -262,12 +262,13 @@ async function fetchLogs() {
       totalPages.value = Math.max(1, res.data.totalPages ?? 1);
     }
   } catch {
-    ElMessage.error("Không thể tải dữ liệu audit logs");
+    ElMessage.error(t("auditLogs.loadError"));
   } finally {
     loading.value = false;
     const now = new Date();
+    const currentLocale = locale.value === "vi" ? "vi-VN" : "en-US";
     lastUpdated.value =
-      now.toLocaleDateString("vi-VN") + " " + now.toLocaleTimeString("vi-VN");
+      now.toLocaleDateString(currentLocale) + " " + now.toLocaleTimeString(currentLocale);
   }
 }
 
@@ -328,7 +329,8 @@ function formatDate(val: string) {
   if (!val) return "";
   const d = new Date(val);
   if (isNaN(d.getTime())) return val;
-  return d.toLocaleDateString("vi-VN") + " " + d.toLocaleTimeString("vi-VN");
+  const currentLocale = locale.value === "vi" ? "vi-VN" : "en-US";
+  return d.toLocaleDateString(currentLocale) + " " + d.toLocaleTimeString(currentLocale);
 }
 
 // ── Detail dialog ──

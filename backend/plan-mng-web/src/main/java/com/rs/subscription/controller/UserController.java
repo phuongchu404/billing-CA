@@ -51,6 +51,15 @@ public class UserController {
         return ApiResponse.success(userService.listUsers(status, query, page, size), "Users retrieved successfully");
     }
 
+    @GetMapping("/api/v1/admin/partner-users")
+    @PreAuthorize("hasAnyAuthority('user:view','partner:access:grant')")
+    @Operation(summary = "List users with ROLE_PARTNER")
+    public ApiResponse<PagedResponse<UserResponse>> listPartnerUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "200") int size) {
+        return ApiResponse.success(userService.listUsersByRole("ROLE_PARTNER", page, size), "Partner users retrieved successfully");
+    }
+
     @GetMapping("/api/v1/admin/users/{userId}")
     @PreAuthorize("hasAuthority('user:view')")
     @Operation(summary = "Get user by ID")

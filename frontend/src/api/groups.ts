@@ -62,4 +62,22 @@ export const assignGroupOwner = (groupId: number, ownerUserId: number | null) =>
 export const getGroupAssignment = (assignmentId: number) =>
   request.get<any, ApiResponse<GroupPlanAssignment>>(`/api/v1/groups/plan-assignments/${assignmentId}`)
 
+// ---- Export đối soát Excel (trả về Blob) ----
+export const downloadSettlementExport = (params: { groupId?: number; month?: string }) =>
+  request.get<any, Blob>('/api/v1/settlement-statements/export', {
+    params,
+    responseType: 'blob',
+  })
+
+/** Trigger trình duyệt tải file từ Blob */
+export function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 

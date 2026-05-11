@@ -20,6 +20,8 @@ public interface PlanTemplateService {
 
     List<PlanTemplateResponse> listAll();
 
+    List<PlanTemplateResponse> listBySegment(String customerSegment);
+
     PlanTemplateResponse getById(Long id);
 
     PlanTemplateResponse create(CreatePlanTemplateRequest request);

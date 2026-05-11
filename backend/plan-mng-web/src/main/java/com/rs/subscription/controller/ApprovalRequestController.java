@@ -1,6 +1,7 @@
 package com.rs.subscription.controller;
 
 import com.rs.subscription.dto.ApiResponse;
+import com.rs.subscription.dto.PagedResponse;
 import com.rs.subscription.dto.request.ApproveStepRequest;
 import com.rs.subscription.dto.request.RejectApprovalRequest;
 import com.rs.subscription.dto.request.ReviewCommercialRequest;
@@ -50,8 +51,12 @@ public class ApprovalRequestController {
      */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('subscription:view','approval:level1','approval:level2','approval:level3')")
-    public ApiResponse<List<MultiLevelApprovalResponse>> list() {
-        return ApiResponse.success(multiLevelApprovalService.listAll(), "Fetched approval requests");
+    public ApiResponse<PagedResponse<MultiLevelApprovalResponse>> list(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String customerSegment,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(multiLevelApprovalService.listPaged(status, customerSegment, page, size), "Fetched approval requests");
     }
 
     /**

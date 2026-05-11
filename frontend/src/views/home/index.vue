@@ -1,12 +1,12 @@
 <template>
   <div class="home-page">
-    <h2 class="page-title">TRANG CHỦ</h2>
+    <h2 class="page-title">{{ t('home.title') }}</h2>
 
     <!-- Banner -->
     <div class="banner">
       <img
         src="@/assets/images/trang_chu.png"
-        alt="Trang chủ"
+        :alt="t('home.title')"
         class="banner-img"
       />
     </div>
@@ -17,21 +17,21 @@
         <el-icon size="52" color="#b0c4de"><UserFilled /></el-icon>
       </div>
       <div class="user-name">
-        {{ authStore.user?.fullName || "[Tên người dùng]" }}
+        {{ authStore.user?.fullName || t('home.defaultUserName') }}
       </div>
       <div class="user-actions">
         <el-button @click="editInfoVisible = true"
-          >Chỉnh Sửa Thông Tin</el-button
+          >{{ t('home.editInfo') }}</el-button
         >
-        <el-button @click="changePassVisible = true">Đổi Mật Khẩu</el-button>
-        <el-button type="danger" @click="handleLogout">Đăng Xuất</el-button>
+        <el-button @click="changePassVisible = true">{{ t('profile.changePassword') }}</el-button>
+        <el-button type="danger" @click="handleLogout">{{ t('header.logout') }}</el-button>
       </div>
     </div>
 
     <!-- Dialog: Đổi Mật Khẩu -->
     <el-dialog
       v-model="changePassVisible"
-      title="ĐỔI MẬT KHẨU"
+      :title="t('profile.changePasswordTitle')"
       width="420px"
       :close-on-click-modal="false"
     >
@@ -41,11 +41,11 @@
         label-width="130px"
         size="default"
       >
-        <el-form-item label="Mật khẩu cũ:">
+        <el-form-item :label="t('profile.oldPasswordLabel')">
           <el-input
             v-model="passForm.oldPassword"
             :type="showOld ? 'text' : 'password'"
-            placeholder="Nhập mật khẩu cũ"
+            :placeholder="t('profile.oldPasswordPlaceholder')"
           >
             <template #suffix>
               <el-icon class="eye-icon" @click="showOld = !showOld">
@@ -54,11 +54,11 @@
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="Mật khẩu mới:">
+        <el-form-item :label="t('profile.newPasswordLabel')">
           <el-input
             v-model="passForm.newPassword"
             :type="showNew ? 'text' : 'password'"
-            placeholder="Nhập mật khẩu mới"
+            :placeholder="t('profile.newPasswordPlaceholder')"
           >
             <template #suffix>
               <el-icon class="eye-icon" @click="showNew = !showNew">
@@ -67,11 +67,11 @@
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="Nhập lại mật khẩu:">
+        <el-form-item :label="t('profile.confirmPasswordLabel')">
           <el-input
             v-model="passForm.confirmPassword"
             :type="showConfirm ? 'text' : 'password'"
-            placeholder="Nhập lại mật khẩu mới"
+            :placeholder="t('profile.confirmPasswordPlaceholder')"
           >
             <template #suffix>
               <el-icon class="eye-icon" @click="showConfirm = !showConfirm">
@@ -83,16 +83,16 @@
       </el-form>
       <template #footer>
         <el-button type="primary" @click="confirmChangePass"
-          >Xác Nhận</el-button
+          >{{ t('common.confirm') }}</el-button
         >
-        <el-button @click="changePassVisible = false">Hủy Bỏ</el-button>
+        <el-button @click="changePassVisible = false">{{ t('common.cancel') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog: Chỉnh Sửa Thông Tin Tài Khoản -->
     <el-dialog
       v-model="editInfoVisible"
-      title="CHỈNH SỬA THÔNG TIN TÀI KHOẢN"
+      :title="t('home.editAccountTitle')"
       width="460px"
       :close-on-click-modal="false"
     >
@@ -102,37 +102,37 @@
         label-width="130px"
         size="default"
       >
-        <el-form-item label="Tên đăng nhập:">
+        <el-form-item :label="t('users.username')">
           <div style="width: 100%">
             <el-input :value="authStore.user?.username" disabled />
-            <div class="field-hint">Không thể đổi tên đăng nhập</div>
+            <div class="field-hint">{{ t('home.usernameReadonly') }}</div>
           </div>
         </el-form-item>
-        <el-form-item label="Tên người dùng:">
-          <el-input v-model="infoForm.fullName" placeholder="Tên người dùng" />
+        <el-form-item :label="t('users.fullName')">
+          <el-input v-model="infoForm.fullName" :placeholder="t('users.fullName')" />
         </el-form-item>
-        <el-form-item label="Email">
-          <el-input v-model="infoForm.email" placeholder="Email" />
+        <el-form-item :label="t('users.email')">
+          <el-input v-model="infoForm.email" :placeholder="t('users.email')" />
         </el-form-item>
-        <el-form-item label="Vai trò:">
+        <el-form-item :label="t('users.roles')">
           <el-select v-model="infoForm.role" style="width: 100%">
-            <el-option label="Vai trò cấp 1" value="1" />
-            <el-option label="Vai trò cấp 2" value="2" />
-            <el-option label="Vai trò cấp 3" value="3" />
-            <el-option label="Vai trò cấp 4" value="4" />
+            <el-option :label="t('home.roleLevel', { level: 1 })" value="1" />
+            <el-option :label="t('home.roleLevel', { level: 2 })" value="2" />
+            <el-option :label="t('home.roleLevel', { level: 3 })" value="3" />
+            <el-option :label="t('home.roleLevel', { level: 4 })" value="4" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dlg-footer-split">
           <el-button type="warning" plain @click="handleDeleteAccount"
-            >Xóa Tài Khoản</el-button
+            >{{ t('home.deleteAccount') }}</el-button
           >
           <div>
             <el-button type="primary" @click="confirmEditInfo"
-              >Xác Nhận</el-button
+              >{{ t('common.confirm') }}</el-button
             >
-            <el-button @click="editInfoVisible = false">Hủy Bỏ</el-button>
+            <el-button @click="editInfoVisible = false">{{ t('common.cancel') }}</el-button>
           </div>
         </div>
       </template>
@@ -146,9 +146,11 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/store";
 import { ElMessage } from "element-plus";
 import { UserFilled, View, Hide } from "@element-plus/icons-vue";
+import { useI18n } from "vue-i18n";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const changePassVisible = ref(false);
 const editInfoVisible = ref(false);
@@ -180,14 +182,14 @@ function confirmChangePass() {
     !passForm.newPassword ||
     !passForm.confirmPassword
   ) {
-    ElMessage.warning("Vui lòng nhập đầy đủ thông tin");
+    ElMessage.warning(t("home.fillAllFields"));
     return;
   }
   if (passForm.newPassword !== passForm.confirmPassword) {
-    ElMessage.error("Mật khẩu mới không khớp");
+    ElMessage.error(t("profile.passwordMismatch"));
     return;
   }
-  ElMessage.success("Đổi mật khẩu thành công");
+  ElMessage.success(t("profile.passwordChanged"));
   changePassVisible.value = false;
   passForm.oldPassword = "";
   passForm.newPassword = "";
@@ -195,12 +197,12 @@ function confirmChangePass() {
 }
 
 function confirmEditInfo() {
-  ElMessage.success("Cập nhật thông tin thành công");
+  ElMessage.success(t("home.updateInfoSuccess"));
   editInfoVisible.value = false;
 }
 
 function handleDeleteAccount() {
-  ElMessage.warning("Chức năng xóa tài khoản chưa được hỗ trợ");
+  ElMessage.warning(t("home.deleteNotSupported"));
 }
 </script>
 

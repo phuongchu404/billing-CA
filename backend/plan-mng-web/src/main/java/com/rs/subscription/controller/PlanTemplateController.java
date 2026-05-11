@@ -19,8 +19,12 @@ public class PlanTemplateController {
     private final PlanTemplateService planTemplateService;
 
     @GetMapping
-    public ApiResponse<List<PlanTemplateResponse>> list() {
-        return ApiResponse.success(planTemplateService.listAll(), "Fetched plan templates");
+    public ApiResponse<List<PlanTemplateResponse>> list(
+            @RequestParam(required = false) String segment) {
+        List<PlanTemplateResponse> result = (segment != null && !segment.isBlank())
+                ? planTemplateService.listBySegment(segment)
+                : planTemplateService.listAll();
+        return ApiResponse.success(result, "Fetched plan templates");
     }
 
     @GetMapping("/{id}")
