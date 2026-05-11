@@ -64,6 +64,8 @@ public class CertificateProvisioningServiceImpl implements CertificateProvisioni
                     && existing.getExpiresAt().isAfter(LocalDateTime.now())) {
                 return toResponse(existing);
             }
+            throw new SmsException(ErrorCodes.INVALID_STATUS_TRANSITION,
+                "Certificate provisioning record already exists for subscriptionId=" + subscriptionId + ", userId=" + userId, 409);
         }
 
         UserAccount user = userAccountRepository.findById(userId)
@@ -105,6 +107,8 @@ public class CertificateProvisioningServiceImpl implements CertificateProvisioni
     public CertificateProvisioningResponse bindCertificate(Long subscriptionId, Long userId, BindCertificateRequest request) {
         Subscription subscription = findActiveSubscription(subscriptionId);
         checkQuota(subscription);
+        ensureNoExistingProvisioning(subscriptionId, userId);
+        ensureCertificateIdAvailable(request.getCertificateId(), null);
 
         PlanPricingRule rule = subscription.getPricingRule();
         String requestId = UUID.randomUUID().toString();
@@ -246,6 +250,7 @@ public class CertificateProvisioningServiceImpl implements CertificateProvisioni
             Long userId) {
         try {
             CertificateProvisioningResult result = rsCoreClient.createCertificate(certRequest);
+            ensureCertificateIdAvailable(result.getCertificateId(), record.getId());
 
             record.setStatus(CommercialEnums.ProvisioningStatus.COMPLETED.name());
             record.setCertificateId(result.getCertificateId());
@@ -306,6 +311,24 @@ public class CertificateProvisioningServiceImpl implements CertificateProvisioni
             throw new SmsException(ErrorCodes.QUOTA_EXHAUSTED,
                 "Certificate quota exhausted: used=" + used + ", total=" + total, 422);
         }
+    }
+
+    private void ensureNoExistingProvisioning(Long subscriptionId, Long userId) {
+        provisioningRepository.findBySubscriptionSubscriptionIdAndUserId(subscriptionId, userId)
+            .ifPresent(existing -> {
+                throw new SmsException(ErrorCodes.INVALID_STATUS_TRANSITION,
+                    "Certificate provisioning record already exists for subscriptionId=" + subscriptionId + ", userId=" + userId, 409);
+            });
+    }
+
+    private void ensureCertificateIdAvailable(String certificateId, Long currentRecordId) {
+        if (certificateId == null || certificateId.isBlank()) return;
+        provisioningRepository.findByCertificateId(certificateId)
+            .filter(existing -> currentRecordId == null || !existing.getId().equals(currentRecordId))
+            .ifPresent(existing -> {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Certificate already exists: " + certificateId, 409);
+            });
     }
 
     private LocalDate computeValidTo(LocalDate from, PlanPricingRule rule) {

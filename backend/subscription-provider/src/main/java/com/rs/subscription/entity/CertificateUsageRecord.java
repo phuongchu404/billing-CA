@@ -26,11 +26,11 @@ public class CertificateUsageRecord {
     private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_id")
+    @JoinColumn(name = "subscription_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Subscription subscription;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_plan_assignment_id")
+    @JoinColumn(name = "group_plan_assignment_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private GroupPlanAssignment groupPlanAssignment;
 
     @Column(name = "usage_type", nullable = false, length = 30)

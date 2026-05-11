@@ -20,15 +20,15 @@ public class CertificateProvisioningRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_id", nullable = false)
+    @JoinColumn(name = "subscription_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Subscription subscription;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_plan_assignment_id")
+    @JoinColumn(name = "group_plan_assignment_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private GroupPlanAssignment groupPlanAssignment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pricing_rule_id")
+    @JoinColumn(name = "pricing_rule_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private PlanPricingRule pricingRule;
     @Column(nullable = false)
     private Long userId;

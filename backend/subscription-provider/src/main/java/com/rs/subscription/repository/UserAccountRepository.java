@@ -63,6 +63,36 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
         """)
     Page<UserAccount> findByRoleName(@Param("roleName") String roleName, Pageable pageable);
 
+    // Combined filter: status + query (search username/email/fullName) + role displayName
+    @Query(value = """
+        SELECT DISTINCT u FROM UserAccount u
+        LEFT JOIN u.userRoles ur
+        LEFT JOIN ur.role r
+        WHERE (:status IS NULL OR u.status = :status)
+          AND (:query IS NULL OR (
+                lower(u.username) LIKE lower(concat('%', :query, '%'))
+                OR lower(u.email) LIKE lower(concat('%', :query, '%'))
+                OR lower(u.fullName) LIKE lower(concat('%', :query, '%'))
+              ))
+          AND (:role IS NULL OR r.displayName = :role)
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT u) FROM UserAccount u
+        LEFT JOIN u.userRoles ur
+        LEFT JOIN ur.role r
+        WHERE (:status IS NULL OR u.status = :status)
+          AND (:query IS NULL OR (
+                lower(u.username) LIKE lower(concat('%', :query, '%'))
+                OR lower(u.email) LIKE lower(concat('%', :query, '%'))
+                OR lower(u.fullName) LIKE lower(concat('%', :query, '%'))
+              ))
+          AND (:role IS NULL OR r.displayName = :role)
+        """)
+    Page<UserAccount> findByFilters(@Param("status") String status,
+                                    @Param("query") String query,
+                                    @Param("role") String role,
+                                    Pageable pageable);
+
     // Tìm user theo username để lấy email (gửi notification cho requester)
     @Query(value = """
         SELECT DISTINCT u.* FROM user_accounts u

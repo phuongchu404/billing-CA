@@ -5,6 +5,7 @@ import com.rs.subscription.service.*;
 import com.rs.subscription.dto.request.UpsertGroupRequest;
 import com.rs.subscription.dto.response.GroupDetailResponse;
 import com.rs.subscription.dto.response.GroupListItemResponse;
+import com.rs.subscription.dto.response.GroupListResponse;
 import com.rs.subscription.dto.response.PlanHistoryResponse;
 import com.rs.subscription.entity.Group;
 import com.rs.subscription.entity.GroupContact;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -41,22 +43,47 @@ public class GroupServiceImpl implements GroupService {
     private final DataScopeService dataScopeService;
 
     // ----------------------------------------------------------------
-    // LIST ALL — lọc theo scope của user hiện tại
+    // LIST ALL — lọc theo scope của user hiện tại, sau đó filter theo params
     // ----------------------------------------------------------------
-    public List<GroupListItemResponse> listAll() {
+    public GroupListResponse listAll(String status, String applyUntil, String updatedAt) {
         List<Long> visibleIds = dataScopeService.resolveVisibleGroupIds();
         List<Group> groups;
         if (visibleIds == null) {
             groups = groupRepository.findAll();
         } else if (visibleIds.isEmpty()) {
-            return List.of();
+            return new GroupListResponse(List.of(), 0L);
         } else {
             groups = groupRepository.findAllById(visibleIds);
         }
-        return groups.stream()
+
+        List<GroupListItemResponse> allItems = groups.stream()
                 .sorted(java.util.Comparator.comparingLong(Group::getGroupId))
                 .map(this::toListItem)
                 .toList();
+
+        long activeCount = allItems.stream()
+                .filter(i -> "ACTIVE".equals(i.getStatus()))
+                .count();
+
+        List<GroupListItemResponse> filtered = allItems.stream()
+                .filter(item -> matchesGroupFilter(item, status, applyUntil, updatedAt))
+                .toList();
+
+        return new GroupListResponse(filtered, activeCount);
+    }
+
+    private boolean matchesGroupFilter(GroupListItemResponse item,
+                                       String status, String applyUntil, String updatedAt) {
+        if (status != null && !status.isBlank() && !status.equals(item.getStatus())) return false;
+        if (applyUntil != null && !applyUntil.isBlank()) {
+            if (item.getApplyUntil() == null) return false;
+            if (!item.getApplyUntil().equals(LocalDate.parse(applyUntil))) return false;
+        }
+        if (updatedAt != null && !updatedAt.isBlank()) {
+            if (item.getUpdatedAt() == null) return false;
+            if (!item.getUpdatedAt().toLocalDate().equals(LocalDate.parse(updatedAt))) return false;
+        }
+        return true;
     }
 
     // ----------------------------------------------------------------

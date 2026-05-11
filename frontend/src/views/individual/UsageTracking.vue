@@ -89,7 +89,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               />
             </div>
           </template>
@@ -105,7 +104,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               >
                 <el-option :label="$t('usageTracking.individual')" value="INDIVIDUAL" />
                 <el-option :label="$t('usageTracking.organization')" value="ORGANIZATION" />
@@ -131,7 +129,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               >
                 <el-option :label="$t('usageTracking.filter1m')" value="1" />
                 <el-option :label="$t('usageTracking.filter12m')" value="12" />
@@ -153,7 +150,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               >
                 <el-option :label="$t('usageTracking.filterActive')" value="ACTIVE" />
                 <el-option :label="$t('usageTracking.filterPendingActivate')" value="PENDING_ACTIVATE" />
@@ -204,7 +200,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               >
                 <el-option label="SmartCA 2025" value="SmartCA 2025" />
                 <el-option label="SmartCA 2026" value="SmartCA 2026" />
@@ -254,11 +249,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { Refresh, Grid } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
-import { getIndividualUsageTracking } from "@/api/individual";
+import { getIndividualUsageTracking, type IndividualUsageFilterParams } from "@/api/individual";
 import type { IndividualUsageRow, IndividualUsageStats } from "@/types/individual";
 
 const { t } = useI18n();
@@ -293,21 +288,7 @@ const stats = ref<IndividualUsageStats>({
 
 const list = ref<IndividualUsageRow[]>([]);
 
-const filteredList = computed(() => {
-  return list.value.filter((row) => {
-    if (filterCtsType.value && row.ctsType !== filterCtsType.value)
-      return false;
-    if (
-      filterCtsDuration.value &&
-      String(row.ctsDuration) !== filterCtsDuration.value
-    )
-      return false;
-    if (filterCtsStatus.value && row.ctsStatus !== filterCtsStatus.value)
-      return false;
-    if (filterPlan.value && row.plan !== filterPlan.value) return false;
-    return true;
-  });
-});
+const filteredList = computed(() => list.value);
 
 const pagedList = computed(() => {
   const start = (page.value - 1) * pageSize.value;
@@ -359,10 +340,27 @@ function handleExport() {
   ElMessage.info(t('usageTracking.developing'));
 }
 
+function toIsoDate(d: Date | null): string | undefined {
+  if (!d) return undefined;
+  return d instanceof Date ? d.toISOString().slice(0, 10) : undefined;
+}
+
+watch([filterPurchasedAt, filterCtsType, filterCtsDuration, filterCtsStatus, filterPlan], () => {
+  page.value = 1;
+  load();
+});
+
 async function load() {
   loading.value = true;
+  const params: IndividualUsageFilterParams = {
+    purchasedAt: toIsoDate(filterPurchasedAt.value),
+    ctsType: filterCtsType.value || undefined,
+    ctsDuration: filterCtsDuration.value || undefined,
+    ctsStatus: filterCtsStatus.value || undefined,
+    plan: filterPlan.value || undefined,
+  };
   try {
-    const res = await getIndividualUsageTracking();
+    const res = await getIndividualUsageTracking(params);
     if (res.success && res.data) {
       list.value = res.data.list ?? [];
       stats.value = res.data.stats ?? stats.value;

@@ -21,8 +21,12 @@ public class IndividualPlanConfigController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('plan:view')")
-    public ApiResponse<IndividualPlanConfigSummaryResponse> getSummary() {
-        return ApiResponse.success(service.getSummary(), "Fetched individual plan configs");
+    public ApiResponse<IndividualPlanConfigSummaryResponse> getSummary(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String applyFrom,
+            @RequestParam(required = false) String applyUntil,
+            @RequestParam(required = false) String updatedAt) {
+        return ApiResponse.success(service.getSummary(status, applyFrom, applyUntil, updatedAt), "Fetched individual plan configs");
     }
 
     @GetMapping("/{id}")

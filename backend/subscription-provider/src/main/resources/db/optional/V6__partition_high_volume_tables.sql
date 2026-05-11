@@ -33,9 +33,33 @@
 -- ============================================================
 
 -- Bước 1a: Drop FKs (FK là lý do duy nhất blocking partition)
-ALTER TABLE certificate_usage_records
-    DROP FOREIGN KEY fk_certificate_usage_subscription,
-    DROP FOREIGN KEY fk_certificate_usage_group_assignment;
+SET @drop_fk := (
+    SELECT IF(COUNT(*) > 0,
+        'ALTER TABLE certificate_usage_records DROP FOREIGN KEY fk_certificate_usage_subscription',
+        'DO 0')
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'certificate_usage_records'
+      AND CONSTRAINT_NAME = 'fk_certificate_usage_subscription'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+PREPARE stmt FROM @drop_fk;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @drop_fk := (
+    SELECT IF(COUNT(*) > 0,
+        'ALTER TABLE certificate_usage_records DROP FOREIGN KEY fk_certificate_usage_group_assignment',
+        'DO 0')
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'certificate_usage_records'
+      AND CONSTRAINT_NAME = 'fk_certificate_usage_group_assignment'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+PREPARE stmt FROM @drop_fk;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Bước 1b: Đổi PK từ (id) → (id, used_at)
 --           MySQL bắt buộc cột partition phải có trong mọi unique index + PK
@@ -75,8 +99,19 @@ ALTER TABLE admin_audit_logs
 -- ============================================================
 
 -- Drop FK trước
-ALTER TABLE subscription_audit_logs
-    DROP FOREIGN KEY fk_subscription_audit_logs_subscription;
+SET @drop_fk := (
+    SELECT IF(COUNT(*) > 0,
+        'ALTER TABLE subscription_audit_logs DROP FOREIGN KEY fk_subscription_audit_logs_subscription',
+        'DO 0')
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'subscription_audit_logs'
+      AND CONSTRAINT_NAME = 'fk_subscription_audit_logs_subscription'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+PREPARE stmt FROM @drop_fk;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 ALTER TABLE subscription_audit_logs
     DROP PRIMARY KEY,

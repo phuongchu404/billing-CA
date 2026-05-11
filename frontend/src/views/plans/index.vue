@@ -299,7 +299,7 @@ import {
   Document,
   UserFilled,
 } from "@element-plus/icons-vue";
-import { listGroups, assignGroupOwner, downloadSettlementExport, triggerBlobDownload } from "@/api/groups";
+import { listGroups, assignGroupOwner, downloadSettlementExport, triggerBlobDownload, type GroupListFilterParams } from "@/api/groups";
 import { listUsers } from "@/api/users";
 import { usePermission } from "@/composables/usePermission";
 import { ElMessage } from "element-plus";
@@ -323,9 +323,7 @@ const filterUpdatedAt = ref<Date | null>(null);
 const page = ref(1);
 const pageSize = ref(10);
 
-const activeCount = computed(
-  () => list.value.filter((r) => r.status === "ACTIVE").length,
-);
+const activeCount = ref(0);
 const canAssignOwner = computed(() => can("group:assign:owner"));
 
 function formatDate(iso: string | null): string {
@@ -354,38 +352,35 @@ function mapRow(item: GroupListItem): AgencyRow {
   };
 }
 
-const filteredList = computed(() => {
-  let result = list.value;
-  if (filterStatus.value)
-    result = result.filter((r) => r.status === filterStatus.value);
-  if (filterApplyUntil.value) {
-    const d = filterApplyUntil.value;
-    const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-    result = result.filter((r) => r.applyUntil?.startsWith(dateStr));
-  }
-  if (filterUpdatedAt.value) {
-    const d = filterUpdatedAt.value;
-    const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-    result = result.filter((r) => r.updatedAt?.startsWith(dateStr));
-  }
-  return result;
-});
+const filteredList = computed(() => list.value);
 
 const pagedList = computed(() => {
   const start = (page.value - 1) * pageSize.value;
   return filteredList.value.slice(start, start + pageSize.value);
 });
 
+function toIsoDate(d: Date | null): string | undefined {
+  if (!d) return undefined;
+  return d instanceof Date ? d.toISOString().slice(0, 10) : undefined;
+}
+
 watch([filterStatus, filterApplyUntil, filterUpdatedAt], () => {
   page.value = 1;
+  load();
 });
 
 async function load() {
   loading.value = true;
+  const params: GroupListFilterParams = {
+    status: filterStatus.value || undefined,
+    applyUntil: toIsoDate(filterApplyUntil.value),
+    updatedAt: toIsoDate(filterUpdatedAt.value),
+  };
   try {
-    const res = await listGroups();
+    const res = await listGroups(params);
     if (res.success && res.data) {
-      list.value = res.data.map(mapRow);
+      list.value = res.data.list.map(mapRow);
+      activeCount.value = res.data.activeCount;
     } else {
       ElMessage.error(res.message || t('agency.errorNotFound'));
     }

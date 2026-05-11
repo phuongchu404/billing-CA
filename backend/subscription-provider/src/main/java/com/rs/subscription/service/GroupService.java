@@ -3,6 +3,7 @@ package com.rs.subscription.service;
 import com.rs.subscription.dto.request.UpsertGroupRequest;
 import com.rs.subscription.dto.response.GroupDetailResponse;
 import com.rs.subscription.dto.response.GroupListItemResponse;
+import com.rs.subscription.dto.response.GroupListResponse;
 import com.rs.subscription.dto.response.PlanHistoryResponse;
 import com.rs.subscription.entity.Group;
 import com.rs.subscription.entity.GroupContact;
@@ -27,7 +28,7 @@ import java.util.Optional;
 
 public interface GroupService {
 
-    List<GroupListItemResponse> listAll();
+    GroupListResponse listAll(String status, String applyUntil, String updatedAt);
 
     GroupDetailResponse getById(Long id);
 

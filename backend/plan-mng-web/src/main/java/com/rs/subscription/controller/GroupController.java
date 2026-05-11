@@ -6,6 +6,7 @@ import com.rs.subscription.dto.request.ProvisionGroupRequest;
 import com.rs.subscription.dto.request.UpsertGroupRequest;
 import com.rs.subscription.dto.response.GroupDetailResponse;
 import com.rs.subscription.dto.response.GroupListItemResponse;
+import com.rs.subscription.dto.response.GroupListResponse;
 import com.rs.subscription.dto.response.PlanHistoryResponse;
 import com.rs.subscription.dto.response.ProvisionGroupResponse;
 import com.rs.subscription.service.GroupProvisioningService;
@@ -16,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/v1/groups")
@@ -28,8 +30,11 @@ public class GroupController {
     /** Danh sách đại lý — tự động lọc theo scope của user hiện tại */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('group:view','group:view:own','group:view:subordinates')")
-    public ApiResponse<List<GroupListItemResponse>> listAll() {
-        return ApiResponse.success(groupService.listAll(), "Fetched groups");
+    public ApiResponse<GroupListResponse> listAll(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String applyUntil,
+            @RequestParam(required = false) String updatedAt) {
+        return ApiResponse.success(groupService.listAll(status, applyUntil, updatedAt), "Fetched groups");
     }
 
     /** Chi tiết một đại lý */

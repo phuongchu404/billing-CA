@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 import type { ApiResponse, PagedResponse, UserAccount } from '@/types'
 
-export const listUsers = (params: { status?: string; query?: string; page?: number; size?: number }) =>
+export const listUsers = (params: { status?: string; query?: string; role?: string; page?: number; size?: number }) =>
   request.get<any, ApiResponse<PagedResponse<UserAccount>>>('/api/v1/admin/users', { params })
 
 export const listPartnerUsers = (params?: { page?: number; size?: number }) =>

@@ -30,7 +30,7 @@ public class DocumentUploadRecord {
     private Long userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_id")
+    @JoinColumn(name = "subscription_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Subscription subscription;
 
     @Column(name = "certificate_id", length = 200)

@@ -29,7 +29,7 @@ public interface UserService {
 
     UserResponse createUser(CreateUserRequest req, String createdBy);
 
-    PagedResponse<UserResponse> listUsers(String status, String query, int page, int size);
+    PagedResponse<UserResponse> listUsers(String status, String query, String role, int page, int size);
 
     PagedResponse<UserResponse> listUsersByRole(String roleName, int page, int size);
 

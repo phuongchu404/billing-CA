@@ -46,9 +46,10 @@ public class UserController {
     public ApiResponse<PagedResponse<UserResponse>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String query,
+            @RequestParam(required = false) String role,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success(userService.listUsers(status, query, page, size), "Users retrieved successfully");
+        return ApiResponse.success(userService.listUsers(status, query, role, page, size), "Users retrieved successfully");
     }
 
     @GetMapping("/api/v1/admin/partner-users")

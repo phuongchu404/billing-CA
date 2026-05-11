@@ -32,7 +32,10 @@ public class SystemMaintenanceSchedulerServiceImpl implements SystemMaintenanceS
     private static final String[] PARTITIONED_TABLES = {
         "certificate_usage_records",
         "admin_audit_logs",
-        "subscription_audit_logs"
+        "subscription_audit_logs",
+        "certificate_provisioning_records",
+        "document_upload_records",
+        "certificate_auth_failure_records"
     };
 
     @PersistenceContext

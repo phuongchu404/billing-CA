@@ -10,6 +10,8 @@ import com.rs.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,10 +24,12 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
 
     private final SubscriptionRepository subscriptionRepository;
 
-    public IndividualUsageTrackingResponse getUsageTracking() {
+    public IndividualUsageTrackingResponse getUsageTracking(String purchasedAt, String ctsType,
+                                                            String ctsDuration, String ctsStatus, String plan) {
         List<Subscription> subs = subscriptionRepository.findBySubscriberTypeOrderByCreatedAtDesc(
             CommercialEnums.SubscriberType.INDIVIDUAL.name());
 
+        // Stats luôn tính từ toàn bộ dữ liệu, không bị ảnh hưởng bởi filter
         IndividualUsageTrackingResponse.IndividualUsageStatsResponse stats =
                 new IndividualUsageTrackingResponse.IndividualUsageStatsResponse();
         stats.setAccounts(subs.stream().map(Subscription::getUserId).filter(u -> u != null).distinct().count());
@@ -41,8 +45,10 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
                 .filter(s -> s.getPricingRule() != null && CommercialEnums.SubjectType.INDIVIDUAL_OF_ORG.name().equals(s.getPricingRule().getSubjectType()))
                 .count());
 
+        // Map tất cả rows trước, sau đó filter
         List<IndividualUsageRowResponse> rows = subs.stream()
                 .map(this::toRow)
+                .filter(row -> matchesUsageFilter(row, purchasedAt, ctsType, ctsDuration, ctsStatus, plan))
                 .collect(Collectors.toList());
 
         String lastUpdated = subs.stream()
@@ -57,6 +63,22 @@ public class IndividualUsageTrackingServiceImpl implements IndividualUsageTracki
         response.setList(rows);
         response.setLastUpdated(lastUpdated);
         return response;
+    }
+
+    private boolean matchesUsageFilter(IndividualUsageRowResponse row,
+                                        String purchasedAt, String ctsType,
+                                        String ctsDuration, String ctsStatus, String plan) {
+        if (purchasedAt != null && !purchasedAt.isBlank()) {
+            if (row.getPurchasedAt() == null) return false;
+            LocalDate filterDate = LocalDate.parse(purchasedAt);
+            LocalDate rowDate = LocalDateTime.parse(row.getPurchasedAt(), DATETIME_FMT).toLocalDate();
+            if (!rowDate.equals(filterDate)) return false;
+        }
+        if (ctsType != null && !ctsType.isBlank() && !ctsType.equals(row.getCtsType())) return false;
+        if (ctsDuration != null && !ctsDuration.isBlank() && !ctsDuration.equals(String.valueOf(row.getCtsDuration()))) return false;
+        if (ctsStatus != null && !ctsStatus.isBlank() && !ctsStatus.equals(row.getCtsStatus())) return false;
+        if (plan != null && !plan.isBlank() && !plan.equals(row.getPlan())) return false;
+        return true;
     }
 
     private IndividualUsageRowResponse toRow(Subscription sub) {

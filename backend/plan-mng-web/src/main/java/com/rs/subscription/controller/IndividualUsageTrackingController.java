@@ -5,9 +5,8 @@ import com.rs.subscription.dto.response.IndividualUsageTrackingResponse;
 import com.rs.subscription.service.IndividualUsageTrackingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequestMapping("/api/v1/individual/usage-tracking")
@@ -18,7 +17,14 @@ public class IndividualUsageTrackingController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('report:view') OR hasAuthority('individual:usage:view')")
-    public ApiResponse<IndividualUsageTrackingResponse> getUsageTracking() {
-        return ApiResponse.success(service.getUsageTracking(), "Fetched individual usage tracking");
+    public ApiResponse<IndividualUsageTrackingResponse> getUsageTracking(
+            @RequestParam(required = false) String purchasedAt,
+            @RequestParam(required = false) String ctsType,
+            @RequestParam(required = false) String ctsDuration,
+            @RequestParam(required = false) String ctsStatus,
+            @RequestParam(required = false) String plan) {
+        return ApiResponse.success(
+            service.getUsageTracking(purchasedAt, ctsType, ctsDuration, ctsStatus, plan),
+            "Fetched individual usage tracking");
     }
 }

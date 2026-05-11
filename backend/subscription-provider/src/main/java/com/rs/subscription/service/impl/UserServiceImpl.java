@@ -76,18 +76,15 @@ public class UserServiceImpl implements UserService {
         return toResponse(userAccountRepository.save(user));
     }
 
-    public PagedResponse<UserResponse> listUsers(String status, String query, int page, int size) {
-        Page<UserAccount> result;
-        if (query != null && !query.isBlank()) {
-            result = userAccountRepository.search(query, PageRequest.of(page, size));
-        } else if (status != null && !status.isBlank()) {
-            result = userAccountRepository.findByStatus(
-                AuthEnums.normalize(status, AuthEnums.UserStatus.class, "status"),
-                PageRequest.of(page, size)
-            );
-        } else {
-            result = userAccountRepository.findAll(PageRequest.of(page, size));
-        }
+    public PagedResponse<UserResponse> listUsers(String status, String query, String role, int page, int size) {
+        String normalizedStatus = (status != null && !status.isBlank())
+            ? AuthEnums.normalize(status, AuthEnums.UserStatus.class, "status") : null;
+        String normalizedQuery = (query != null && !query.isBlank()) ? query : null;
+        String normalizedRole = (role != null && !role.isBlank()) ? role : null;
+
+        Page<UserAccount> result = userAccountRepository.findByFilters(
+            normalizedStatus, normalizedQuery, normalizedRole, PageRequest.of(page, size));
+
         return PagedResponse.<UserResponse>builder()
             .content(result.getContent().stream().map(this::toResponse).collect(Collectors.toList()))
             .totalElements(result.getTotalElements())

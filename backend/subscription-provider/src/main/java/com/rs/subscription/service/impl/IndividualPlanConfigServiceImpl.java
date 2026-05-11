@@ -52,12 +52,13 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     private final AssignmentAuditRepository auditRepository;
     private final MultiLevelApprovalService multiLevelApprovalService;
 
-    public IndividualPlanConfigSummaryResponse getSummary() {
+    public IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt) {
         List<PlanTemplate> templates = planTemplateRepository.findByCustomerSegment(CUSTOMER_SEGMENT);
 
         List<IndividualPlanConfigListItemResponse> items = templates.stream()
                 .sorted(Comparator.comparing(PlanTemplate::getUpdatedAt).reversed())
                 .map(this::toListItem)
+                .filter(item -> matchesFilter(item, status, applyFrom, applyUntil, updatedAt))
                 .collect(Collectors.toList());
 
         LocalDateTime lastUpdated = templates.stream()
@@ -418,6 +419,30 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             return CommercialEnums.IndividualPlanStatus.UNAVAILABLE.name();
         }
         return scheduleStatus;
+    }
+
+    private boolean matchesFilter(IndividualPlanConfigListItemResponse item,
+                                   String status, String applyFrom, String applyUntil, String updatedAt) {
+        if (status != null && !status.isBlank() && !status.equals(item.getStatus())) return false;
+        if (applyFrom != null && !applyFrom.isBlank()) {
+            if (item.getApplyFrom() == null) return false;
+            LocalDate filterDate = LocalDate.parse(applyFrom);
+            LocalDate itemDate = LocalDate.parse(item.getApplyFrom(), DATE_FMT);
+            if (!itemDate.equals(filterDate)) return false;
+        }
+        if (applyUntil != null && !applyUntil.isBlank()) {
+            if (item.getApplyUntil() == null) return false;
+            LocalDate filterDate = LocalDate.parse(applyUntil);
+            LocalDate itemDate = LocalDate.parse(item.getApplyUntil(), DATE_FMT);
+            if (!itemDate.equals(filterDate)) return false;
+        }
+        if (updatedAt != null && !updatedAt.isBlank()) {
+            if (item.getUpdatedAt() == null) return false;
+            LocalDate filterDate = LocalDate.parse(updatedAt);
+            LocalDate itemDate = LocalDateTime.parse(item.getUpdatedAt(), DATETIME_FMT).toLocalDate();
+            if (!itemDate.equals(filterDate)) return false;
+        }
+        return true;
     }
 
     private PlanPricingRule toPricingRuleEntity(CreateIndividualPlanConfigRequest.PricingRuleRequest rr, int sortOrder) {

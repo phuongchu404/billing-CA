@@ -14,8 +14,19 @@ import type {
 } from '@/types/group'
 
 // ---- Group CRUD ----
-export const listGroups = () =>
-  request.get<any, ApiResponse<GroupListItem[]>>('/api/v1/groups')
+export interface GroupListFilterParams {
+  status?: string
+  applyUntil?: string
+  updatedAt?: string
+}
+
+export interface GroupListData {
+  list: GroupListItem[]
+  activeCount: number
+}
+
+export const listGroups = (params?: GroupListFilterParams) =>
+  request.get<any, ApiResponse<GroupListData>>('/api/v1/groups', { params })
 
 export const getGroup = (id: number) =>
   request.get<any, ApiResponse<GroupDetail>>(`/api/v1/groups/${id}`)

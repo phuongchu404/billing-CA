@@ -13,8 +13,15 @@ const BASE = '/api/v1/individual'
 
 // ─── Plan Config ────────────────────────────────────────────────────────────
 
-export const getIndividualPlanConfigSummary = () =>
-  request.get<any, ApiResponse<IndividualPlanConfigSummary>>(`${BASE}/plan-configs`)
+export interface IndividualPlanConfigFilterParams {
+  status?: string
+  applyFrom?: string
+  applyUntil?: string
+  updatedAt?: string
+}
+
+export const getIndividualPlanConfigSummary = (params?: IndividualPlanConfigFilterParams) =>
+  request.get<any, ApiResponse<IndividualPlanConfigSummary>>(`${BASE}/plan-configs`, { params })
 
 export const getIndividualPlanConfigDetail = (id: number) =>
   request.get<any, ApiResponse<IndividualPlanConfigDetail>>(`${BASE}/plan-configs/${id}`)
@@ -51,5 +58,13 @@ export const deactivatePlanConfig = (id: number, actor?: string) =>
 
 // ─── Usage Tracking ─────────────────────────────────────────────────────────
 
-export const getIndividualUsageTracking = () =>
-  request.get<any, ApiResponse<IndividualUsageTrackingResponse>>(`${BASE}/usage-tracking`)
+export interface IndividualUsageFilterParams {
+  purchasedAt?: string
+  ctsType?: string
+  ctsDuration?: string
+  ctsStatus?: string
+  plan?: string
+}
+
+export const getIndividualUsageTracking = (params?: IndividualUsageFilterParams) =>
+  request.get<any, ApiResponse<IndividualUsageTrackingResponse>>(`${BASE}/usage-tracking`, { params })

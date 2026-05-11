@@ -2,32 +2,38 @@
   <div>
     <div class="page-header">
       <div>
-        <h2>{{ t('individualPlan.title') }}</h2>
-        <p class="page-subtitle">{{ t('individualPlan.subtitle') }}</p>
+        <h2>{{ t("individualPlan.title") }}</h2>
+        <p class="page-subtitle">{{ t("individualPlan.subtitle") }}</p>
       </div>
     </div>
 
     <el-card shadow="never">
       <div class="current-plan-info">
         <div v-if="currentPlan">
-          {{ t('individualPlan.currentPlan') }}
+          {{ t("individualPlan.currentPlan") }}
           <b>{{ currentPlan.name }}</b>
-          {{ t('individualPlan.applyUntil') }}
+          {{ t("individualPlan.applyUntil") }}
           <b>{{ currentPlan.applyUntil }}</b>
         </div>
         <div v-if="nextPlan">
-          {{ t('individualPlan.nextPlan') }}
+          {{ t("individualPlan.nextPlan") }}
           <b>{{ nextPlan.name }}</b>
-          {{ t('individualPlan.applyFrom') }}
+          {{ t("individualPlan.applyFrom") }}
           <b>{{ nextPlan.applyFrom }}</b>
         </div>
       </div>
 
       <div class="info-bar">
-        <el-button type="primary" :icon="Plus" :disabled="!can('plan:create')" @click="handleAddNew"
-          >{{ t('common.add') }}</el-button
+        <el-button
+          type="primary"
+          :icon="Plus"
+          :disabled="!can('plan:create')"
+          @click="handleAddNew"
+          >{{ t("common.add") }}</el-button
         >
-        <span class="last-updated">{{ t('agency.lastUpdated', { time: lastUpdated }) }}</span>
+        <span class="last-updated">{{
+          t("agency.lastUpdated", { time: lastUpdated })
+        }}</span>
       </div>
 
       <!-- <div class="pagination-row">
@@ -71,14 +77,14 @@
 
         <el-table-column prop="name" sortable min-width="180">
           <template #header>
-            <div class="col-label">{{ t('individualPlan.colPlanName') }}</div>
+            <div class="col-label">{{ t("individualPlan.colPlanName") }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
         <el-table-column prop="status" sortable width="140">
           <template #header>
-            <div class="col-label">{{ t('common.status') }}</div>
+            <div class="col-label">{{ t("common.status") }}</div>
             <div class="col-filter">
               <el-select
                 v-model="filterStatus"
@@ -86,13 +92,27 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               >
-                <el-option :label="t('individualPlan.statusAvailable')" value="AVAILABLE" />
-                <el-option :label="t('individualPlan.statusUnavailable')" value="UNAVAILABLE" />
-                <el-option :label="t('individualPlan.statusPending')" value="PENDING" />
-                <el-option :label="t('individualPlan.statusApproved')" value="APPROVED" />
-                <el-option :label="t('individualPlan.statusApplying')" value="APPLYING" />
+                <el-option
+                  :label="t('individualPlan.statusAvailable')"
+                  value="AVAILABLE"
+                />
+                <el-option
+                  :label="t('individualPlan.statusUnavailable')"
+                  value="UNAVAILABLE"
+                />
+                <el-option
+                  :label="t('individualPlan.statusPending')"
+                  value="PENDING"
+                />
+                <el-option
+                  :label="t('individualPlan.statusApproved')"
+                  value="APPROVED"
+                />
+                <el-option
+                  :label="t('individualPlan.statusApplying')"
+                  value="APPLYING"
+                />
               </el-select>
             </div>
           </template>
@@ -109,7 +129,7 @@
 
         <el-table-column prop="applyFrom" sortable width="130">
           <template #header>
-            <div class="col-label">{{ t('agency.colApplyFrom') }}</div>
+            <div class="col-label">{{ t("agency.colApplyFrom") }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterApplyFrom"
@@ -118,7 +138,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               />
             </div>
           </template>
@@ -127,7 +146,7 @@
 
         <el-table-column prop="applyUntil" sortable width="130">
           <template #header>
-            <div class="col-label">{{ t('agency.colApplyTo') }}</div>
+            <div class="col-label">{{ t("agency.colApplyTo") }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterApplyUntil"
@@ -136,7 +155,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               />
             </div>
           </template>
@@ -145,7 +163,7 @@
 
         <el-table-column prop="updatedAt" sortable width="175">
           <template #header>
-            <div class="col-label">{{ t('agency.colUpdatedAt') }}</div>
+            <div class="col-label">{{ t("agency.colUpdatedAt") }}</div>
             <div class="col-filter">
               <el-date-picker
                 v-model="filterUpdatedAt"
@@ -154,7 +172,6 @@
                 clearable
                 placeholder=""
                 style="width: 100%"
-                @change="page = 1"
               />
             </div>
           </template>
@@ -163,13 +180,16 @@
 
         <el-table-column fixed="right" width="210">
           <template #header>
-            <div class="col-label">{{ t('common.actions') }}</div>
+            <div class="col-label">{{ t("common.actions") }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
             <div class="action-btns">
-              <el-button size="small" :icon="Timer" @click.stop="goDetail(row)"
-                >{{ t('common.detail') }}</el-button
+              <el-button
+                size="small"
+                :icon="Timer"
+                @click.stop="goDetail(row)"
+                >{{ t("common.detail") }}</el-button
               >
               <el-button
                 v-if="row.status === 'AVAILABLE'"
@@ -179,7 +199,7 @@
                 :disabled="!can('plan:update')"
                 @click.stop="openRequestApply(row)"
               >
-                {{ t('agency.btnRequestApply') }}
+                {{ t("agency.btnRequestApply") }}
               </el-button>
               <el-button
                 v-if="row.status === 'PENDING'"
@@ -190,7 +210,7 @@
                 :disabled="!can('plan:update')"
                 @click.stop="openApprove(row)"
               >
-                {{ t('agency.btnApprove') }}
+                {{ t("agency.btnApprove") }}
               </el-button>
               <el-button
                 v-if="row.status === 'APPROVED' || row.status === 'APPLYING'"
@@ -199,7 +219,7 @@
                 :disabled="!can('plan:update')"
                 @click.stop="openStopApply(row)"
               >
-                {{ t('agency.btnStopApply') }}
+                {{ t("agency.btnStopApply") }}
               </el-button>
             </div>
           </template>
@@ -208,7 +228,7 @@
 
       <div class="pagination-row" style="margin-top: 12px">
         <span class="page-label">
-          {{ t('common.showing') }}
+          {{ t("common.showing") }}
           <el-select
             v-model="pageSize"
             size="small"
@@ -219,7 +239,7 @@
             <el-option :value="10" label="10" />
             <el-option :value="20" label="20" />
           </el-select>
-          {{ t('individualPlan.totalPlans', { total: filteredList.length }) }}
+          {{ t("individualPlan.totalPlans", { total: filteredList.length }) }}
         </span>
         <el-pagination
           v-model:current-page="page"
@@ -235,15 +255,15 @@
     <!-- Dialog 1: YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC -->
     <el-dialog v-model="requestApplyVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">{{ t('agency.dialogRequestApply') }}</span>
+        <span class="dlg-title">{{ t("agency.dialogRequestApply") }}</span>
       </template>
       <div class="dlg-name-row">
         <span
-          >{{ t('common.name') }}: <b>{{ activeRow?.name }}</b></span
+          >{{ t("common.name") }}: <b>{{ activeRow?.name }}</b></span
         >
-        <el-button link type="primary" @click="goDetail(activeRow!)"
-          >{{ t('agency.viewDetail') }}</el-button
-        >
+        <el-button link type="primary" @click="goDetail(activeRow!)">{{
+          t("agency.viewDetail")
+        }}</el-button>
       </div>
       <el-form label-width="140px" style="margin-top: 16px">
         <el-form-item :label="t('agency.dialogApplyPeriod')">
@@ -258,25 +278,27 @@
         </el-form-item>
       </el-form>
       <p class="dlg-note">
-        {{ t('individualPlan.requestApplyNote') }}
+        {{ t("individualPlan.requestApplyNote") }}
       </p>
       <template #footer>
-        <el-button type="primary" @click="confirmRequestApply"
-          >{{ t('common.confirm') }}</el-button
-        >
-        <el-button @click="requestApplyVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="confirmRequestApply">{{
+          t("common.confirm")
+        }}</el-button>
+        <el-button @click="requestApplyVisible = false">{{
+          t("common.cancel")
+        }}</el-button>
       </template>
     </el-dialog>
 
     <!-- Dialog 2: DUYỆT ÁP DỤNG GÓI CƯỚC -->
     <el-dialog v-model="approveVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">{{ t('agency.dialogApproveApply') }}</span>
+        <span class="dlg-title">{{ t("agency.dialogApproveApply") }}</span>
       </template>
       <p class="dlg-body">
-        {{ t('individualPlan.approveDescPrefix') }}
+        {{ t("individualPlan.approveDescPrefix") }}
         <b class="dlg-plan-name">{{ activeRow?.name }}</b>
-        {{ t('individualPlan.approveDescSuffix') }}
+        {{ t("individualPlan.approveDescSuffix") }}
       </p>
       <el-form label-width="140px" style="margin-top: 16px">
         <el-form-item :label="t('agency.dialogApplyPeriod')">
@@ -291,27 +313,29 @@
         </el-form-item>
       </el-form>
       <p class="dlg-note">
-        {{ t('individualPlan.approveNote') }}
+        {{ t("individualPlan.approveNote") }}
       </p>
       <ul class="dlg-bullets">
         <li>
-          {{ t('individualPlan.approveBullet1') }}
+          {{ t("individualPlan.approveBullet1") }}
         </li>
         <li>
-          {{ t('individualPlan.approveBullet2') }}
+          {{ t("individualPlan.approveBullet2") }}
         </li>
-        <li>{{ t('individualPlan.approveBullet3') }}</li>
+        <li>{{ t("individualPlan.approveBullet3") }}</li>
       </ul>
       <template #footer>
         <div class="dlg-footer-split">
-          <el-button type="warning" plain @click="confirmReject"
-            >{{ t('agency.btnReject') }}</el-button
-          >
+          <el-button type="warning" plain @click="confirmReject">{{
+            t("agency.btnReject")
+          }}</el-button>
           <div class="dlg-footer-right">
-            <el-button type="primary" @click="confirmApprove"
-              >{{ t('common.confirm') }}</el-button
-            >
-            <el-button @click="approveVisible = false">{{ t('common.cancel') }}</el-button>
+            <el-button type="primary" @click="confirmApprove">{{
+              t("common.confirm")
+            }}</el-button>
+            <el-button @click="approveVisible = false">{{
+              t("common.cancel")
+            }}</el-button>
           </div>
         </div>
       </template>
@@ -320,23 +344,27 @@
     <!-- Dialog 3: DỪNG ÁP DỤNG GÓI CƯỚC -->
     <el-dialog v-model="stopApplyVisible" width="500px" align-center>
       <template #header>
-        <span class="dlg-title">{{ t('agency.dialogStopApply') }}</span>
+        <span class="dlg-title">{{ t("agency.dialogStopApply") }}</span>
       </template>
       <p class="dlg-body">
-        {{ t('individualPlan.stopDescPrefix') }}
+        {{ t("individualPlan.stopDescPrefix") }}
         <b class="dlg-plan-name">{{ activeRow?.name }}</b
-        >. {{ t('individualPlan.stopDescSuffix') }}
+        >. {{ t("individualPlan.stopDescSuffix") }}
       </p>
       <template #footer>
-        <el-button type="primary" @click="confirmStopApply">{{ t('common.confirm') }}</el-button>
-        <el-button @click="stopApplyVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="confirmStopApply">{{
+          t("common.confirm")
+        }}</el-button>
+        <el-button @click="stopApplyVisible = false">{{
+          t("common.cancel")
+        }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { Plus, Refresh, Timer, Check } from "@element-plus/icons-vue";
 import { usePermission } from "@/composables/usePermission";
@@ -351,6 +379,7 @@ import {
   approvePlanConfig,
   rejectPlanConfig,
   stopPlanConfig,
+  type IndividualPlanConfigFilterParams,
 } from "@/api/individual";
 import type { IndividualPlanConfigListItem } from "@/types/individual";
 
@@ -374,7 +403,9 @@ const filterApplyUntil = ref<Date | null>(null);
 const filterUpdatedAt = ref<Date | null>(null);
 
 const lastUpdated = ref<string | null>(null);
-const currentPlan = ref<{ name: string; applyUntil: string | null } | null>(null);
+const currentPlan = ref<{ name: string; applyUntil: string | null } | null>(
+  null,
+);
 const nextPlan = ref<{ name: string; applyFrom: string | null } | null>(null);
 
 // Dialog state
@@ -387,12 +418,7 @@ const stopApplyVisible = ref(false);
 
 const list = ref<PlanConfigRow[]>([]);
 
-const filteredList = computed(() => {
-  return list.value.filter((row) => {
-    if (filterStatus.value && row.status !== filterStatus.value) return false;
-    return true;
-  });
-});
+const filteredList = computed(() => list.value);
 
 const pagedList = computed(() => {
   const start = (page.value - 1) * pageSize.value;
@@ -525,10 +551,21 @@ async function confirmStopApply() {
   }
 }
 
+function toIsoDate(d: Date | null): string | undefined {
+  if (!d) return undefined;
+  return d instanceof Date ? d.toISOString().slice(0, 10) : undefined;
+}
+
 async function load() {
   loading.value = true;
+  const params: IndividualPlanConfigFilterParams = {
+    status: filterStatus.value || undefined,
+    applyFrom: toIsoDate(filterApplyFrom.value),
+    applyUntil: toIsoDate(filterApplyUntil.value),
+    updatedAt: toIsoDate(filterUpdatedAt.value),
+  };
   try {
-    const res = await getIndividualPlanConfigSummary();
+    const res = await getIndividualPlanConfigSummary(params);
     if (res.success && res.data) {
       list.value = res.data.list ?? [];
       currentPlan.value = res.data.currentPlan ?? null;
@@ -541,6 +578,11 @@ async function load() {
     loading.value = false;
   }
 }
+
+watch([filterStatus, filterApplyFrom, filterApplyUntil, filterUpdatedAt], () => {
+  page.value = 1;
+  load();
+});
 
 onMounted(load);
 </script>

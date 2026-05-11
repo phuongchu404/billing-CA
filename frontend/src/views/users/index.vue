@@ -34,7 +34,7 @@
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
           </el-select>
-          {{ t("users.ofTotal", { total }) }}
+          {{ t("users.ofTotal", { total: total }) }}
         </div>
         <div class="pagination-btns">
           <button class="pg-btn" :disabled="page === 1" @click="goPage(1)">
@@ -101,7 +101,7 @@
                 v-model="filterUsername"
                 size="small"
                 clearable
-                @input="onFilter"
+                @input="onUsernameInput"
               />
             </div>
           </template>
@@ -115,7 +115,6 @@
                 v-model="filterStatus"
                 size="small"
                 clearable
-                @change="onFilter"
                 style="width: 100%"
               >
                 <el-option :label="t('users.statusActive')" value="ACTIVE" />
@@ -145,7 +144,6 @@
                 v-model="filterRole"
                 size="small"
                 clearable
-                @change="onFilter"
                 style="width: 100%"
               >
                 <el-option
@@ -253,7 +251,7 @@
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
           </el-select>
-          {{ t("users.ofTotal", { total }) }}
+          {{ t("users.ofTotal", { total: total }) }}
         </div>
         <div class="pagination-btns">
           <button class="pg-btn" :disabled="page === 1" @click="goPage(1)">
@@ -545,7 +543,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import {
   Plus,
   EditPen,
@@ -601,49 +599,16 @@ const loading = ref(false);
 const saving = ref(false);
 const page = ref(1);
 const size = ref(10);
+const total = ref(0);
 
 const filterUsername = ref("");
 const filterStatus = ref("");
 const filterRole = ref("");
-const sortField = ref("");
-const sortDir = ref<"asc" | "desc">("asc");
 
 // ── Computed ──
-const filteredUsers = computed(() => {
-  let list = [...users.value];
-  if (filterUsername.value)
-    list = list.filter(
-      (u) =>
-        u.username.includes(filterUsername.value) ||
-        u.fullName.includes(filterUsername.value),
-    );
-  if (filterStatus.value) {
-    if (filterStatus.value === "ACTIVE")
-      list = list.filter((u) => u.status === "ACTIVE");
-    else list = list.filter((u) => u.status !== "ACTIVE");
-  }
-  if (filterRole.value)
-    list = list.filter((u) => u.roleName === filterRole.value);
-  if (sortField.value) {
-    list.sort((a, b) => {
-      const va = (a as any)[sortField.value] as string;
-      const vb = (b as any)[sortField.value] as string;
-      return sortDir.value === "asc"
-        ? va.localeCompare(vb)
-        : vb.localeCompare(va);
-    });
-  }
-  return list;
-});
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size.value)));
+const pagedUsers = computed(() => users.value);
 
-const total = computed(() => filteredUsers.value.length);
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(total.value / size.value)),
-);
-const pagedUsers = computed(() => {
-  const start = (page.value - 1) * size.value;
-  return filteredUsers.value.slice(start, start + size.value);
-});
 const pageRange = computed(() => {
   const tp = totalPages.value;
   const cur = page.value;
@@ -657,6 +622,16 @@ const pageRange = computed(() => {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 });
 
+// debounce cho text input username
+let usernameDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+function onUsernameInput() {
+  if (usernameDebounceTimer) clearTimeout(usernameDebounceTimer);
+  usernameDebounceTimer = setTimeout(() => {
+    page.value = 1;
+    load();
+  }, 500);
+}
+
 function handleSortChange({
   prop,
   order,
@@ -664,38 +639,60 @@ function handleSortChange({
   prop: string;
   order: "ascending" | "descending" | null;
 }) {
-  sortField.value = order ? prop : "";
-  sortDir.value = order === "descending" ? "desc" : "asc";
-  page.value = 1;
+  // Sort trên trang hiện tại
+  if (!order) return;
+  users.value = [...users.value].sort((a, b) => {
+    const va = String((a as any)[prop] ?? "");
+    const vb = String((b as any)[prop] ?? "");
+    return order === "ascending" ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
 }
 
 function goPage(p: number) {
-  page.value = Math.max(1, Math.min(p, totalPages.value));
+  const next = Math.max(1, Math.min(p, totalPages.value));
+  if (next !== page.value) {
+    page.value = next;
+    load();
+  }
 }
 
 function onSizeChange() {
   page.value = 1;
+  load();
 }
+
 function onFilter() {
   page.value = 1;
+  load();
 }
 
 function resetFilters() {
   filterUsername.value = "";
   filterStatus.value = "";
   filterRole.value = "";
-  sortField.value = "";
   page.value = 1;
+  load();
 }
+
+watch([filterStatus, filterRole], () => {
+  page.value = 1;
+  load();
+});
 
 async function load() {
   loading.value = true;
   try {
     const [usersRes, rolesRes] = await Promise.all([
-      listUsers({ page: 0, size: 500 }),
-      listRoles(),
+      listUsers({
+        page: page.value - 1,
+        size: size.value,
+        status: filterStatus.value || undefined,
+        query: filterUsername.value || undefined,
+        role: filterRole.value || undefined,
+      }),
+      allRoles.value.length ? Promise.resolve(null) : listRoles(),
     ]);
-    if (rolesRes.success && rolesRes.data) {
+    if (rolesRes && rolesRes.success && rolesRes.data) {
       allRoles.value = rolesRes.data;
     }
     if (usersRes.success && usersRes.data) {
@@ -709,6 +706,7 @@ async function load() {
         managerName: u.managerName ?? "",
         createdAt: formatDate(u.createdAt),
       }));
+      total.value = usersRes.data.totalElements;
     }
   } catch {
     ElMessage.error(t("users.loadError"));

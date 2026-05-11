@@ -12,5 +12,6 @@ import java.util.stream.Collectors;
 
 public interface IndividualUsageTrackingService {
 
-    IndividualUsageTrackingResponse getUsageTracking();
+    IndividualUsageTrackingResponse getUsageTracking(String purchasedAt, String ctsType,
+                                                    String ctsDuration, String ctsStatus, String plan);
 }
