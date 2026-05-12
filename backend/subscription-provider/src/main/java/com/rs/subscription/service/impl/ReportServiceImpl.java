@@ -152,6 +152,7 @@ public class ReportServiceImpl implements ReportService {
         List<ExpiringGroupRow> expiringRows = expiring.stream()
                 .map(a -> {
                     ExpiringGroupRow r = new ExpiringGroupRow();
+                    r.setGroupId(a.getGroup().getGroupId());
                     r.setCode(a.getGroup().getGroupCode());
                     r.setName(a.getGroup().getGroupName());
                     r.setPlan(a.getPlanTemplate() != null ? a.getPlanTemplate().getPlanName() : "");
@@ -254,6 +255,7 @@ public class ReportServiceImpl implements ReportService {
                 .stream()
                 .map(a -> {
                     ExpiringGroupRow r = new ExpiringGroupRow();
+                    r.setGroupId(a.getGroup().getGroupId());
                     r.setCode(a.getGroup().getGroupCode());
                     r.setName(a.getGroup().getGroupName());
                     r.setPlan(a.getPlanTemplate() != null ? a.getPlanTemplate().getPlanName() : "");

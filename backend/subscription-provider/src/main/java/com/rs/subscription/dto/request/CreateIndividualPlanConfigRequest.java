@@ -17,6 +17,9 @@ public class CreateIndividualPlanConfigRequest {
 
     private List<PricingRuleRequest> pricingRules;
 
+    /** Per-subject display config: icon, features, displayPrice for each card in frontend-public. */
+    private List<SubjectConfigRequest> subjectConfigs;
+
     @Data
     public static class PricingRuleRequest {
         /** INDIVIDUAL | ORGANIZATION | INDIVIDUAL_OF_ORG */
@@ -28,5 +31,15 @@ public class CreateIndividualPlanConfigRequest {
         private Integer maxValue;
         private Long fee;
         private Integer sortOrder;
+    }
+
+    @Data
+    public static class SubjectConfigRequest {
+        /** INDIVIDUAL | ORGANIZATION | INDIVIDUAL_OF_ORG */
+        private String subjectType;
+        /** MinIO storagePath returned by /api/v1/upload/plan-icon */
+        private String iconUrl;
+        /** Newline-separated list of features shown in public price card */
+        private String featuresText;
     }
 }

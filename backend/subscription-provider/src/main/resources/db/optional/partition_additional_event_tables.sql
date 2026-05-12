@@ -1,7 +1,7 @@
--- ============================================================
--- V9: Partition additional high-volume event tables
+﻿-- ============================================================
+-- Optional: Partition additional high-volume event tables
 --
--- Run after V6__partition_high_volume_tables.sql.
+-- Run after optional/partition_high_volume_tables.sql.
 --
 -- Additional partitioned tables:
 --   1. certificate_provisioning_records  - certificate issuance/bind raw events

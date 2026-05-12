@@ -8,6 +8,7 @@ import type {
   IndividualApproveRequest,
   IndividualUsageTrackingResponse,
 } from '@/types/individual'
+import type { FileUploadResponse } from '@/types'
 
 const BASE = '/api/v1/individual'
 
@@ -55,6 +56,16 @@ export const deactivatePlanConfig = (id: number, actor?: string) =>
     null,
     { params: { actor: actor ?? 'system' } }
   )
+
+// ─── Image Upload ────────────────────────────────────────────────────────────
+
+export const uploadPlanIcon = (file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return request.post<any, ApiResponse<FileUploadResponse>>('/api/v1/upload/plan-icon', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
 
 // ─── Usage Tracking ─────────────────────────────────────────────────────────
 

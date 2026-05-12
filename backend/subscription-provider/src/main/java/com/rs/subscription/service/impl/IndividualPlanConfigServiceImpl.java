@@ -11,9 +11,11 @@ import com.rs.subscription.dto.response.IndividualPlanConfigSummaryResponse;
 import com.rs.subscription.entity.ApprovalRequest;
 import com.rs.subscription.entity.AssignmentAudit;
 import com.rs.subscription.entity.PlanPricingRule;
+import com.rs.subscription.entity.PlanSubjectConfig;
 import com.rs.subscription.entity.PlanTemplate;
 import com.rs.subscription.entity.RetailPlanSchedule;
 import com.rs.subscription.enums.CommercialEnums;
+import com.rs.subscription.event.PlanUpdatedEvent;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
 import com.rs.subscription.repository.AssignmentAuditRepository;
@@ -21,6 +23,7 @@ import com.rs.subscription.repository.PlanTemplateRepository;
 import com.rs.subscription.repository.RetailPlanScheduleRepository;
 import com.rs.subscription.aop.Auditable;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +54,8 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     private final RetailPlanScheduleRepository scheduleRepository;
     private final AssignmentAuditRepository auditRepository;
     private final MultiLevelApprovalService multiLevelApprovalService;
+    private final MinioStorageService minioStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt) {
         List<PlanTemplate> templates = planTemplateRepository.findByCustomerSegment(CUSTOMER_SEGMENT);
@@ -115,6 +120,12 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .collect(Collectors.joining(", "));
         detail.setApplyHistory(applyHistory.isEmpty() ? null : applyHistory);
 
+        // subjectConfigs
+        List<IndividualPlanConfigDetailResponse.SubjectConfigRow> subjectConfigRows = template.getSubjectConfigs().stream()
+                .map(this::toSubjectConfigRow)
+                .collect(Collectors.toList());
+        detail.setSubjectConfigs(subjectConfigRows);
+
         // pricingRules
         List<IndividualPlanConfigDetailResponse.PricingRuleRow> rules = template.getPricingRules().stream()
                 .filter(r -> Boolean.TRUE.equals(r.getIsActive()))
@@ -166,8 +177,28 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             }
         }
 
+        if (req.getSubjectConfigs() != null) {
+            for (CreateIndividualPlanConfigRequest.SubjectConfigRequest sc : req.getSubjectConfigs()) {
+                PlanSubjectConfig config = PlanSubjectConfig.builder()
+                        .planTemplate(template)
+                        .subjectType(sc.getSubjectType())
+                        .iconUrl(sc.getIconUrl())
+                        .featuresText(sc.getFeaturesText())
+                        .build();
+                template.getSubjectConfigs().add(config);
+            }
+        }
+
         PlanTemplate saved = planTemplateRepository.save(template);
 
+        // Confirm images so cleanup job won't delete them
+        if (req.getSubjectConfigs() != null) {
+            req.getSubjectConfigs().stream()
+                    .filter(sc -> sc.getIconUrl() != null && !sc.getIconUrl().isBlank())
+                    .forEach(sc -> minioStorageService.confirmByStoragePath(sc.getIconUrl()));
+        }
+
+        eventPublisher.publishEvent(new PlanUpdatedEvent(this, saved.getPlanTemplateId(), "CREATED"));
         return getDetail(saved.getPlanTemplateId());
     }
 
@@ -236,6 +267,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         recordAudit(schedule, CommercialEnums.AuditAction.APPROVE.name(),
             CommercialEnums.ScheduleStatus.REQUESTED.name(), CommercialEnums.ScheduleStatus.APPROVED.name(), req.getApprovedBy(), null);
+        eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, "APPROVED"));
         return getDetail(id);
     }
 
@@ -264,6 +296,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         schedule.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
         scheduleRepository.save(schedule);
         recordAudit(schedule, CommercialEnums.AuditAction.STOP.name(), oldStatus, CommercialEnums.ScheduleStatus.INACTIVE.name(), actor, null);
+        eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, "STOPPED"));
         return getDetail(id);
     }
 
@@ -443,6 +476,14 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             if (!itemDate.equals(filterDate)) return false;
         }
         return true;
+    }
+
+    private IndividualPlanConfigDetailResponse.SubjectConfigRow toSubjectConfigRow(PlanSubjectConfig config) {
+        IndividualPlanConfigDetailResponse.SubjectConfigRow row = new IndividualPlanConfigDetailResponse.SubjectConfigRow();
+        row.setSubjectType(config.getSubjectType());
+        row.setIconUrl(minioStorageService.toPublicUrl(config.getIconUrl()));
+        row.setFeaturesText(config.getFeaturesText());
+        return row;
     }
 
     private PlanPricingRule toPricingRuleEntity(CreateIndividualPlanConfigRequest.PricingRuleRequest rr, int sortOrder) {

@@ -236,4 +236,13 @@ export interface SubscriptionSummary {
   groupActive: number
 }
 
+export interface FileUploadResponse {
+  bucket: string
+  objectName: string
+  storagePath: string
+  url: string
+  contentType: string
+  size: number
+}
+
 

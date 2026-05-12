@@ -130,8 +130,8 @@
         <el-table-column prop="plan" :label="t('reports.currentPlan')" min-width="150" />
         <el-table-column prop="expiry" :label="t('agency.colApplyTo')" sortable width="130" align="center" />
         <el-table-column :label="t('common.actions')" width="100" align="center">
-          <template #default>
-            <el-button size="small" plain round>
+          <template #default="{ row }">
+            <el-button size="small" plain round @click="goExpiringGroupDetail(row)">
               <el-icon><View /></el-icon> {{ t('common.detail') }}
             </el-button>
           </template>
@@ -180,11 +180,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { UserFilled, DocumentChecked, DataAnalysis, Warning, View } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import IndividualReport from './IndividualReport.vue'
 import { getGroupReport } from '@/api/reports'
-import type { GroupReportResponse } from '@/api/reports'
+import type { ExpiringGroupRow, GroupReportResponse } from '@/api/reports'
 import { usePermission } from '@/composables/usePermission'
 import { useI18n } from 'vue-i18n'
 
@@ -192,6 +193,7 @@ type CustomerType = 'GROUP' | 'INDIVIDUAL'
 
 const { can } = usePermission()
 const { t, locale } = useI18n()
+const router = useRouter()
 const canViewGroup      = computed(() => can('report:group:view'))
 const canViewIndividual = computed(() => can('report:individual:view'))
 
@@ -254,11 +256,20 @@ function openExpiringDialog() {
   expiringDialogVisible.value = true
 }
 
+function goExpiringGroupDetail(row: ExpiringGroupRow) {
+  expiringDialogVisible.value = false
+  router.push(`/plans/${row.groupId}`)
+}
+
 function setType(type: CustomerType) {
   if (type === 'GROUP' && !canViewGroup.value) return
   if (type === 'INDIVIDUAL' && !canViewIndividual.value) return
   selectedType.value = type
   if (type === 'GROUP') {
+    // Dispose stale instances — their DOM containers were removed by v-if when tab was hidden
+    certChart?.dispose(); certChart = null
+    signingChart?.dispose(); signingChart = null
+    growthChart?.dispose(); growthChart = null
     if (report.value) nextTick(renderCharts)
     else loadReport()
   }

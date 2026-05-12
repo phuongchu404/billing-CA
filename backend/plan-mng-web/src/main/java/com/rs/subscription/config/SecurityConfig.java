@@ -58,6 +58,10 @@ public class SecurityConfig {
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/plan-templates").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/plan-templates/**").permitAll()
+                // Public pricing page API (no auth required)
+                .requestMatchers(HttpMethod.GET, "/api/v1/public/plans").permitAll()
+                // SSE stream for frontend-public real-time updates
+                .requestMatchers(HttpMethod.GET, "/api/v1/public/plan-updates/stream").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);

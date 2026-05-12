@@ -114,6 +114,17 @@ mail:
   ssl:
     enabled: ${MAIL_SSL_ENABLED:false}
 
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin123}
+  bucket-public: ${MINIO_BUCKET_PUBLIC:billing-public}
+  public-url: ${MINIO_PUBLIC_URL:http://localhost:9000/billing-public}
+  public-policy: minio-public-policy.json
+  cleanup:
+    grace-period-minutes: ${MINIO_CLEANUP_GRACE_MINUTES:60}
+    cron: ${MINIO_CLEANUP_CRON:0 0 * * * *}
+
 logging:
   level:
     com.rs.subscription: INFO

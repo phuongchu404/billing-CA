@@ -41,6 +41,7 @@ export interface GroupReportResponse {
 }
 
 export interface ExpiringGroupRow {
+  groupId: number
   code: string
   name: string
   plan: string

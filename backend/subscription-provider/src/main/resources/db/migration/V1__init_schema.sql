@@ -1,9 +1,9 @@
 -- ============================================================
 -- V1: Complete initial schema
 --
--- Tất cả bảng, index, và seed data cơ bản ở đây.
--- Không cần chạy V5/V7/V8 — đã gộp vào file này.
--- Tùy chọn: chạy V6 (partition) để tối ưu bảng volume cao.
+-- Tat ca bang, index, va seed data co ban o day.
+-- V2/V5/V7 fixes are folded into this baseline for reset/new database runs.
+-- Tuy chon: chay script partition trong db/optional neu can toi uu bang volume cao.
 --
 -- user_id dung BIGINT AUTO_INCREMENT cho khoa chinh va cac FK lien quan.
 -- ============================================================
@@ -11,7 +11,7 @@
 SET NAMES utf8mb4;
 
 -- ============================================================
--- BẢNG HỆ THỐNG NGƯỜI DÙNG
+-- BANG HE THONG NGUOI DUNG
 -- ============================================================
 
 CREATE TABLE user_accounts (
@@ -25,8 +25,8 @@ CREATE TABLE user_accounts (
     failed_login_attempts  INT          NOT NULL DEFAULT 0,
     locked_until           DATETIME     NULL,
     last_login_at          DATETIME     NULL,
-    created_by             VARCHAR(36)  NULL     COMMENT 'Username hoặc SYSTEM — không phải FK',
-    manager_user_id        BIGINT   NULL     COMMENT 'Manager trực tiếp (null = top-level)',
+    created_by             VARCHAR(36)  NULL     COMMENT 'Username hoac SYSTEM - khong phai FK',
+    manager_user_id        BIGINT   NULL     COMMENT 'Manager truc tiep (null = top-level)',
     created_at             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id),
@@ -118,7 +118,7 @@ CREATE TABLE password_reset_tokens (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- BẢNG CẤU HÌNH VÀ LOG HỆ THỐNG
+-- BANG CAU HINH VA LOG HE THONG
 -- ============================================================
 
 CREATE TABLE system_settings (
@@ -145,7 +145,7 @@ CREATE TABLE admin_audit_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- BẢNG KHÁCH HÀNG & GÓI CƯỚC
+-- BANG KHACH HANG & GOI CUOC
 -- ============================================================
 
 CREATE TABLE `groups` (
@@ -157,7 +157,7 @@ CREATE TABLE `groups` (
     ref_contract_no VARCHAR(200) NULL,
     status          VARCHAR(30)  NOT NULL DEFAULT 'ACTIVE',
     created_by      VARCHAR(100) NOT NULL,
-    owner_user_id   BIGINT   NULL     COMMENT 'Nhân viên kinh doanh phụ trách',
+    owner_user_id   BIGINT   NULL     COMMENT 'Nhan vien kinh doanh phu trach',
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (group_id),
@@ -171,13 +171,13 @@ CREATE TABLE `groups` (
 
 CREATE TABLE partner_group_access (
     id              BIGINT      NOT NULL AUTO_INCREMENT,
-    partner_user_id BIGINT  NOT NULL COMMENT 'User có role ROLE_PARTNER',
-    group_id        BIGINT      NOT NULL COMMENT 'Group được phép xem báo cáo',
-    granted_by      VARCHAR(36) NOT NULL COMMENT 'Username của admin cấp quyền',
+    partner_user_id BIGINT  NOT NULL COMMENT 'User co role ROLE_PARTNER',
+    group_id        BIGINT      NOT NULL COMMENT 'Group duoc phep xem bao cao',
+    granted_by      VARCHAR(36) NOT NULL COMMENT 'Username cua admin cap quyen',
     granted_at      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    revoked_at      DATETIME    NULL     COMMENT 'NULL = còn hiệu lực',
+    revoked_at      DATETIME    NULL     COMMENT 'NULL = con hieu luc',
+    revoked_by      VARCHAR(36) NULL     COMMENT 'Username cua admin thu hoi quyen',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_partner_group (partner_user_id, group_id),
     KEY        idx_pga_partner  (partner_user_id),
     KEY        idx_pga_group    (group_id),
     CONSTRAINT fk_pga_partner FOREIGN KEY (partner_user_id) REFERENCES user_accounts(user_id),
@@ -310,14 +310,14 @@ CREATE TABLE group_members (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- BẢNG PHÊ DUYỆT ĐA CẤP
+-- BANG PHE DUYET DA CAP
 -- ============================================================
 
 CREATE TABLE approval_level_configs (
     id               BIGINT        NOT NULL AUTO_INCREMENT,
     customer_segment VARCHAR(20)   NOT NULL COMMENT 'INDIVIDUAL | GROUP',
-    min_value        DECIMAL(20,2) NULL     COMMENT 'null = không giới hạn dưới',
-    max_value        DECIMAL(20,2) NULL     COMMENT 'null = không giới hạn trên',
+    min_value        DECIMAL(20,2) NULL     COMMENT 'null = khong gioi han duoi',
+    max_value        DECIMAL(20,2) NULL     COMMENT 'null = khong gioi han tren',
     required_levels  INT           NOT NULL,
     description      VARCHAR(200)  NULL,
     is_active        TINYINT(1)    NOT NULL DEFAULT 1,
@@ -338,10 +338,10 @@ CREATE TABLE approval_requests (
     entity_id        VARCHAR(150)  NOT NULL,
     request_payload  TEXT          NOT NULL,
     description      VARCHAR(500)  NOT NULL,
-    contract_value   DECIMAL(20,2) NULL     COMMENT 'Giá trị để tính số cấp duyệt',
+    contract_value   DECIMAL(20,2) NULL     COMMENT 'Gia tri de tinh so cap duyet',
     total_levels     INT           NOT NULL DEFAULT 1,
     current_level    INT           NOT NULL DEFAULT 0,
-    -- Legacy single-level fields (giữ tương thích)
+    -- Legacy single-level fields (giu tuong thich)
     reviewed_by      VARCHAR(100)  NULL,
     review_note      TEXT          NULL,
     reviewed_at      DATETIME      NULL,
@@ -372,7 +372,7 @@ CREATE TABLE approval_request_steps (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- BẢNG SUBSCRIPTION & CERTIFICATE
+-- BANG SUBSCRIPTION & CERTIFICATE
 -- ============================================================
 
 CREATE TABLE subscriptions (
@@ -457,10 +457,10 @@ CREATE TABLE certificate_usage_records (
     KEY idx_usage_subscription_used (subscription_id, used_at),
     KEY idx_usage_assignment_used   (group_plan_assignment_id, used_at),
     KEY idx_usage_type_used_at      (usage_type, used_at)
-    -- FK bị drop ở V6 nếu áp dụng partition
+    -- FK bi drop o V6 neu ap dung partition
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Rollup theo ngày để tránh scan toàn bảng khi thống kê
+-- Rollup theo ngay de tranh scan toan bang khi thong ke
 CREATE TABLE certificate_usage_daily (
     id             BIGINT       NOT NULL AUTO_INCREMENT,
     certificate_id VARCHAR(200) NOT NULL,
@@ -475,8 +475,42 @@ CREATE TABLE certificate_usage_daily (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- BẢNG AUDIT & THỐNG KÊ
+-- BANG AUDIT & THONG KE
 -- ============================================================
+
+CREATE TABLE document_upload_records (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    user_id         BIGINT       NOT NULL,
+    subscription_id BIGINT       NULL,
+    certificate_id  VARCHAR(200) NULL,
+    document_id     VARCHAR(200) NOT NULL,
+    upload_status   VARCHAR(30)  NOT NULL DEFAULT 'SUCCESS',
+    uploaded_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_dur_subscription_uploaded (subscription_id, uploaded_at),
+    KEY idx_dur_user_uploaded         (user_id, uploaded_at),
+    KEY idx_dur_certificate_uploaded  (certificate_id, uploaded_at),
+    KEY idx_dur_status_uploaded       (upload_status, uploaded_at),
+    CONSTRAINT fk_dur_subscription FOREIGN KEY (subscription_id) REFERENCES subscriptions(subscription_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE certificate_auth_failure_records (
+    id              BIGINT       NOT NULL AUTO_INCREMENT,
+    user_id         BIGINT       NOT NULL,
+    subscription_id BIGINT       NULL,
+    certificate_id  VARCHAR(200) NULL,
+    failure_type    VARCHAR(30)  NOT NULL,
+    reason_code     VARCHAR(100) NULL,
+    failed_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_cafr_subscription_failed (subscription_id, failed_at),
+    KEY idx_cafr_user_failed         (user_id, failed_at),
+    KEY idx_cafr_certificate_failed  (certificate_id, failed_at),
+    KEY idx_cafr_type_failed         (failure_type, failed_at),
+    CONSTRAINT fk_cafr_subscription FOREIGN KEY (subscription_id) REFERENCES subscriptions(subscription_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE subscription_audit_logs (
     id              BIGINT       NOT NULL AUTO_INCREMENT,
@@ -489,7 +523,7 @@ CREATE TABLE subscription_audit_logs (
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_sub_audit_subscription (subscription_id, created_at)
-    -- FK bị drop ở V6 nếu áp dụng partition
+    -- FK bi drop o V6 neu ap dung partition
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE assignment_audits (
@@ -585,105 +619,80 @@ CREATE TABLE payment_records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- SEED DATA CƠ BẢN
+-- SEED DATA CO BAN
 -- ============================================================
 
--- ── Roles ────────────────────────────────────────────────────
+-- Roles ----------------------------------------------------
 INSERT INTO roles (role_id, role_name, display_name, description, is_system_role) VALUES
-    (1, 'ROLE_ADMIN',   'Administrator',  'System administrator',                                    1),
-    (2, 'ROLE_USER',    'User',           'Default user role',                                       1),
-    (3, 'ROLE_LEVEL_1', 'Vai trò cấp 1', 'Quản trị cấp 1',                                          0),
-    (4, 'ROLE_LEVEL_2', 'Vai trò cấp 2', 'Quản trị cấp 2',                                          0),
-    (5, 'ROLE_LEVEL_3', 'Vai trò cấp 3', 'Vận hành cấp 3',                                          0),
-    (6, 'ROLE_LEVEL_4', 'Vai trò cấp 4', 'Xem báo cáo cấp 4',                                       0),
-    (7, 'ROLE_PARTNER', 'Đối tác',        'Tài khoản đối tác — chỉ xem báo cáo group được cấp quyền', 0),
-    (8, 'ROLE_MANAGER', 'Quản lý',        'Quản lý nội bộ — xem khách hàng và báo cáo cấp dưới',    0);
+    (1, 'ROLE_ADMIN',   'Administrator',  'System administrator', 1),
+    (2, 'ROLE_USER',    'User',           'Default user role',    0),
+    (3, 'ROLE_PARTNER', 'Doi tac',        'Tai khoan doi tac chi xem bao cao group duoc cap quyen', 0),
+    (4, 'ROLE_MANAGER', 'Quan ly',        'Quan ly noi bo xem khach hang va bao cao cap duoi', 0);
 
--- ── Permissions ──────────────────────────────────────────────
--- ID | permission_key               | Module                | Group
--- ── TRANG CHỦ ────────────────────────────────────────────────
--- 1    dashboard:view
--- ── KHÁCH HÀNG PHỔ THÔNG ─────────────────────────────────────
--- 2-5  plan:view/create/update/delete
--- 6    individual:usage:view
--- ── KHÁCH HÀNG ĐẠI LÝ ────────────────────────────────────────
--- 7-9  group:view/create/update
--- 10-12 subscription:view/create/update
--- ── QUẢN LÝ PHÂN QUYỀN ───────────────────────────────────────
--- 13-15 user:view/create/update
--- 16-18 role:view/create/update
--- ── BÁO CÁO ──────────────────────────────────────────────────
--- 19  report:view (vào trang báo cáo)
--- 20  report:group:view (tab đại lý)
--- 21  report:individual:view (tab phổ thông)
--- ── LOGS ─────────────────────────────────────────────────────
--- 22  audit-log:view
--- ── PHÂN QUYỀN DỮ LIỆU ───────────────────────────────────────
--- 23-25 group:view:own / subordinates / assign:owner
--- 26-28 report:view:own / subordinates / partner
--- 29-30 partner:access:grant / revoke
+-- Permissions ----------------------------------------------
 INSERT INTO permissions (permission_id, permission_key, display_name, module_group, group_name, sort_order) VALUES
-    (1,  'dashboard:view',              'Xem tổng quan',                        'TRANG_CHU',            'DASHBOARD',        10),
-    (2,  'plan:view',                   'Xem gói cước',                         'KHACH_HANG_PHO_THONG', 'PLAN',             20),
-    (3,  'plan:create',                 'Tạo gói cước',                         'KHACH_HANG_PHO_THONG', 'PLAN',             21),
-    (4,  'plan:update',                 'Cập nhật gói cước',                    'KHACH_HANG_PHO_THONG', 'PLAN',             22),
-    (5,  'plan:delete',                 'Xoá gói cước',                         'KHACH_HANG_PHO_THONG', 'PLAN',             23),
-    (6,  'individual:usage:view',       'Xem theo dõi sử dụng cá nhân',         'KHACH_HANG_PHO_THONG', 'INDIVIDUAL_USAGE', 24),
-    (7,  'group:view',                  'Xem danh sách khách hàng đại lý',      'KHACH_HANG_DAI_LY',    'AGENCY',           30),
-    (8,  'group:create',                'Tạo khách hàng đại lý',                'KHACH_HANG_DAI_LY',    'AGENCY',           31),
-    (9,  'group:update',                'Cập nhật khách hàng đại lý',           'KHACH_HANG_DAI_LY',    'AGENCY',           32),
-    (10, 'subscription:view',           'Xem đăng ký dịch vụ',                  'KHACH_HANG_DAI_LY',    'AGENCY',           33),
-    (11, 'subscription:create',         'Tạo đăng ký dịch vụ',                  'KHACH_HANG_DAI_LY',    'AGENCY',           34),
-    (12, 'subscription:update',         'Cập nhật đăng ký dịch vụ',             'KHACH_HANG_DAI_LY',    'AGENCY',           35),
-    (13, 'user:view',                   'Xem danh sách người dùng',             'QUAN_LY_PHAN_QUYEN',   'USER',             50),
-    (14, 'user:create',                 'Tạo người dùng',                       'QUAN_LY_PHAN_QUYEN',   'USER',             51),
-    (15, 'user:update',                 'Chỉnh sửa người dùng',                 'QUAN_LY_PHAN_QUYEN',   'USER',             52),
-    (16, 'role:view',                   'Xem danh sách vai trò',                'QUAN_LY_PHAN_QUYEN',   'ROLE',             60),
-    (17, 'role:create',                 'Tạo vai trò',                          'QUAN_LY_PHAN_QUYEN',   'ROLE',             61),
-    (18, 'role:update',                 'Chỉnh sửa vai trò',                    'QUAN_LY_PHAN_QUYEN',   'ROLE',             62),
-    (19, 'report:view',                 'Truy cập trang báo cáo',               'BAO_CAO',              'REPORT',           70),
-    (20, 'report:group:view',           'Xem báo cáo đại lý',                   'BAO_CAO',              'REPORT',           71),
-    (21, 'report:individual:view',      'Xem báo cáo phổ thông',                'BAO_CAO',              'REPORT',           72),
-    (22, 'audit-log:view',              'Xem nhật ký hệ thống',                 'QUAN_LY_LOGS',         'AUDIT_LOG',        80),
-    (23, 'group:view:own',              'Xem khách hàng của mình',              'KHACH_HANG_DAI_LY',    'DATA_SCOPE',       83),
-    (24, 'group:view:subordinates',     'Xem khách hàng của cấp dưới',          'KHACH_HANG_DAI_LY',    'DATA_SCOPE',       84),
-    (25, 'group:assign:owner',          'Gán nhân viên phụ trách',              'KHACH_HANG_DAI_LY',    'DATA_SCOPE',       85),
-    (26, 'report:view:own',             'Xem báo cáo của khách hàng mình',      'BAO_CAO',              'DATA_SCOPE',       86),
-    (27, 'report:view:subordinates',    'Xem báo cáo của khách hàng cấp dưới',  'BAO_CAO',              'DATA_SCOPE',       87),
-    (28, 'report:view:partner',         'Xem báo cáo đối tác (self-service)',   'BAO_CAO',              'DATA_SCOPE',       88),
-    (29, 'partner:access:grant',        'Cấp quyền đối tác xem group',          'HE_THONG',             'PARTNER',          90),
-    (30, 'partner:access:revoke',       'Thu hồi quyền đối tác',                'HE_THONG',             'PARTNER',          91);
+    (1,  'dashboard:view',              'Xem tong quan',                          'TRANG_CHU',            'DASHBOARD',        10),
 
--- ── Role-permission mappings ─────────────────────────────────
+    (2,  'plan:view',                   'Xem goi cuoc',                           'KHACH_HANG_PHO_THONG', 'PLAN',             20),
+    (3,  'plan:create',                 'Tao goi cuoc',                           'KHACH_HANG_PHO_THONG', 'PLAN',             21),
+    (4,  'plan:update',                 'Cap nhat goi cuoc',                      'KHACH_HANG_PHO_THONG', 'PLAN',             22),
+    (5,  'plan:delete',                 'Xoa goi cuoc',                           'KHACH_HANG_PHO_THONG', 'PLAN',             23),
+    (6,  'individual:usage:view',       'Xem theo doi su dung ca nhan',            'KHACH_HANG_PHO_THONG', 'INDIVIDUAL_USAGE', 24),
+
+    (7,  'group:view',                  'Xem danh sach khach hang dai ly',         'KHACH_HANG_DAI_LY',    'AGENCY',           30),
+    (8,  'group:create',                'Tao khach hang dai ly',                   'KHACH_HANG_DAI_LY',    'AGENCY',           31),
+    (9,  'group:update',                'Cap nhat khach hang dai ly',              'KHACH_HANG_DAI_LY',    'AGENCY',           32),
+    (10, 'subscription:view',           'Xem dang ky dich vu',                     'KHACH_HANG_DAI_LY',    'AGENCY',           33),
+    (11, 'subscription:create',         'Tao dang ky dich vu',                     'KHACH_HANG_DAI_LY',    'AGENCY',           34),
+    (12, 'subscription:update',         'Cap nhat dang ky dich vu',                'KHACH_HANG_DAI_LY',    'AGENCY',           35),
+    (13, 'group:view:own',              'Xem khach hang cua minh',                 'KHACH_HANG_DAI_LY',    'DATA_SCOPE',       36),
+    (14, 'group:view:subordinates',     'Xem khach hang cua cap duoi',             'KHACH_HANG_DAI_LY',    'DATA_SCOPE',       37),
+    (15, 'group:assign:owner',          'Gan nhan vien phu trach',                 'KHACH_HANG_DAI_LY',    'DATA_SCOPE',       38),
+
+    (16, 'user:view',                   'Xem danh sach nguoi dung',                'QUAN_LY_PHAN_QUYEN',   'USER',             50),
+    (17, 'user:create',                 'Tao nguoi dung',                          'QUAN_LY_PHAN_QUYEN',   'USER',             51),
+    (18, 'user:update',                 'Chinh sua nguoi dung',                    'QUAN_LY_PHAN_QUYEN',   'USER',             52),
+    (19, 'user:delete',                 'Xoa nguoi dung',                          'QUAN_LY_PHAN_QUYEN',   'USER',             53),
+    (20, 'role:view',                   'Xem danh sach vai tro',                   'QUAN_LY_PHAN_QUYEN',   'ROLE',             60),
+    (21, 'role:create',                 'Tao vai tro',                             'QUAN_LY_PHAN_QUYEN',   'ROLE',             61),
+    (22, 'role:update',                 'Chinh sua vai tro',                       'QUAN_LY_PHAN_QUYEN',   'ROLE',             62),
+    (23, 'partner:access:grant',        'Cap quyen doi tac xem group',             'QUAN_LY_PHAN_QUYEN',   'PARTNER',          65),
+    (24, 'partner:access:revoke',       'Thu hoi quyen doi tac',                   'QUAN_LY_PHAN_QUYEN',   'PARTNER',          66),
+
+    (25, 'report:view',                 'Truy cap trang bao cao',                  'BAO_CAO',              'REPORT',           70),
+    (26, 'report:group:view',           'Xem bao cao dai ly',                      'BAO_CAO',              'REPORT',           71),
+    (27, 'report:individual:view',      'Xem bao cao pho thong',                   'BAO_CAO',              'REPORT',           72),
+    (28, 'report:view:own',             'Xem bao cao cua khach hang minh',         'BAO_CAO',              'DATA_SCOPE',       86),
+    (29, 'report:view:subordinates',    'Xem bao cao cua khach hang cap duoi',     'BAO_CAO',              'DATA_SCOPE',       87),
+    (30, 'report:view:partner',         'Xem bao cao doi tac',                     'BAO_CAO',              'DATA_SCOPE',       88),
+    (31, 'report:event:create',         'Ghi su kien bao cao',                     'BAO_CAO',              'REPORT_EVENT',     89),
+
+    (32, 'audit-log:view',              'Xem nhat ky he thong',                    'QUAN_LY_LOGS',         'AUDIT_LOG',        80),
+
+    (33, 'approval:view',               'Xem yeu cau phe duyet',                   'PHE_DUYET',            'APPROVAL',         92),
+    (34, 'approval:level1',             'Truong phong kinh doanh',                 'PHE_DUYET',            'APPROVAL',         93),
+    (35, 'approval:level2',             'CFO (Finance Manager)',                   'PHE_DUYET',            'APPROVAL',         94),
+    (36, 'approval:level3',             'CEO',                                     'PHE_DUYET',            'APPROVAL',         95);
+
+-- Role-permission mappings ---------------------------------
 INSERT INTO role_permissions (role_id, permission_id) VALUES
-    -- ROLE_ADMIN (1): toàn quyền
+    -- ROLE_ADMIN (1): toan quyen
     (1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),(1,8),(1,9),(1,10),
     (1,11),(1,12),(1,13),(1,14),(1,15),(1,16),(1,17),(1,18),(1,19),(1,20),
     (1,21),(1,22),(1,23),(1,24),(1,25),(1,26),(1,27),(1,28),(1,29),(1,30),
+    (1,31),(1,32),(1,33),(1,34),(1,35),(1,36),
 
-    -- ROLE_USER (2): chỉ dashboard
+    -- ROLE_USER (2): chi dashboard
     (2,1),
 
-    -- ROLE_LEVEL_1 (3): quản trị — cả 2 tab báo cáo
-    (3,1),(3,2),(3,3),(3,6),(3,7),(3,13),(3,16),(3,19),(3,20),(3,21),(3,22),(3,23),(3,26),
+    -- ROLE_PARTNER (3): xem bao cao doi tac
+    (3,1),(3,25),(3,26),(3,30),
 
-    -- ROLE_LEVEL_2 (4): phổ thông — chỉ tab phổ thông
-    (4,1),(4,2),(4,3),(4,6),(4,19),(4,21),
+    -- ROLE_MANAGER (4): quan ly noi bo
+    (4,1),(4,7),(4,10),(4,13),(4,14),(4,16),(4,20),(4,25),(4,26),(4,27),(4,28),(4,29);
 
-    -- ROLE_LEVEL_3 (5): vận hành — không có báo cáo
-    (5,1),(5,2),(5,3),(5,4),(5,5),(5,6),(5,7),(5,8),(5,9),(5,13),(5,16),
-
-    -- ROLE_LEVEL_4 (6): chỉ xem & tạo gói
-    (6,2),(6,3),
-
-    -- ROLE_PARTNER (7): xem báo cáo đối tác
-    (7,1),(7,19),(7,20),(7,28),
-
-    -- ROLE_MANAGER (8): quản lý nội bộ
-    (8,1),(8,7),(8,10),(8,13),(8,16),(8,19),(8,20),(8,21),(8,23),(8,24),(8,26),(8,27);
-
--- ── Admin user ───────────────────────────────────────────────
--- Mật khẩu: Admin@123 (BCrypt cost=12)
+-- Admin user -----------------------------------------------
+-- Mat khau: Admin@123 (BCrypt cost=12)
 INSERT INTO user_accounts (user_id, username, email, full_name, password_hash, auth_provider, status, failed_login_attempts, created_by)
 VALUES (
     1,
@@ -694,5 +703,4 @@ VALUES (
 
 INSERT INTO user_roles (user_id, role_id)
 VALUES (1, 1);
-
 

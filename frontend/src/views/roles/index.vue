@@ -100,7 +100,7 @@
 
                   <tr v-for="perm in group.permissions" :key="perm.permissionId" class="perm-row">
                     <td class="perm-name-cell">
-                      <span>{{ perm.displayName }}</span>
+                      <span>{{ translatePermission(perm) }}</span>
                       <small>{{ perm.permissionKey }}</small>
                     </td>
                     <td
@@ -184,7 +184,7 @@
                     <td colspan="2">{{ translatePermissionGroup(group.groupName) }}</td>
                   </tr>
                   <tr v-for="perm in group.permissions" :key="perm.permissionId" class="pst-perm-row">
-                    <td class="pst-perm-name">{{ perm.displayName }}</td>
+                    <td class="pst-perm-name">{{ translatePermission(perm) }}</td>
                     <td class="pst-check-cell">
                       <el-checkbox
                         :model-value="createSelectedPerms.has(perm.permissionId)"
@@ -298,7 +298,7 @@ const isUndeletableRole = computed(() => {
 })
 
 function normalizePermissionKey(value: string) {
-  return value.toUpperCase()
+  return value.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '')
 }
 
 function translatePermissionModule(moduleName: string) {
@@ -309,6 +309,11 @@ function translatePermissionModule(moduleName: string) {
 function translatePermissionGroup(groupName: string) {
   const key = `permissions.group.${normalizePermissionKey(groupName)}`
   return te(key) ? t(key) : groupName
+}
+
+function translatePermission(permission: { permissionKey: string; displayName: string }) {
+  const key = `permissions.permission.${normalizePermissionKey(permission.permissionKey)}`
+  return te(key) ? t(key) : permission.displayName
 }
 
 async function handleDeleteRole() {

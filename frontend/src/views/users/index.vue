@@ -16,7 +16,7 @@
           :icon="Plus"
           :disabled="!can('user:create')"
           @click="openCreate"
-          >+ {{ t("users.newUser") }}</el-button
+          >{{ t("users.newUser") }}</el-button
         >
       </div>
 
@@ -414,6 +414,20 @@
         <el-form-item :label="t('users.email')" prop="email">
           <el-input v-model="editForm.email" />
         </el-form-item>
+        <el-form-item :label="t('users.roles')" prop="roleId">
+          <el-select
+            v-model="editForm.roleId"
+            :placeholder="t('users.roleSelectPlaceholder')"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="r in allRoles"
+              :key="r.roleId"
+              :label="r.displayName"
+              :value="r.roleId"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dlg-footer-split">
@@ -564,6 +578,7 @@ import {
   resetUserPassword,
   deleteUser,
   assignManager,
+  assignRoles,
 } from "@/api/users";
 import { listRoles } from "@/api/roles";
 import type { FormInstance } from "element-plus";
@@ -579,6 +594,7 @@ interface UserRow {
   email: string;
   status: "ACTIVE" | "REVOKED";
   roleName: string;
+  roleId: number | null;
   managerName: string;
   createdAt: string;
 }
@@ -606,7 +622,9 @@ const filterStatus = ref("");
 const filterRole = ref("");
 
 // ── Computed ──
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size.value)));
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(total.value / size.value)),
+);
 const pagedUsers = computed(() => users.value);
 
 const pageRange = computed(() => {
@@ -703,6 +721,7 @@ async function load() {
         email: u.email,
         status: u.status === "ACTIVE" ? "ACTIVE" : "REVOKED",
         roleName: u.roles?.[0]?.displayName ?? "-",
+        roleId: u.roles?.[0]?.roleId ?? null,
         managerName: u.managerName ?? "",
         createdAt: formatDate(u.createdAt),
       }));
@@ -783,11 +802,15 @@ async function handleCreate() {
 const editVisible = ref(false);
 const editFormRef = ref<FormInstance>();
 const editingUser = ref<UserRow | null>(null);
-const editForm = reactive({ fullName: "", email: "", roleName: "" });
+const editForm = reactive({
+  fullName: "",
+  email: "",
+  roleId: null as number | null,
+});
 const editRules = computed(() => ({
   fullName: [{ required: true, message: t("common.required") }],
   email: [{ required: true, message: t("common.required") }],
-  roleName: [{ required: true, message: t("common.required") }],
+  roleId: [{ required: true, message: t("common.required") }],
 }));
 
 function openEdit(user: UserRow) {
@@ -795,7 +818,7 @@ function openEdit(user: UserRow) {
   Object.assign(editForm, {
     fullName: user.fullName,
     email: user.email,
-    roleName: user.roleName,
+    roleId: user.roleId,
   });
   editVisible.value = true;
 }
@@ -809,6 +832,10 @@ async function handleEdit() {
       fullName: editForm.fullName,
       email: editForm.email,
     });
+    await assignRoles(
+      editingUser.value.id,
+      editForm.roleId ? [editForm.roleId] : [],
+    );
     ElMessage.success(t("users.updatedMsg"));
     editVisible.value = false;
     await load();

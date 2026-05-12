@@ -1,38 +1,38 @@
--- ============================================================
--- V6: Partition các bảng có volume cao
+﻿-- ============================================================
+-- Optional: Partition high-volume tables
 --
--- Bảng được partition:
---   1. certificate_usage_records  — 1 row mỗi lần ký, volume cao nhất
---   2. admin_audit_logs           — 1 row mỗi hành động admin
---   3. subscription_audit_logs    — 1 row mỗi thay đổi subscription
+-- Báº£ng Ä‘Æ°á»£c partition:
+--   1. certificate_usage_records  â€” 1 row má»—i láº§n kÃ½, volume cao nháº¥t
+--   2. admin_audit_logs           â€” 1 row má»—i hÃ nh Ä‘á»™ng admin
+--   3. subscription_audit_logs    â€” 1 row má»—i thay Ä‘á»•i subscription
 --
--- Tại sao PHẢI drop FK trước:
---   MySQL InnoDB không cho phép PARTITION BY trên bảng có foreign key
---   (cả FK đi ra lẫn FK được tham chiếu). Drop FK ở đây là an toàn vì:
---   - Toàn vẹn dữ liệu vẫn đảm bảo bởi application layer (service + repo)
---   - JOIN vẫn hoạt động bình thường qua JPA relationship / native query
+-- Táº¡i sao PHáº¢I drop FK trÆ°á»›c:
+--   MySQL InnoDB khÃ´ng cho phÃ©p PARTITION BY trÃªn báº£ng cÃ³ foreign key
+--   (cáº£ FK Ä‘i ra láº«n FK Ä‘Æ°á»£c tham chiáº¿u). Drop FK á»Ÿ Ä‘Ã¢y lÃ  an toÃ n vÃ¬:
+--   - ToÃ n váº¹n dá»¯ liá»‡u váº«n Ä‘áº£m báº£o bá»Ÿi application layer (service + repo)
+--   - JOIN váº«n hoáº¡t Ä‘á»™ng bÃ¬nh thÆ°á»ng qua JPA relationship / native query
 --
--- MySQL yêu cầu cột partition phải nằm trong PRIMARY KEY.
--- Hiện tại PK = (id), cần đổi thành (id, <date_col>) composite PK.
--- AUTO_INCREMENT vẫn hoạt động với composite PK khi id là cột đầu.
+-- MySQL yÃªu cáº§u cá»™t partition pháº£i náº±m trong PRIMARY KEY.
+-- Hiá»‡n táº¡i PK = (id), cáº§n Ä‘á»•i thÃ nh (id, <date_col>) composite PK.
+-- AUTO_INCREMENT váº«n hoáº¡t Ä‘á»™ng vá»›i composite PK khi id lÃ  cá»™t Ä‘áº§u.
 --
--- Chiến lược partition:
---   RANGE by YEAR — mỗi partition = 1 năm
---   Partition p_future chứa tất cả dữ liệu chưa được chia rõ
---   Scheduler tự động reorganize p_future vào đầu mỗi năm
+-- Chiáº¿n lÆ°á»£c partition:
+--   RANGE by YEAR â€” má»—i partition = 1 nÄƒm
+--   Partition p_future chá»©a táº¥t cáº£ dá»¯ liá»‡u chÆ°a Ä‘Æ°á»£c chia rÃµ
+--   Scheduler tá»± Ä‘á»™ng reorganize p_future vÃ o Ä‘áº§u má»—i nÄƒm
 --
--- Lợi ích khi có partition:
---   - Query với filter theo thời gian: MySQL chỉ scan đúng partition (partition pruning)
---   - Xoá dữ liệu cũ: DROP PARTITION tức thì O(1) thay vì DELETE O(n)
---   - Backup từng năm riêng biệt dễ dàng hơn
+-- Lá»£i Ã­ch khi cÃ³ partition:
+--   - Query vá»›i filter theo thá»i gian: MySQL chá»‰ scan Ä‘Ãºng partition (partition pruning)
+--   - XoÃ¡ dá»¯ liá»‡u cÅ©: DROP PARTITION tá»©c thÃ¬ O(1) thay vÃ¬ DELETE O(n)
+--   - Backup tá»«ng nÄƒm riÃªng biá»‡t dá»… dÃ ng hÆ¡n
 -- ============================================================
 
 -- ============================================================
 -- 1. certificate_usage_records
---    Volume: mỗi lần ký = 1 row → hàng triệu rows/năm
+--    Volume: má»—i láº§n kÃ½ = 1 row â†’ hÃ ng triá»‡u rows/nÄƒm
 -- ============================================================
 
--- Bước 1a: Drop FKs (FK là lý do duy nhất blocking partition)
+-- BÆ°á»›c 1a: Drop FKs (FK lÃ  lÃ½ do duy nháº¥t blocking partition)
 SET @drop_fk := (
     SELECT IF(COUNT(*) > 0,
         'ALTER TABLE certificate_usage_records DROP FOREIGN KEY fk_certificate_usage_subscription',
@@ -61,13 +61,13 @@ PREPARE stmt FROM @drop_fk;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Bước 1b: Đổi PK từ (id) → (id, used_at)
---           MySQL bắt buộc cột partition phải có trong mọi unique index + PK
+-- BÆ°á»›c 1b: Äá»•i PK tá»« (id) â†’ (id, used_at)
+--           MySQL báº¯t buá»™c cá»™t partition pháº£i cÃ³ trong má»i unique index + PK
 ALTER TABLE certificate_usage_records
     DROP PRIMARY KEY,
     ADD PRIMARY KEY (id, used_at);
 
--- Bước 1c: Partition by RANGE(YEAR(used_at))
+-- BÆ°á»›c 1c: Partition by RANGE(YEAR(used_at))
 ALTER TABLE certificate_usage_records
     PARTITION BY RANGE (YEAR(used_at)) (
         PARTITION p2024 VALUES LESS THAN (2025),
@@ -78,7 +78,7 @@ ALTER TABLE certificate_usage_records
 
 -- ============================================================
 -- 2. admin_audit_logs
---    Volume: mỗi action admin = 1 row
+--    Volume: má»—i action admin = 1 row
 -- ============================================================
 
 ALTER TABLE admin_audit_logs
@@ -95,10 +95,10 @@ ALTER TABLE admin_audit_logs
 
 -- ============================================================
 -- 3. subscription_audit_logs
---    Volume: mỗi thay đổi trạng thái subscription = 1 row
+--    Volume: má»—i thay Ä‘á»•i tráº¡ng thÃ¡i subscription = 1 row
 -- ============================================================
 
--- Drop FK trước
+-- Drop FK trÆ°á»›c
 SET @drop_fk := (
     SELECT IF(COUNT(*) > 0,
         'ALTER TABLE subscription_audit_logs DROP FOREIGN KEY fk_subscription_audit_logs_subscription',

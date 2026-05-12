@@ -67,6 +67,10 @@ public class PlanTemplate {
     @Builder.Default
     private List<PlanPricingRule> pricingRules = new ArrayList<>();
 
+    @OneToMany(mappedBy = "planTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PlanSubjectConfig> subjectConfigs = new ArrayList<>();
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

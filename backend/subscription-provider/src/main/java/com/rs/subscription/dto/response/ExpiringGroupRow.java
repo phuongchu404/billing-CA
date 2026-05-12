@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class ExpiringGroupRow {
+    private Long groupId;
     private String code;
     private String name;
     private String plan;

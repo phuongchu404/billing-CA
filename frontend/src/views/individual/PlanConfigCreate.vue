@@ -61,6 +61,70 @@
         </div>
       </div>
 
+      <!-- Hiển thị card và mô tả của từng loại đối tượng (ô đỏ trong thiết kế) -->
+      <div class="subject-display-config">
+        <div class="subject-display-title">Hiển thị trên trang công khai</div>
+        <div class="subject-display-body">
+
+          <!-- Cột trái: ảnh icon -->
+          <div class="icon-col">
+            <div class="field-label">Ảnh đại diện</div>
+            <el-upload
+              :show-file-list="false"
+              :before-upload="(file: File) => handleIconUpload(file, activeTab)"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              class="icon-uploader"
+            >
+              <div class="icon-box">
+                <img
+                  v-if="currentSubjectConfig.iconPreviewUrl"
+                  :src="currentSubjectConfig.iconPreviewUrl"
+                  class="icon-img"
+                  alt="Icon"
+                />
+                <div v-else class="icon-empty">
+                  <el-icon :size="28" color="#c0c4cc"><Picture /></el-icon>
+                  <span>Chọn ảnh</span>
+                </div>
+                <div v-if="currentSubjectConfig.uploading" class="icon-loading">
+                  <el-icon class="is-loading"><Loading /></el-icon>
+                </div>
+              </div>
+            </el-upload>
+            <div v-if="currentSubjectConfig.iconPreviewUrl">
+              <el-upload
+                :show-file-list="false"
+                :before-upload="(file: File) => handleIconUpload(file, activeTab)"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+              >
+                <el-button link type="primary" size="small" style="padding: 0; margin-top: 4px">Thay ảnh</el-button>
+              </el-upload>
+            </div>
+            <div class="field-hint" style="margin-top: 4px">JPEG · PNG · WEBP · GIF</div>
+          </div>
+
+          <!-- Cột phải: tính năng + ghi chú giá tự tính -->
+          <div class="meta-col">
+            <div class="meta-row" style="flex: 1">
+              <div class="field-label">Danh sách tính năng</div>
+              <el-input
+                type="textarea"
+                v-model="currentSubjectConfig.featuresText"
+                :rows="6"
+                placeholder="Mỗi dòng là một tính năng. Ví dụ:&#10;Ký điện tử không giới hạn&#10;Hỗ trợ chứng thư số&#10;Hỗ trợ 24/7"
+                style="width: 100%"
+              />
+              <div class="field-hint">Mỗi dòng một tính năng — hiển thị dạng danh sách trên trang công khai.</div>
+            </div>
+            <div class="price-auto-note">
+              <el-icon><InfoFilled /></el-icon>
+              Giá hiển thị được tính tự động từ mức phí thấp nhất trong bảng cấu hình bên dưới.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <el-table :data="currentRows" border style="margin-top: 12px" table-layout="fixed">
         <el-table-column width="60" align="center">
           <template #default="{ $index }">
@@ -222,7 +286,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  CopyDocument, CircleClose, CirclePlus, ArrowUp, ArrowDown, Operation, CircleCheck,
+  CopyDocument, CircleClose, CirclePlus, ArrowUp, ArrowDown, Operation, CircleCheck, Picture, Loading, InfoFilled,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -230,6 +294,7 @@ import {
   getIndividualPlanConfigSummary,
   getIndividualPlanConfigDetail,
   createIndividualPlanConfig,
+  uploadPlanIcon,
 } from '@/api/individual'
 import type { IndividualPlanConfigListItem } from '@/types/individual'
 
@@ -242,6 +307,13 @@ interface ConfigRow {
   minValue: number | undefined
   maxValue: number | undefined
   fee: number | undefined
+}
+
+interface SubjectDisplayConfig {
+  iconStoragePath: string | null
+  iconPreviewUrl: string | null
+  featuresText: string
+  uploading: boolean
 }
 
 const router = useRouter()
@@ -273,7 +345,14 @@ const tabData = reactive<Record<TabKey, ConfigRow[]>>({
   INDIVIDUAL_OF_ORG: [],
 })
 
+const subjectDisplayData = reactive<Record<TabKey, SubjectDisplayConfig>>({
+  INDIVIDUAL: { iconStoragePath: null, iconPreviewUrl: null, featuresText: '', uploading: false },
+  ORGANIZATION: { iconStoragePath: null, iconPreviewUrl: null, featuresText: '', uploading: false },
+  INDIVIDUAL_OF_ORG: { iconStoragePath: null, iconPreviewUrl: null, featuresText: '', uploading: false },
+})
+
 const currentRows = computed(() => tabData[activeTab.value])
+const currentSubjectConfig = computed(() => subjectDisplayData[activeTab.value])
 
 function subjectLabel(tab: TabKey): string {
   const map: Record<TabKey, string> = {
@@ -309,6 +388,23 @@ function removeRow(index: number) {
   tabData[activeTab.value].splice(index, 1)
 }
 
+async function handleIconUpload(file: File, tab: TabKey): Promise<false> {
+  subjectDisplayData[tab].uploading = true
+  try {
+    const res = await uploadPlanIcon(file)
+    if (res.success && res.data) {
+      subjectDisplayData[tab].iconStoragePath = res.data.storagePath
+      subjectDisplayData[tab].iconPreviewUrl = res.data.url
+      ElMessage.success('Upload ảnh thành công')
+    }
+  } catch {
+    ElMessage.error('Upload ảnh thất bại')
+  } finally {
+    subjectDisplayData[tab].uploading = false
+  }
+  return false // prevent el-upload default behavior
+}
+
 async function applyTemplate() {
   if (!selectedTemplate.value) {
     ElMessage.warning(t('individualPlan.warningChooseTemplate'))
@@ -320,12 +416,11 @@ async function applyTemplate() {
       const detail = res.data
       form.name = detail.name + t('individualPlan.copySuffix')
 
-      // Assign pricing rules into tab data by subject type.
       tabData.INDIVIDUAL = []
       tabData.ORGANIZATION = []
       tabData.INDIVIDUAL_OF_ORG = []
 
-      detail.pricingRules.forEach((r, i) => {
+      detail.pricingRules.forEach((r) => {
         const tab = r.subject as TabKey
         if (tabData[tab]) {
           tabData[tab].push({
@@ -338,6 +433,19 @@ async function applyTemplate() {
           })
         }
       })
+
+      // Copy subject display config from template
+      if (detail.subjectConfigs) {
+        detail.subjectConfigs.forEach(sc => {
+          const tab = sc.subjectType as TabKey
+          if (subjectDisplayData[tab]) {
+            subjectDisplayData[tab].iconPreviewUrl = sc.iconUrl
+            subjectDisplayData[tab].iconStoragePath = sc.iconUrl
+            subjectDisplayData[tab].featuresText = sc.featuresText ?? ''
+            // displayPrice is auto-computed by backend from pricing rules
+          }
+        })
+      }
 
       ElMessage.success(t('individualPlan.applyTemplateSuccess'))
     }
@@ -370,11 +478,21 @@ async function handleSubmit() {
    }))
 
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
+
+  const subjectConfigs = (Object.keys(subjectDisplayData) as TabKey[])
+    .filter(tab => subjectDisplayData[tab].iconStoragePath || subjectDisplayData[tab].featuresText)
+    .map(tab => ({
+      subjectType: tab,
+      iconUrl: subjectDisplayData[tab].iconStoragePath,
+      featuresText: subjectDisplayData[tab].featuresText || null,
+    }))
+
   const payload = {
     name: form.name.trim(),
     applyFrom: form.dateRange ? fmt(form.dateRange[0]) : null,
     applyUntil: form.dateRange ? fmt(form.dateRange[1]) : null,
     pricingRules: allRules,
+    subjectConfigs,
   }
 
   submitting.value = true
@@ -468,7 +586,6 @@ onMounted(loadTemplatePlans)
   flex-shrink: 0;
 }
 
-/* Custom tab group */
 .cat-tab-group {
   display: inline-flex;
   align-items: center;
@@ -493,7 +610,6 @@ onMounted(loadTemplatePlans)
   white-space: nowrap;
 }
 
-/* Tab đang active (đang chọn) */
 .cat-tab.is-active {
   border-color: #409eff;
   color: #409eff;
@@ -501,14 +617,12 @@ onMounted(loadTemplatePlans)
   background: #fff;
 }
 
-/* Tab đã điền đủ dữ liệu bắt buộc */
 .cat-tab.is-done {
   background: #ecf5ff;
   border-color: #b3d8ff;
   color: #409eff;
 }
 
-/* Tab vừa done vừa active */
 .cat-tab.is-done.is-active {
   border-color: #409eff;
   background: #ecf5ff;
@@ -521,7 +635,122 @@ onMounted(loadTemplatePlans)
   flex-shrink: 0;
 }
 
-/* Action cell (merged drag + delete) */
+/* ─── Hiển thị trên trang công khai ────────────────────────────────────────── */
+.subject-display-config {
+  margin: 16px 0 0;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 14px 16px 16px;
+  background: #fafafa;
+}
+
+.subject-display-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #909399;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+.subject-display-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* Cột ảnh — cố định 130px */
+.icon-col {
+  flex: 0 0 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.icon-uploader {
+  display: block;
+}
+
+.icon-box {
+  position: relative;
+  width: 118px;
+  height: 100px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.icon-box:hover { border-color: #409eff; }
+
+.icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+}
+
+.icon-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #909399;
+  font-size: 12px;
+  user-select: none;
+}
+
+.icon-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #409eff;
+}
+
+/* Cột phải — giá + tính năng */
+.meta-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-auto-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: #909399;
+  background: #f4f4f5;
+  border-radius: 4px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #303133;
+}
+
+/* Action cell */
 .action-cell {
   display: flex;
   align-items: center;

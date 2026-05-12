@@ -20,6 +20,8 @@ public class IndividualPlanConfigDetailResponse {
     private List<StatusHistoryRow> statusHistory;
     // Trả về sau khi "Yêu cầu áp dụng" để frontend điều hướng đến màn approval
     private Long approvalRequestId;
+    /** Per-subject display configs (icon, features, displayPrice). */
+    private List<SubjectConfigRow> subjectConfigs;
 
     @Data
     public static class PricingRuleRow {
@@ -41,5 +43,14 @@ public class IndividualPlanConfigDetailResponse {
         private String status;
         private String updatedAt;
         private String updatedBy;
+    }
+
+    @Data
+    public static class SubjectConfigRow {
+        /** INDIVIDUAL | ORGANIZATION | INDIVIDUAL_OF_ORG */
+        private String subjectType;
+        /** Full public URL of the icon (resolved from MinIO storagePath). */
+        private String iconUrl;
+        private String featuresText;
     }
 }

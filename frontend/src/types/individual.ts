@@ -35,6 +35,18 @@ export interface IndividualStatusHistoryRow {
   updatedBy: string
 }
 
+export interface IndividualSubjectConfigRow {
+  subjectType: string
+  iconUrl: string | null
+  featuresText: string | null
+}
+
+export interface IndividualSubjectConfigRequest {
+  subjectType: string
+  iconUrl: string | null
+  featuresText: string | null
+}
+
 export interface IndividualPlanConfigDetail {
   id: number
   name: string
@@ -48,6 +60,7 @@ export interface IndividualPlanConfigDetail {
   updatedAt: string | null
   pricingRules: IndividualPricingRuleRow[]
   statusHistory: IndividualStatusHistoryRow[]
+  subjectConfigs: IndividualSubjectConfigRow[]
 }
 
 export interface IndividualPricingRuleRequest {
@@ -66,6 +79,7 @@ export interface CreateIndividualPlanConfigRequest {
   applyUntil?: string | null
   requestedBy?: string
   pricingRules: IndividualPricingRuleRequest[]
+  subjectConfigs: IndividualSubjectConfigRequest[]
 }
 
 export interface IndividualRequestApplyRequest {
