@@ -148,24 +148,26 @@
       <el-col :span="12">
         <el-card shadow="never">
           <template #header><span class="chart-title">{{ t('reports.signingPerCertRatio') }}</span></template>
-          <table class="ratio-table">
-            <thead>
-              <tr>
-                <th class="col-agency">{{ t('reports.groupCustomer').toUpperCase() }}</th>
-                <th class="col-metric">{{ t('individualReport.filterIndividual').toUpperCase() }}</th>
-                <th class="col-metric">{{ t('individualReport.filterOrganization').toUpperCase() }}</th>
-                <th class="col-metric">{{ t('reports.individualOfOrgShort').toUpperCase() }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in report?.ratioData ?? []" :key="row.name">
-                <td>{{ row.name }}</td>
-                <td class="text-right">{{ row.individual }}</td>
-                <td class="text-right">{{ row.organization }}</td>
-                <td class="text-right">{{ row.individualOfOrg }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="ratio-table-wrap">
+            <table class="ratio-table">
+              <thead>
+                <tr>
+                  <th class="col-agency">{{ t('reports.groupCustomer').toUpperCase() }}</th>
+                  <th class="col-metric">{{ t('individualReport.filterIndividual').toUpperCase() }}</th>
+                  <th class="col-metric">{{ t('individualReport.filterOrganization').toUpperCase() }}</th>
+                  <th class="col-metric">{{ t('reports.individualOfOrgShort').toUpperCase() }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in report?.ratioData ?? []" :key="row.name">
+                  <td>{{ row.name }}</td>
+                  <td class="text-right">{{ row.individual }}</td>
+                  <td class="text-right">{{ row.organization }}</td>
+                  <td class="text-right">{{ row.individualOfOrg }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </el-card>
       </el-col>
       <el-col :span="12">
@@ -282,10 +284,14 @@ function renderCharts() {
   renderGrowthChart()
 }
 
+const CHART_PAGE_SIZE = 8
+
 function renderCertChart() {
   if (!certChartRef.value || !report.value) return
   if (!certChart) certChart = echarts.init(certChartRef.value)
   const { agencies, certData } = report.value
+  const end = Math.min(CHART_PAGE_SIZE, agencies.length)
+  const endPct = agencies.length > 0 ? Math.round((end / agencies.length) * 100) : 100
   certChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: {
@@ -298,6 +304,10 @@ function renderCertChart() {
     grid: { left: 16, right: 16, bottom: 48, top: 8, containLabel: true },
     xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
     yAxis: { type: 'category', data: agencies, inverse: true, axisLabel: { fontSize: 12 } },
+    dataZoom: agencies.length > CHART_PAGE_SIZE ? [
+      { type: 'slider', yAxisIndex: 0, orient: 'vertical', width: 16, right: 0, start: 0, end: endPct, brushSelect: false, handleSize: '80%' },
+      { type: 'inside', yAxisIndex: 0, start: 0, end: endPct },
+    ] : [],
     series: [
       { name: t('individualReport.filterIndividual'), type: 'bar', stack: 'total', data: certData.individual, itemStyle: { color: '#1B60CB' } },
       { name: t('individualReport.filterOrganization'), type: 'bar', stack: 'total', data: certData.organization, itemStyle: { color: '#5B9BD5' } },
@@ -310,11 +320,17 @@ function renderSigningChart() {
   if (!signingChartRef.value || !report.value) return
   if (!signingChart) signingChart = echarts.init(signingChartRef.value)
   const { agencies, signingData } = report.value
+  const end = Math.min(CHART_PAGE_SIZE, agencies.length)
+  const endPct = agencies.length > 0 ? Math.round((end / agencies.length) * 100) : 100
   signingChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 16, right: 32, bottom: 16, top: 8, containLabel: true },
     xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
     yAxis: { type: 'category', data: agencies, inverse: true, axisLabel: { fontSize: 12 } },
+    dataZoom: agencies.length > CHART_PAGE_SIZE ? [
+      { type: 'slider', yAxisIndex: 0, orient: 'vertical', width: 16, right: 0, start: 0, end: endPct, brushSelect: false, handleSize: '80%' },
+      { type: 'inside', yAxisIndex: 0, start: 0, end: endPct },
+    ] : [],
     series: [
       {
         type: 'bar',
@@ -337,6 +353,8 @@ function renderGrowthChart() {
   if (!growthChart) growthChart = echarts.init(growthChartRef.value)
   const { agencies, growthData } = report.value
   const growthValues = growthData.map(d => d.growth)
+  const end = Math.min(CHART_PAGE_SIZE, agencies.length)
+  const endPct = agencies.length > 0 ? Math.round((end / agencies.length) * 100) : 100
 
   growthChart.setOption({
     tooltip: {
@@ -346,6 +364,7 @@ function renderGrowthChart() {
         const idx = params[0].dataIndex
         const meta = growthData[idx]
         return [
+          `<b>${agencies[idx]}</b>`,
           t('reports.currentMonthSignings', { value: meta.current.toLocaleString(locale.value === 'vi' ? 'vi-VN' : 'en-US') }),
           t('reports.previousMonthSignings', { value: meta.prev.toLocaleString(locale.value === 'vi' ? 'vi-VN' : 'en-US') }),
           t('reports.growthRate', { value: meta.growth }),
@@ -359,13 +378,21 @@ function renderGrowthChart() {
       itemHeight: 12,
       textStyle: { fontSize: 11 },
     },
-    grid: { left: 16, right: 16, bottom: 48, top: 8, containLabel: true },
-    xAxis: { type: 'category', data: agencies, axisLabel: { fontSize: 12, interval: 0 } },
+    grid: { left: 16, right: 16, bottom: agencies.length > CHART_PAGE_SIZE ? 72 : 48, top: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: agencies,
+      axisLabel: { fontSize: 12, interval: 0, rotate: 45, overflow: 'none' },
+    },
     yAxis: {
       type: 'value',
       splitLine: { lineStyle: { color: '#f0f0f0' } },
       axisLabel: { formatter: (v: number) => v + '' },
     },
+    dataZoom: agencies.length > CHART_PAGE_SIZE ? [
+      { type: 'slider', xAxisIndex: 0, bottom: 28, height: 16, start: 0, end: endPct, brushSelect: false, handleSize: '80%' },
+      { type: 'inside', xAxisIndex: 0, start: 0, end: endPct },
+    ] : [],
     series: [
       {
         name: t('reports.growthFormula'),
@@ -464,10 +491,22 @@ onUnmounted(() => {
 .chart-title { font-size: 14px; font-weight: 600; color: #303133; }
 
 /* Ratio table */
+.ratio-table-wrap {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.ratio-table-wrap::-webkit-scrollbar { width: 6px; }
+.ratio-table-wrap::-webkit-scrollbar-thumb { background: #dcdfe6; border-radius: 3px; }
 .ratio-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+}
+.ratio-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
 }
 .ratio-table th {
   padding: 8px 12px;

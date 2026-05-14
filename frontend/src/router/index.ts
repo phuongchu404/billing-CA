@@ -31,7 +31,7 @@ const router = createRouter({
         {
           path: "plans/new",
           name: "AgencyCreate",
-          component: () => import("@/views/plans/Create.vue"),
+          component: () => import("@/views/plans/create.vue"),
           meta: { title: "Thêm mới đại lý", permission: "group:create" },
         },
         {

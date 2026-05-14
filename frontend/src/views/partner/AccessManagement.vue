@@ -137,7 +137,8 @@ const pagedAccessList = computed(() => {
 
 const availableGroups = computed(() => {
   const grantedIds = new Set(accessList.value.filter(a => a.active).map(a => a.groupId))
-  return allGroups.value.filter(g => !grantedIds.has(g.groupId))
+  const groups = Array.isArray(allGroups.value) ? allGroups.value : []
+  return groups.filter(g => !grantedIds.has(g.groupId))
 })
 
 function formatDatetime(iso: string | null | undefined): string {
@@ -159,7 +160,7 @@ async function loadInitialData() {
       partnerUsers.value = usersRes.data.content
     }
     if (groupsRes.success && groupsRes.data) {
-      allGroups.value = groupsRes.data
+      allGroups.value = groupsRes.data.list ?? []
     }
   } finally {
     loading.value = false
