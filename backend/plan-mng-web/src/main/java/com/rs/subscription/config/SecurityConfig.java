@@ -46,6 +46,8 @@ public class SecurityConfig {
                     "/api/v1/auth/logout",
                     "/api/v1/auth/.well-known/jwks.json",
                     "/api-docs/**",
+                    "/v3/api-docs",
+                    "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/actuator/health",
