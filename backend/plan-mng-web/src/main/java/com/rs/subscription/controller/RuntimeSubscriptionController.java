@@ -40,6 +40,7 @@ public class RuntimeSubscriptionController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAuthority('subscription:update')")
     public ApiResponse<RuntimeSubscriptionResponse> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
-        return ApiResponse.success(runtimeSubscriptionService.updateStatus(id, payload.get("status")), "Updated runtime subscription status");
+        String actor = payload.getOrDefault("actor", "SYSTEM");
+        return ApiResponse.success(runtimeSubscriptionService.updateStatus(id, payload.get("status"), actor), "Updated runtime subscription status");
     }
 }

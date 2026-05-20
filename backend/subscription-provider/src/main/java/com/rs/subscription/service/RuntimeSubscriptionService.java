@@ -23,7 +23,7 @@ public interface RuntimeSubscriptionService {
 
     RuntimeSubscriptionResponse create(CreateRuntimeSubscriptionRequest request);
 
-    RuntimeSubscriptionResponse updateStatus(Long id, String status);
+    RuntimeSubscriptionResponse updateStatus(Long id, String status, String actor);
 
     Subscription findEntity(Long id);
 }
