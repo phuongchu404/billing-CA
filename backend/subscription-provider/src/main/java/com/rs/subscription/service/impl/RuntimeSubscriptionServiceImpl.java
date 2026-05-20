@@ -54,6 +54,11 @@ public class RuntimeSubscriptionServiceImpl implements RuntimeSubscriptionServic
         return toResponse(findEntity(id));
     }
 
+    public List<RuntimeSubscriptionResponse> listByUserId(Long userId) {
+        return subscriptionRepository.findByUserIdOrderByCreatedAtDesc(userId)
+            .stream().map(this::toResponse).toList();
+    }
+
     @Transactional
     @TrackSubscriptionAudit(
         subscriptionId = "#result.subscriptionId",

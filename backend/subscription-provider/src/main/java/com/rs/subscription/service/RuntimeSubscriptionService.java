@@ -19,6 +19,8 @@ public interface RuntimeSubscriptionService {
 
     List<RuntimeSubscriptionResponse> listAll();
 
+    List<RuntimeSubscriptionResponse> listByUserId(Long userId);
+
     RuntimeSubscriptionResponse getById(Long id);
 
     RuntimeSubscriptionResponse create(CreateRuntimeSubscriptionRequest request);
