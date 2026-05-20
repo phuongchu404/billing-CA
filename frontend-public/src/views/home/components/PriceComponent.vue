@@ -8,15 +8,23 @@
         </div>
       </div>
       <div class="row price-list">
-        <div v-for="plan in plans" :key="plan.name" class="col-lg-4 col-md-6">
+        <div v-for="plan in displayPlans" :key="plan.subjectType" class="col-lg-4 col-md-6">
           <div class="price-card shadow-sm">
             <div class="price-card__icon">
-              <img :src="plan.icon" :alt="plan.name">
+              <img
+                v-if="plan.iconUrl"
+                :src="plan.iconUrl"
+                :alt="plan.cardName"
+                @error="(e: Event) => ((e.target as HTMLImageElement).src = fallbackIconFor(plan.subjectType))"
+              />
+              <img v-else :src="fallbackIconFor(plan.subjectType)" :alt="plan.cardName" />
             </div>
-            <h3>{{ plan.name }}</h3>
+            <h3>{{ plan.cardName }}</h3>
             <div class="price-card__price">
-              <span class="price-card__amount">{{ plan.price }}</span>
-              <span class="price-card__period">/mo</span>
+              <template v-if="plan.minFeeFormatted">
+                <span class="price-card__label">từ</span>
+                <span class="price-card__amount">{{ plan.minFeeFormatted }}</span>
+              </template>
             </div>
             <ul>
               <li v-for="feature in plan.features" :key="feature">
@@ -32,60 +40,108 @@
       </div>
     </div>
   </div>
-
 </template>
+
 <script setup lang="ts">
-import shadow from "@/assets/images/shadow.svg";
-import planeIcon from "@/assets/images/icon-plane.svg";
-import planeAltIcon from "@/assets/images/icon-plane1.svg";
-import rocketIcon from "@/assets/images/icon-rocket.svg";
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import axios from 'axios'
+import shadow from '@/assets/images/shadow.svg'
+import planeIcon from '@/assets/images/icon-plane.svg'
+import planeAltIcon from '@/assets/images/icon-plane1.svg'
+import rocketIcon from '@/assets/images/icon-rocket.svg'
 
-const emit = defineEmits(['open-dialog']);
+const emit = defineEmits(['open-dialog'])
 
-const plans = [
-  {
-    name: 'Cá nhân',
-    price: '$19',
-    icon: planeIcon,
-    features: [
-      'Timeline',
-      'Basic search',
-      'Live chat widget',
-      'Email marketing',
-      'Custom Forms',
-      'Traffic analytics',
-      'Basic Support',
-    ],
-  },
-  {
-    name: 'Tổ chức',
-    price: '$29',
-    icon: planeAltIcon,
-    features: [
-      'Everything in basic',
-      'Timeline with database',
-      'Advanced search',
-      'Marketing automation',
-      'Advanced chatbot',
-      'Campaign management',
-      'Collaboration tools',
-    ],
-  },
-  {
-    name: 'Cá nhân thuộc Tổ chức',
-    price: '$49',
-    icon: rocketIcon,
-    features: [
-      'Everything in premium',
-      'Timeline with database',
-      'Fuzzy search',
-      'A/B testing sanbox',
-      'Custom permissions',
-      'Social media automation',
-      'Sales automation tools',
-    ],
-  },
-];
+const apiBaseUrl = import.meta.env.VITE_API_URL as string
+
+// ─── Static card metadata (name, fallback icon) per subject type ─────────────
+
+const SUBJECT_META: Record<string, { cardName: string; fallbackIcon: string }> = {
+  INDIVIDUAL: { cardName: 'Cá nhân', fallbackIcon: planeIcon },
+  ORGANIZATION: { cardName: 'Tổ chức', fallbackIcon: planeAltIcon },
+  INDIVIDUAL_OF_ORG: { cardName: 'Cá nhân thuộc Tổ chức', fallbackIcon: rocketIcon },
+}
+
+const SUBJECT_ORDER = ['INDIVIDUAL', 'ORGANIZATION', 'INDIVIDUAL_OF_ORG']
+
+// ─── Plan data from API ───────────────────────────────────────────────────────
+
+interface PublicPlanCard {
+  subjectType: string
+  planName: string
+  iconUrl: string | null
+  minFee: number | null
+  minFeeFormatted: string | null
+  features: string[]
+}
+
+const apiPlans = ref<PublicPlanCard[]>([])
+
+const displayPlans = computed(() => {
+  if (apiPlans.value.length === 0) {
+    // Khi API không trả dữ liệu, hiển thị 3 card rỗng giữ layout
+    return SUBJECT_ORDER.map(subjectType => ({
+      subjectType,
+      cardName: SUBJECT_META[subjectType].cardName,
+      iconUrl: null,
+      displayPrice: null,
+      features: [],
+    }))
+  }
+
+  return SUBJECT_ORDER.map(subjectType => {
+    const card = apiPlans.value.find(c => c.subjectType === subjectType)
+    return {
+      subjectType,
+      cardName: SUBJECT_META[subjectType].cardName,
+      iconUrl: card?.iconUrl ?? null,
+      minFeeFormatted: card?.minFeeFormatted ?? null,
+      features: card?.features ?? [],
+    }
+  })
+})
+
+function fallbackIconFor(subjectType: string): string {
+  return SUBJECT_META[subjectType]?.fallbackIcon ?? planeIcon
+}
+
+async function fetchPlans() {
+  try {
+    const res = await axios.get<PublicPlanCard[]>(`${apiBaseUrl}/api/v1/public/plans`)
+    apiPlans.value = res.data ?? []
+  } catch {
+    // Silently fall back to empty; static card names still render
+  }
+}
+
+// ─── SSE — auto-refresh when admin publishes a plan change ───────────────────
+// Kết nối SSE đến /api/v1/public/plan-updates/stream.
+// Khi backend phát sự kiện "plan-updated", gọi lại fetchPlans().
+// Browser tự reconnect khi mất kết nối.
+
+let sseSource: EventSource | null = null
+
+function connectSse() {
+  const url = `${apiBaseUrl}/api/v1/public/plan-updates/stream`
+  sseSource = new EventSource(url)
+
+  sseSource.addEventListener('plan-updated', () => {
+    fetchPlans()
+  })
+
+  sseSource.onerror = () => {
+    // Browser sẽ tự reconnect; không cần xử lý thêm ở đây
+  }
+}
+
+onMounted(() => {
+  fetchPlans()
+  connectSse()
+})
+
+onUnmounted(() => {
+  sseSource?.close()
+})
 </script>
 
 <style scoped>
@@ -137,6 +193,7 @@ const plans = [
 .price-card__icon img {
   height: 95px;
   max-width: 120px;
+  object-fit: contain;
 }
 
 .price-card h3 {
@@ -152,19 +209,21 @@ const plans = [
   display: flex;
   justify-content: center;
   margin-bottom: 2.2rem;
+  min-height: 48px;
+}
+
+.price-card__label {
+  color: var(--gray);
+  font-size: 14px;
+  margin-right: 4px;
+  align-self: center;
 }
 
 .price-card__amount {
   color: var(--blue);
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 700;
   line-height: 1;
-}
-
-.price-card__period {
-  color: var(--gray);
-  font-size: 16px;
-  margin-left: 2px;
 }
 
 .price-card ul {
