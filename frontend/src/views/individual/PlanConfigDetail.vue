@@ -197,7 +197,7 @@
         <span class="dlg-title">{{ t('agency.dialogRequestApply') }}</span>
       </template>
       <div class="dlg-name-row">
-        <span>{{ t('common.name') }}: <b>{{ info?.name }}</b></span>
+        <span>{{ t('common.name') }}: {{ info?.name }}</span>
       </div>
       <el-form label-width="140px" style="margin-top: 16px">
         <el-form-item :label="t('agency.dialogApplyPeriod')">
@@ -246,16 +246,16 @@
     </el-dialog>
 
     <!-- Dialog 4: VÔ HIỆU HOÁ -->
-    <el-dialog v-model="deactivateVisible" width="500px" align-center>
+    <el-dialog v-model="deactivateVisible" width="600px" height="242px" align-center>
       <template #header>
         <span class="dlg-title">{{ t('agency.dialogDisableTitle') }}</span>
       </template>
-      <p class="dlg-body">
-        {{ t('individualPlan.deactivateDesc', { name: info?.name }) }}
-      </p>
+      <p class="dlg-body" v-html="t('individualPlan.deactivateDesc', { name: info?.name })"></p>
       <template #footer>
         <el-button type="primary" @click="confirmDeactivate">{{ t('common.confirm') }}</el-button>
-        <el-button @click="deactivateVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button @click="deactivateVisible = false" class="btn-cancel">
+          {{ t('individualPlan.cancel') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -561,8 +561,9 @@ onMounted(load)
 :deep(.el-table td.el-table__cell) { padding: 8px 0; }
 
 /* Dialog styles */
-.dlg-title { font-weight: 700; font-size: 15px; color: #303133; }
-.dlg-name-row { font-size: 14px; color: #303133; }
-.dlg-body { font-size: 14px; color: #303133; line-height: 1.6; margin: 0; }
+:deep(.el-dialog__header) { padding-bottom: 1.5rem; }
+.dlg-title { font-weight: 500; font-size: 1.125rem; color: var(--el-text-color-primary); text-transform: uppercase;}
+.dlg-name-row { font-size: 17px; color: var(--el-text-color-regular); }
+.dlg-body { font-size: 18px; color: var(--el-text-color-primary); font-weight: 500; line-height: 28px; margin: 0; }
 .dlg-note { font-size: 13px; color: #606266; line-height: 1.6; margin: 12px 0 0; }
 </style>

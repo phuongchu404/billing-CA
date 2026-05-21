@@ -26,7 +26,7 @@
       <div class="info-bar">
         <el-button
           type="primary"
-          :icon="Plus"
+          icon="Plus"
           :disabled="!can('plan:create')"
           @click="handleAddNew"
           >{{ t("common.add") }}</el-button
@@ -70,19 +70,19 @@
           <template #header>
             <div class="col-label">#</div>
             <div class="col-filter">
-              <el-button link :icon="Refresh" @click="resetFilters" />
+              <el-button link icon="Refresh" @click="resetFilters" />
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="name" sortable min-width="180">
+        <el-table-column prop="name" sortable min-width="240">
           <template #header>
             <div class="col-label">{{ t("individualPlan.colPlanName") }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" sortable width="140">
+        <el-table-column prop="status" sortable width="170" align="center">
           <template #header>
             <div class="col-label">{{ t("common.status") }}</div>
             <div class="col-filter">
@@ -118,16 +118,16 @@
           </template>
           <template #default="{ row }">
             <el-tag
-              :type="statusTagType(row.status)"
-              :effect="row.status === 'APPLYING' ? 'dark' : 'light'"
-              size="small"
+              style="width: 115px; justify-content: center;"
+              disable-transitions
+              :class="['custom-tag', `tag-${row.status.toLowerCase()}`]"
             >
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column prop="applyFrom" sortable width="130">
+        <el-table-column prop="applyFrom" sortable width="160" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colApplyFrom") }}</div>
             <div class="col-filter">
@@ -144,7 +144,7 @@
           <template #default="{ row }">{{ row.applyFrom ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="applyUntil" sortable width="130">
+        <el-table-column prop="applyUntil" sortable width="130" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colApplyTo") }}</div>
             <div class="col-filter">
@@ -161,7 +161,7 @@
           <template #default="{ row }">{{ row.applyUntil ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="updatedAt" sortable width="175">
+        <el-table-column prop="updatedAt" sortable width="180" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colUpdatedAt") }}</div>
             <div class="col-filter">
@@ -178,44 +178,48 @@
           <template #default="{ row }">{{ row.updatedAt ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column fixed="right" width="210">
+        <el-table-column fixed="right" width="250" header-align="center">
           <template #header>
-            <div class="col-label">{{ t("common.actions") }}</div>
+            <div class="col-label">{{ t("common.action") }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
             <div class="action-btns">
               <el-button
                 size="small"
-                :icon="Timer"
+                icon="InfoFilled" 
                 @click.stop="goDetail(row)"
-                >{{ t("common.detail") }}</el-button
               >
+                {{ t("individualPlan.viewDetails") }}
+              </el-button>
+
               <el-button
                 v-if="row.status === 'AVAILABLE'"
                 size="small"
-                type="primary"
-                plain
+                class="btn-light-blue"
+                icon="CopyDocument" 
                 :disabled="!can('plan:update')"
                 @click.stop="openRequestApply(row)"
               >
                 {{ t("agency.btnRequestApply") }}
               </el-button>
+
               <el-button
                 v-if="row.status === 'PENDING'"
                 size="small"
-                type="success"
-                plain
-                :icon="Check"
+                class="btn-light-blue"
+                icon="Check"
                 :disabled="!can('plan:update')"
                 @click.stop="openApprove(row)"
               >
                 {{ t("agency.btnApprove") }}
               </el-button>
+
               <el-button
                 v-if="row.status === 'APPROVED' || row.status === 'APPLYING'"
                 size="small"
                 type="primary"
+                plain
                 :disabled="!can('plan:update')"
                 @click.stop="openStopApply(row)"
               >
@@ -232,40 +236,55 @@
           <el-select
             v-model="pageSize"
             size="small"
-            style="width: 64px; margin: 0 4px"
+            style="width: 5rem; margin: 0 0.5rem;"
             @change="page = 1"
           >
-            <el-option :value="5" label="5" />
             <el-option :value="10" label="10" />
             <el-option :value="20" label="20" />
           </el-select>
           {{ t("individualPlan.totalPlans", { total: filteredList.length }) }}
         </span>
-        <el-pagination
-          v-model:current-page="page"
-          :total="filteredList.length"
-          :page-size="pageSize"
-          layout="prev, pager, next, jumper"
-          :pager-count="5"
-          background
-        />
+        <div class="custom-pagination-wrapper">
+          <button 
+            class="custom-nav-btn" 
+            :disabled="page === 1"
+            @click="page = 1"
+          >
+            <el-icon><DArrowLeft /></el-icon>
+          </button>
+
+          <el-pagination
+            v-model:current-page="page"
+            :total="filteredList.length"
+            :page-size="pageSize"
+            layout="prev, pager, next"
+            :pager-count="5"
+            background
+          />
+
+          <button 
+            class="custom-nav-btn" 
+            :disabled="page === Math.ceil(filteredList.length / pageSize)"
+            @click="page = Math.ceil(filteredList.length / pageSize)"
+          >
+            <el-icon><DArrowRight /></el-icon>
+          </button>
+        </div>
       </div>
     </el-card>
 
     <!-- Dialog 1: YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC -->
-    <el-dialog v-model="requestApplyVisible" width="500px" align-center>
+    <el-dialog v-model="requestApplyVisible" width="720px" height="460px" align-center>
       <template #header>
         <span class="dlg-title">{{ t("agency.dialogRequestApply") }}</span>
       </template>
-      <div class="dlg-name-row">
-        <span
-          >{{ t("common.name") }}: <b>{{ activeRow?.name }}</b></span
-        >
-        <el-button link type="primary" @click="goDetail(activeRow!)">{{
-          t("agency.viewDetail")
-        }}</el-button>
+      <div style="font-size: 17px;color: var(--el-text-color-primary);">
+        <p>{{ t("common.name") }}: {{ activeRow?.name }}</p>
+        <el-button link type="primary" @click="goDetail(activeRow!)" style="font-size: 17px;text-decoration: underline; font-style: italic;width: 100%;justify-content: end;">
+          {{t("individualPlan.viewDetails")}}
+        </el-button>
       </div>
-      <el-form label-width="140px" style="margin-top: 16px">
+      <el-form label-width="auto" style="margin-top: 1rem">
         <el-form-item :label="t('agency.dialogApplyPeriod')">
           <el-date-picker
             v-model="requestApplyDateRange"
@@ -274,12 +293,11 @@
             :start-placeholder="t('agency.dateFrom')"
             :end-placeholder="t('agency.dateTo')"
             style="width: 100%"
+            :disabled-date="disabledDate" 
           />
         </el-form-item>
       </el-form>
-      <p class="dlg-note">
-        {{ t("individualPlan.requestApplyNote") }}
-      </p>
+      <p class="dlg-note" v-html="t('individualPlan.requestApplyNote')"></p>
       <template #footer>
         <el-button type="primary" @click="confirmRequestApply">{{
           t("common.confirm")
@@ -291,16 +309,16 @@
     </el-dialog>
 
     <!-- Dialog 2: DUYỆT ÁP DỤNG GÓI CƯỚC -->
-    <el-dialog v-model="approveVisible" width="500px" align-center>
+    <el-dialog v-model="approveVisible" width="700px" height="560px" align-center>
       <template #header>
         <span class="dlg-title">{{ t("agency.dialogApproveApply") }}</span>
       </template>
-      <p class="dlg-body">
+      <p class="text-primary">
         {{ t("individualPlan.approveDescPrefix") }}
-        <b class="dlg-plan-name">{{ activeRow?.name }}</b>
+        <b class="text-color-primary">{{ activeRow?.name }}</b>
         {{ t("individualPlan.approveDescSuffix") }}
       </p>
-      <el-form label-width="140px" style="margin-top: 16px">
+      <el-form label-width="150px" label-position="left">
         <el-form-item :label="t('agency.dialogApplyPeriod')">
           <el-date-picker
             v-model="approveDateRange"
@@ -308,14 +326,16 @@
             range-separator="-"
             :start-placeholder="t('agency.dateFrom')"
             :end-placeholder="t('agency.dateTo')"
-            style="width: 100%"
+            style="width: 100%; height: 40px!important;padding: 0 1rem;"
+            :disabled-date="disabledDate" 
+            format="DD/MM/YYYY"
           />
         </el-form-item>
       </el-form>
-      <p class="dlg-note">
+      <p class="text-primary">
         {{ t("individualPlan.approveNote") }}
       </p>
-      <ul class="dlg-bullets">
+      <ul class="text-primary dlg-bullets">
         <li>
           {{ t("individualPlan.approveBullet1") }}
         </li>
@@ -324,6 +344,9 @@
         </li>
         <li>{{ t("individualPlan.approveBullet3") }}</li>
       </ul>
+      <p class="text-primary" style="color: #2F2B3D99; font-style: italic;">
+        {{ t('individualPlan.requestApplyDesc') }}
+      </p>
       <template #footer>
         <div class="dlg-footer-split">
           <el-button type="warning" plain @click="confirmReject">{{
@@ -333,8 +356,8 @@
             <el-button type="primary" @click="confirmApprove">{{
               t("common.confirm")
             }}</el-button>
-            <el-button @click="approveVisible = false">{{
-              t("common.cancel")
+            <el-button @click="approveVisible = false" class="btn-cancel">{{
+              t("individualPlan.cancel")
             }}</el-button>
           </div>
         </div>
@@ -342,21 +365,21 @@
     </el-dialog>
 
     <!-- Dialog 3: DỪNG ÁP DỤNG GÓI CƯỚC -->
-    <el-dialog v-model="stopApplyVisible" width="500px" align-center>
+    <el-dialog v-model="stopApplyVisible" width="660px" height="240px" align-center>
       <template #header>
         <span class="dlg-title">{{ t("agency.dialogStopApply") }}</span>
       </template>
-      <p class="dlg-body">
+      <p class="text-primary" style="font-weight: 600;margin: 0;">
         {{ t("individualPlan.stopDescPrefix") }}
-        <b class="dlg-plan-name">{{ activeRow?.name }}</b
+        <b class="text-color-primary">{{ activeRow?.name }}</b
         >. {{ t("individualPlan.stopDescSuffix") }}
       </p>
       <template #footer>
         <el-button type="primary" @click="confirmStopApply">{{
           t("common.confirm")
         }}</el-button>
-        <el-button @click="stopApplyVisible = false">{{
-          t("common.cancel")
+        <el-button @click="stopApplyVisible = false" class="btn-cancel">{{
+          t("individualPlan.cancel")
         }}</el-button>
       </template>
     </el-dialog>
@@ -366,7 +389,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
-import { Plus, Refresh, Timer, Check } from "@element-plus/icons-vue";
 import { usePermission } from "@/composables/usePermission";
 import { useI18n } from "vue-i18n";
 
@@ -396,7 +418,7 @@ type PlanConfigRow = IndividualPlanConfigListItem;
 
 const loading = ref(false);
 const page = ref(1);
-const pageSize = ref(5);
+const pageSize = ref(10);
 const filterStatus = ref("");
 const filterApplyFrom = ref<Date | null>(null);
 const filterApplyUntil = ref<Date | null>(null);
@@ -419,6 +441,12 @@ const stopApplyVisible = ref(false);
 const list = ref<PlanConfigRow[]>([]);
 
 const filteredList = computed(() => list.value);
+
+const disabledDate = (time: Date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return time.getTime() < today.getTime();
+};
 
 const pagedList = computed(() => {
   const start = (page.value - 1) * pageSize.value;
@@ -494,6 +522,13 @@ async function confirmRequestApply() {
     return;
   }
   const [from, to] = requestApplyDateRange.value;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); 
+  
+  if (from.getTime() < today.getTime()) {
+    ElMessage.error(t("individualPlan.errorPastDate") || "Ngày áp dụng không được nhỏ hơn ngày hiện tại");
+    return;
+  }
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
   try {
     await requestApplyPlanConfig(activeRow.value.id, {
@@ -620,8 +655,48 @@ onMounted(load);
   margin-left: auto;
   font-size: 12px;
   color: #909399;
+  font-style: italic;
 }
 
+.custom-tag {
+  border: none !important;      
+  font-weight: 600;             
+  border-radius: 4px;           
+  padding: 0 10px;
+  height: 28px;      
+  font-size: 13px;           
+}
+
+.tag-applying {
+  background-color: #1B60CB3D !important; 
+  color: var(--el-color-primary) !important;
+}
+
+.tag-approved,
+.tag-pending,
+.tag-active {
+  background-color: #80839014 !important; 
+  color: var(--el-color-primary) !important;
+}
+
+.tag-available {
+  background-color: #80839014 !important; 
+  color: #808390 !important;
+}
+
+.tag-unavailable {
+  background-color: transparent !important; 
+  color: #808390 !important;
+  padding: 0 !important;
+}
+
+.tag-paused {
+  background-color: transparent !important; 
+  color: #FF9F43 !important;
+  padding: 0 !important;
+}
+
+/*pagination*/
 .pagination-row {
   display: flex;
   align-items: center;
@@ -635,23 +710,109 @@ onMounted(load);
   align-items: center;
 }
 
+.custom-pagination-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.custom-pagination-wrapper :deep(.el-pagination) {
+  padding: 0;
+}
+
+.custom-nav-btn,
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-next),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-prev),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .el-pager li) {
+  background-color: #f4f5f7 !important;
+  border-radius: 6px !important;        
+  min-width: 36px;
+  height: 36px;
+  border: none;
+  font-weight: 500;
+  color: #4b5563 !important; 
+  margin: 0 4px !important;  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-nav-btn:not(:disabled):hover,
+.custom-pagination-wrapper :deep(.el-pagination.is-background .el-pager li:not(.is-active):hover),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-next:hover),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-prev:hover) {
+  background-color: #e5e7eb !important; 
+}
+
+.custom-pagination-wrapper :deep(.el-pagination.is-background .el-pager li.is-active) {
+  background-color: var(--el-color-primary) !important; 
+  color: #ffffff !important;            
+  font-weight: 600;
+}
+
+.custom-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+:deep(.el-select__wrapper) {
+  padding: 0.25px 0.75rem!important;
+}
+
 .col-label {
   font-weight: 600;
   font-size: 13px;
   white-space: normal;
   line-height: 1.3;
+  text-transform: uppercase;
 }
 .col-filter {
   margin-top: 6px;
   min-height: 28px;
 }
 
+/* Action buttons */
 .action-btns {
   display: flex;
-  gap: 4px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  gap: 1rem; 
 }
+
 .action-btns :deep(.el-button) {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  border-color: var(--el-text-color-primary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.action-btns :deep(.el-button:hover) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background-color: #fff;
+}
+
+.action-btns :deep(.btn-light-blue) {
+  background-color: #1B60CB29 !important; 
+  border-color: transparent !important; 
+  color: var(--el-color-primary) !important; 
+}
+.action-btns :deep(.btn-light-blue:hover) {
+  background-color: #1B60CB3D !important;
+}
+
+.action-btns :deep(.el-button--primary.is-plain) {
+  background-color: #fff !important;
+  border-color: var(--el-color-primary) !important;
+  color: var(--el-color-primary) !important;
+}
+.action-btns :deep(.el-button--primary.is-plain:hover) {
+  background-color: #f0f5ff !important;
+}
+
+.action-btns :deep(.el-button+.el-button) {
   margin: 0;
 }
 
@@ -661,44 +822,37 @@ onMounted(load);
 }
 
 /* Dialog styles */
+
+:deep(.el-dialog > .el-form-item--label-right .el-form-item__label) {
+  font-size: 17px;
+  color: var(--el-text-color-regular);
+}
+
 .dlg-title {
-  font-weight: 700;
-  font-size: 15px;
-  color: #303133;
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--el-text-color-primary);
+  padding: 0;
 }
 
 .dlg-name-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  color: #303133;
-}
-
-.dlg-body {
-  font-size: 14px;
-  color: #303133;
-  line-height: 1.6;
-  margin: 0 0 4px;
-}
-
-.dlg-plan-name {
-  color: #1b60cb;
+  font-size: 17px;
+  color: var(--el-text-color-regular);
 }
 
 .dlg-note {
-  font-size: 13px;
-  color: #606266;
-  line-height: 1.6;
-  margin: 12px 0 0;
+  font-size: 17px;
+  color: var(--el-text-color-regular);
+  line-height: 26px;
+  margin-top: 1.5rem;
+  font-style: italic;
 }
 
 .dlg-bullets {
-  margin: 6px 0 0;
-  padding-left: 20px;
-  font-size: 13px;
-  color: #606266;
-  line-height: 1.8;
+  padding-left: 2rem;
 }
 
 .dlg-footer-split {

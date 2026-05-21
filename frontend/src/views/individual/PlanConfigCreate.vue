@@ -7,14 +7,14 @@
       </div>
     </div>
 
-    <el-button :icon="CopyDocument" @click="templateDialogVisible = true" style="margin-bottom: 20px">
+    <el-button icon="CopyDocument" @click="templateDialogVisible = true" class="btn-select">
       {{ t('agency.chooseTemplate') }}
     </el-button>
 
     <!-- THÔNG TIN GÓI CƯỚC -->
     <div class="section-card">
       <div class="section-title">{{ t('agency.planSection') }}</div>
-      <el-form :model="form" label-width="240px" class="section-form">
+      <el-form :model="form" label-width="280px" label-position="left" class="section-form">
         <el-form-item required>
           <template #label>
             <span>{{ t('agency.planNameLabel') }}</span>
@@ -32,13 +32,13 @@
             :start-placeholder="t('agency.dateFrom')"
             :end-placeholder="t('agency.dateTo')"
             style="width: 100%"
+            format="DD/MM/YYYY"
           />
         </el-form-item>
-        <div class="note-text">
-          <p>{{ t('individualPlan.applyDatePendingNote') }}</p>
-          <p>{{ t('individualPlan.applyDateAvailableNote') }}</p>
-        </div>
       </el-form>
+      <div class="note-text">
+        <p v-html="t('individualPlan.applyDatePendingNote')"></p>
+      </div>
     </div>
 
     <!-- CẤU HÌNH GÓI CƯỚC SMARTCA -->
@@ -253,21 +253,16 @@
     </div>
 
     <!-- Dialog: Chọn Gói Cước Mẫu -->
-    <el-dialog
-      v-model="templateDialogVisible"
-      :title="t('agency.chooseTemplateTitle')"
-      width="480px"
-      align-center
-    >
+    <el-dialog v-model="templateDialogVisible" :title="t('agency.chooseTemplateTitle')" width="660px" height="280px" align-center>
       <p class="dialog-desc">
         {{ t('agency.chooseTemplateDesc') }}
       </p>
-      <el-form label-width="80px" style="margin-top: 16px">
+      <el-form label-width="90px" label-position="left">
         <el-form-item :label="t('agency.dialogPlanName')">
           <el-select
             v-model="selectedTemplate"
             :placeholder="t('individualPlan.chooseTemplatePlaceholder')"
-            style="width: 100%"
+            style="width: 100%; height: 3rem;"
           >
             <el-option v-for="p in templatePlans" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
@@ -276,7 +271,7 @@
       </el-form>
       <template #footer>
         <el-button type="primary" @click="applyTemplate">{{ t('common.confirm') }}</el-button>
-        <el-button @click="templateDialogVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button @click="templateDialogVisible = false" class="btn-cancel">{{ t('individualPlan.cancel') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -449,8 +444,8 @@ async function applyTemplate() {
 
       ElMessage.success(t('individualPlan.applyTemplateSuccess'))
     }
-  } catch {
-    ElMessage.error(t('individualPlan.loadTemplateFailed'))
+  } catch (error) {
+    console.error("Lỗi khi tạo gói cước:", error);
   }
   templateDialogVisible.value = false
   selectedTemplate.value = null
@@ -537,43 +532,58 @@ onMounted(loadTemplatePlans)
   align-items: flex-start;
   margin-bottom: 16px;
 }
-.page-header h2 { margin: 0; }
-.page-subtitle { margin: 4px 0 0; color: #909399; font-size: 13px; }
+.page-header h2 { margin: 0 0 1rem 0; color: var(--el-text-color-primary); font-weight: 500;}
+.page-subtitle { margin: 0; color: var(--el-text-color-regular); font-size: 15px; font-weight: 400;}
+
+.btn-select {
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1.25rem;
+  width: 230px;
+  height: 3rem;
+  font-size: 17px;
+  border-radius: 0.5rem;
+  color: var(--el-text-color-primary);
+  border-color: var(--el-text-color-primary);
+}
 
 .section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   background: #fff;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  padding: 20px 24px 24px;
+  border-radius: 6px;
+  padding: 22px;
   margin-bottom: 16px;
+  box-shadow: 0px 3px 12px 0px #2F2B3D24;
 }
 
 .section-title {
   display: block;
   font-weight: 700;
-  font-size: 14px;
-  color: #1B60CB;
+  font-size: 18px;
+  color: var(--el-color-primary);
   letter-spacing: 0.3px;
-  margin-bottom: 20px;
 }
 
+/* Form layout */
 .section-form {
-  max-width: 860px;
+  max-width: 100%;
 }
 
 .field-hint {
   font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
+  color: var(--el-text-color-regular);
+  margin: 0 0 0 1rem;
+  font-style: italic;
 }
 
 .note-text {
-  margin-left: 240px;
-  font-size: 13px;
-  color: #606266;
-  line-height: 1.7;
+  font-size: 17px;
+  color: var(--el-text-color-regular);
+  line-height: 26px;
+  font-style: italic;
+  font-weight: 500;
 }
-.note-text p { margin: 0 0 4px; }
 
 .category-tabs {
   display: flex;
@@ -814,10 +824,10 @@ onMounted(loadTemplatePlans)
 }
 
 .dialog-desc {
-  font-size: 14px;
-  color: #606266;
-  line-height: 1.6;
-  margin: 0;
+  font-size: 18px;
+  color: var(--el-text-color-regular);
+  line-height: 28px;
+  font-weight: 500;
 }
 
 :deep(.el-input-number .el-input__inner) { text-align: left; }

@@ -40,8 +40,8 @@ const locale = en
   --el-border-color-extra-light:#E1E7F1;
 
   /* ── Text ── */
-  --el-text-color-primary:      #2F2B3D;
-  --el-text-color-regular:      #2F2B3D;
+  --el-text-color-primary:      #2F2B3DE5;
+  --el-text-color-regular:      #2F2B3DB2;
   --el-text-color-secondary:    rgba(47, 43, 61, 0.7);
   --el-text-color-placeholder:  rgba(47, 43, 61, 0.4);
 
@@ -134,5 +134,48 @@ const locale = en
 .el-table--small th.el-table__cell > .cell > .col-filter {
   left: 8px;
   right: 8px;
+}
+
+/*form*/
+#app .el-form-item {
+  margin: 0;
+}
+
+#app .el-input__wrapper,
+#app .el-range-editor .el-input__wrapper,
+#app .el-select__wrapper {
+  padding: 0.75rem 1rem;
+  font-size: 15px;
+  height: 100%;
+}
+
+#app .el-form-item__label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+
+/*dialog*/
+#app .el-dialog {
+  border-radius: 0.5rem;
+  padding: 1.5rem 2.25rem;
+}
+
+/*custom*/
+#app .btn-cancel {
+  color: #808390;
+  background-color: #8083903D;
+  border: none;
+}
+
+#app .text-color-primary {
+  color: var(--el-color-primary)!important;
+}
+
+#app .text-primary {
+  color: var(--el-text-color-primary);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 28px;
 }
 </style>
