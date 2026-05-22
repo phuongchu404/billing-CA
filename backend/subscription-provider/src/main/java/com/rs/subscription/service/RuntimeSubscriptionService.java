@@ -19,11 +19,13 @@ public interface RuntimeSubscriptionService {
 
     List<RuntimeSubscriptionResponse> listAll();
 
+    List<RuntimeSubscriptionResponse> listByUserId(Long userId);
+
     RuntimeSubscriptionResponse getById(Long id);
 
     RuntimeSubscriptionResponse create(CreateRuntimeSubscriptionRequest request);
 
-    RuntimeSubscriptionResponse updateStatus(Long id, String status);
+    RuntimeSubscriptionResponse updateStatus(Long id, String status, String actor);
 
     Subscription findEntity(Long id);
 }

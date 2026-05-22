@@ -65,6 +65,8 @@ public class PublicPlanController {
         Map<String, PlanSubjectConfig> configBySubject = template.getSubjectConfigs().stream()
                 .collect(Collectors.toMap(PlanSubjectConfig::getSubjectType, c -> c));
 
+        Long scheduleId = activeSchedule.get().getRetailPlanScheduleId();
+
         return SUBJECT_ORDER.stream()
                 .map(subjectType -> {
                     PlanSubjectConfig config = configBySubject.get(subjectType);
@@ -72,6 +74,7 @@ public class PublicPlanController {
                     if (config == null && minFee == null) return null;
 
                     PublicPlanCard card = new PublicPlanCard();
+                    card.setScheduleId(scheduleId);
                     card.setSubjectType(subjectType);
                     card.setPlanName(template.getPlanName());
                     card.setIconUrl(config != null ? minioStorageService.toPublicUrl(config.getIconUrl()) : null);
@@ -102,6 +105,7 @@ public class PublicPlanController {
 
     @Data
     public static class PublicPlanCard {
+        private Long scheduleId;
         private String subjectType;
         private String planName;
         private String iconUrl;

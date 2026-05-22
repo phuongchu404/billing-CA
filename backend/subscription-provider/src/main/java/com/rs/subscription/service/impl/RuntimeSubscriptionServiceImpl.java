@@ -16,11 +16,28 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class RuntimeSubscriptionServiceImpl implements RuntimeSubscriptionService {
+
+    private static final Map<CommercialEnums.SubscriptionStatus, Set<CommercialEnums.SubscriptionStatus>> ALLOWED_TRANSITIONS;
+
+    static {
+        ALLOWED_TRANSITIONS = new EnumMap<>(CommercialEnums.SubscriptionStatus.class);
+        ALLOWED_TRANSITIONS.put(CommercialEnums.SubscriptionStatus.PENDING,
+            Set.of(CommercialEnums.SubscriptionStatus.ACTIVE, CommercialEnums.SubscriptionStatus.CANCELLED));
+        ALLOWED_TRANSITIONS.put(CommercialEnums.SubscriptionStatus.ACTIVE,
+            Set.of(CommercialEnums.SubscriptionStatus.SUSPENDED, CommercialEnums.SubscriptionStatus.CANCELLED, CommercialEnums.SubscriptionStatus.EXPIRED));
+        ALLOWED_TRANSITIONS.put(CommercialEnums.SubscriptionStatus.SUSPENDED,
+            Set.of(CommercialEnums.SubscriptionStatus.ACTIVE, CommercialEnums.SubscriptionStatus.CANCELLED, CommercialEnums.SubscriptionStatus.EXPIRED));
+        ALLOWED_TRANSITIONS.put(CommercialEnums.SubscriptionStatus.EXPIRED, Set.of());
+        ALLOWED_TRANSITIONS.put(CommercialEnums.SubscriptionStatus.CANCELLED, Set.of());
+    }
 
     private final SubscriptionRepository subscriptionRepository;
     private final GroupRepository groupRepository;
@@ -35,6 +52,11 @@ public class RuntimeSubscriptionServiceImpl implements RuntimeSubscriptionServic
 
     public RuntimeSubscriptionResponse getById(Long id) {
         return toResponse(findEntity(id));
+    }
+
+    public List<RuntimeSubscriptionResponse> listByUserId(Long userId) {
+        return subscriptionRepository.findByUserIdOrderByCreatedAtDesc(userId)
+            .stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -80,12 +102,25 @@ public class RuntimeSubscriptionServiceImpl implements RuntimeSubscriptionServic
     @Transactional
     @TrackSubscriptionAudit(
         subscriptionId = "#p0",
-        actor = "'SYSTEM'",
-        reason = "'Status updated'"
+        actor = "#p2",
+        reason = "'Status updated to ' + #p1"
     )
-    public RuntimeSubscriptionResponse updateStatus(Long id, String status) {
+    public RuntimeSubscriptionResponse updateStatus(Long id, String status, String actor) {
         Subscription entity = findEntity(id);
-        entity.setStatus(CommercialEnums.normalize(status, CommercialEnums.SubscriptionStatus.class, "status"));
+        CommercialEnums.SubscriptionStatus current = CommercialEnums.SubscriptionStatus.valueOf(entity.getStatus());
+        CommercialEnums.SubscriptionStatus next = CommercialEnums.SubscriptionStatus.valueOf(
+            CommercialEnums.normalize(status, CommercialEnums.SubscriptionStatus.class, "status")
+        );
+        Set<CommercialEnums.SubscriptionStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(current, Set.of());
+        if (!allowed.contains(next)) {
+            throw new SmsException(
+                ErrorCodes.INVALID_STATUS_TRANSITION,
+                "Cannot transition subscription from " + current + " to " + next
+                + ". Allowed: " + allowed,
+                409
+            );
+        }
+        entity.setStatus(next.name());
         return toResponse(subscriptionRepository.save(entity));
     }
 
