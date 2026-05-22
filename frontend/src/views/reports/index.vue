@@ -1,7 +1,7 @@
 <template>
   <div class="reports-page">
     <!-- Header -->
-    <div class="page-header">
+    <div class="dashbboard-header">
       <h2>{{ t('reports.dashboardTitle') }}</h2>
       <div class="type-switcher">
         <span class="switcher-label">{{ t('reports.customer') }}</span>
@@ -22,14 +22,14 @@
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
           <div class="stat-inner">
-            <div class="stat-icon" style="background: #e8f0fd; color: #1B60CB">
+            <div class="stat-icon">
               <el-icon size="28"><UserFilled /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ report?.stats.activePartners ?? 0 }}</div>
-              <div class="stat-label">{{ t('reports.activePartners') }}</div>
             </div>
           </div>
+          <div class="stat-label">{{ t('reports.activePartners') }}</div>
         </el-card>
       </el-col>
 
@@ -37,16 +37,18 @@
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
           <div class="stat-inner">
-            <div class="stat-icon" style="background: #e8f0fd; color: #1B60CB">
+            <div class="stat-icon">
               <el-icon size="28"><DocumentChecked /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ (report?.stats.newCts ?? 0).toLocaleString('vi-VN') }}</div>
-              <div class="stat-label">{{ t('reports.newCtsThisMonth') }}</div>
-              <div class="stat-growth" :class="(report?.stats.newCtsPct ?? 0) >= 0 ? 'positive' : 'negative'">
-                {{ (report?.stats.newCtsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.newCtsPct ?? 0 }}%
-                <span class="growth-note">{{ t('reports.comparedPreviousMonth') }}</span>
-              </div>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">{{ t('reports.newCtsThisMonth') }}</div>
+            <div class="stat-growth" :class="(report?.stats.newCtsPct ?? 0) >= 0 ? 'positive' : 'negative'">
+              {{ (report?.stats.newCtsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.newCtsPct ?? 0 }}%
+              <span class="growth-note">{{ t('reports.comparedPreviousMonth') }}</span>
             </div>
           </div>
         </el-card>
@@ -56,16 +58,18 @@
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
           <div class="stat-inner">
-            <div class="stat-icon" style="background: #f0ebfd; color: #7c3aed">
+            <div class="stat-icon">
               <el-icon size="28"><DataAnalysis /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ (report?.stats.signings ?? 0).toLocaleString('vi-VN') }}</div>
-              <div class="stat-label">{{ t('reports.signingsThisMonth') }}</div>
-              <div class="stat-growth" :class="(report?.stats.signingsPct ?? 0) >= 0 ? 'positive' : 'negative'">
-                {{ (report?.stats.signingsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.signingsPct ?? 0 }}%
-                <span class="growth-note">{{ t('reports.comparedPreviousMonth') }}</span>
-              </div>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">{{ t('reports.signingsThisMonth') }}</div>
+            <div class="stat-growth" :class="(report?.stats.signingsPct ?? 0) >= 0 ? 'positive' : 'negative'">
+              {{ (report?.stats.signingsPct ?? 0) >= 0 ? '+' : '' }}{{ report?.stats.signingsPct ?? 0 }}%
+              <span class="growth-note">{{ t('reports.comparedPreviousMonth') }}</span>
             </div>
           </div>
         </el-card>
@@ -79,11 +83,13 @@
               <el-icon size="28"><Warning /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value" style="color: #F56C6C">{{ report?.stats.expiringSoon ?? 0 }}</div>
-              <div class="stat-label">
-                {{ t('reports.expiringSoonSummary') }}
-                <el-button link type="primary" style="padding: 0; font-size: 12px" @click="openExpiringDialog">{{ t('common.detail') }}</el-button>
-              </div>
+              <div class="stat-value">{{ report?.stats.expiringSoon ?? 0 }}</div>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">
+              {{ t('reports.expiringSoonSummary') }}
+              <el-button link type="primary" style="padding: 0; font-size: 15px; text-decoration: underline; font-style: italic;" @click="openExpiringDialog">{{ t('common.detail') }}</el-button>
             </div>
           </div>
         </el-card>
@@ -92,7 +98,7 @@
 
     <!-- Month selector -->
     <div v-if="selectedType === 'GROUP'" class="month-bar">
-      <el-select v-model="selectedMonth" size="small" style="width: 140px" @change="loadReport">
+      <el-select v-model="selectedMonth" size="small" style="width: 180px;" @change="loadReport">
         <el-option v-for="m in monthOptions" :key="m.value" :label="m.label" :value="m.value" />
       </el-select>
     </div>
@@ -223,7 +229,7 @@ let certChart: echarts.ECharts | null = null
 let signingChart: echarts.ECharts | null = null
 let growthChart: echarts.ECharts | null = null
 
-const monthOptions = buildMonthOptions()
+const monthOptions = computed(() => buildMonthOptions());
 
 function currentMonthKey() {
   const d = new Date()
@@ -305,7 +311,7 @@ function renderCertChart() {
     xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
     yAxis: { type: 'category', data: agencies, inverse: true, axisLabel: { fontSize: 12 } },
     dataZoom: agencies.length > CHART_PAGE_SIZE ? [
-      { type: 'slider', yAxisIndex: 0, orient: 'vertical', width: 16, right: 0, start: 0, end: endPct, brushSelect: false, handleSize: '80%' },
+      { type: 'slider', yAxisIndex: 0, orient: 'vertical', width: 6, right: 4, start: 0, end: endPct, brushSelect: false, handleSize: 0, showDetail: false, showDataShadow: false, borderColor: 'transparent', backgroundColor: 'transparent', fillerColor: '#dcdfe6'},
       { type: 'inside', yAxisIndex: 0, start: 0, end: endPct },
     ] : [],
     series: [
@@ -328,7 +334,7 @@ function renderSigningChart() {
     xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
     yAxis: { type: 'category', data: agencies, inverse: true, axisLabel: { fontSize: 12 } },
     dataZoom: agencies.length > CHART_PAGE_SIZE ? [
-      { type: 'slider', yAxisIndex: 0, orient: 'vertical', width: 16, right: 0, start: 0, end: endPct, brushSelect: false, handleSize: '80%' },
+      { type: 'slider', yAxisIndex: 0, orient: 'vertical', width: 6, right: 4, start: 0, end: endPct, brushSelect: false, handleSize: 0, showDetail: false, showDataShadow: false, borderColor: 'transparent', backgroundColor: 'transparent', fillerColor: '#dcdfe6'},
       { type: 'inside', yAxisIndex: 0, start: 0, end: endPct },
     ] : [],
     series: [
@@ -390,7 +396,7 @@ function renderGrowthChart() {
       axisLabel: { formatter: (v: number) => v + '' },
     },
     dataZoom: agencies.length > CHART_PAGE_SIZE ? [
-      { type: 'slider', xAxisIndex: 0, bottom: 28, height: 16, start: 0, end: endPct, brushSelect: false, handleSize: '80%' },
+      { type: 'slider',  xAxisIndex: 0, bottom: 28, height: 6, start: 0, end: endPct, brushSelect: false, handleSize: 0, showDetail: false, showDataShadow: false, borderColor: 'transparent', backgroundColor: 'transparent', fillerColor: '#dcdfe6'},
       { type: 'inside', xAxisIndex: 0, start: 0, end: endPct },
     ] : [],
     series: [
@@ -403,6 +409,7 @@ function renderGrowthChart() {
           silent: true,
           symbol: 'none',
           lineStyle: { color: '#999', type: 'solid', width: 1 },
+          label: { show: false },
           data: [{ yAxis: 0 }],
         },
       },
@@ -434,57 +441,104 @@ onUnmounted(() => {
 <style scoped>
 .reports-page { padding-bottom: 24px; }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 20px;
+.dashbboard-header {
+  margin-bottom: 1.25rem;
 }
+
 .page-header h2 { margin: 0; font-size: 18px; font-weight: 700; color: #303133; }
 
-.type-switcher { display: flex; align-items: center; gap: 8px; }
-.switcher-label { font-size: 14px; color: #606266; }
+.type-switcher { display: flex; align-items: center; gap: 1.5rem; }
+.switcher-label { font-size: 1.125rem; color: #606266; }
 .type-btn {
-  padding: 4px 14px;
+  padding: 0.5rem 1rem;
   border-radius: 20px;
-  border: 1px solid #dcdfe6;
-  background: #fff;
-  font-size: 13px;
-  color: #606266;
+  border: 1px solid var(--el-color-primary);
+  background: transparent;
+  font-size: 15px;
+  color: var(--el-color-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s;   
+  width: 110px;
+  height: 38px;
 }
 .type-btn.active {
-  background: #1B60CB;
-  border-color: #1B60CB;
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
   color: #fff;
 }
 
 /* Stat cards */
 .stat-card { height: 100%; }
-.stat-inner { display: flex; align-items: flex-start; gap: 12px; }
+.stat-inner { display: flex; align-items: center; gap: 1rem; }
 .stat-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: #e8f0fd; 
+  color: var(--el-color-primary)
 }
 .stat-info { flex: 1; }
-.stat-value { font-size: 28px; font-weight: 700; color: #303133; line-height: 1.2; }
-.stat-label { font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4; }
-.stat-growth { font-size: 12px; margin-top: 4px; font-weight: 500; }
+.stat-value { font-size: 28px; font-weight: 700; color: #2F2B3DE5; line-height: 42px; }
+.stat-label { font-size: 15px; color: var(--el-text-color-regular); margin-top: 8px; line-height: 22px; }
+.stat-growth { font-size: 15px; margin-top: 4px; font-weight: 500; color: #2F2B3DE5;}
+/*
 .stat-growth.positive { color: #67c23a; }
 .stat-growth.negative { color: #f56c6c; }
-.growth-note { color: #909399; font-weight: 400; }
+*/
+.growth-note { color: #2F2B3D66; font-weight: 400; font-size: 13px;}
+:deep(.stat-card .el-card__body) {
+  padding: 1rem;
+}
 
 /* Month selector */
 .month-bar {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 12px;
+}
+
+.month-bar :deep(.el-input__wrapper),
+.month-bar :deep(.el-select__wrapper) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+  padding-right: 0 !important;
+  border-radius: 4px;
+  overflow: hidden; 
+  height: 38px;
+}
+
+.month-bar :deep(.el-input__wrapper.is-focus),
+.month-bar :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
+
+.month-bar :deep(.el-input__inner),
+.month-bar :deep(.el-select__placeholder) {
+  color: var(--el-color-primary) !important;
+  font-size: 15px; 
+}
+
+.month-bar :deep(.el-input__suffix),
+.month-bar :deep(.el-select__suffix) {
+  border-left: 1px solid var(--el-color-primary);
+  width: 32px; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  right: 0;
+  height: 100%;
+  top: 0;
+  background-color: transparent;
+}
+
+.month-bar :deep(.el-select__caret),
+.month-bar :deep(.el-icon) {
+  color: var(--el-color-primary) !important;
+  font-weight: bold;
 }
 
 /* Chart title */

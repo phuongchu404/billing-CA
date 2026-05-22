@@ -6,14 +6,14 @@
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
           <div class="stat-inner">
-            <div class="stat-icon" style="background:#e8f0fd;color:#1B60CB">
+            <div class="stat-icon">
               <el-icon size="28"><UserFilled /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ report?.stats.activeCustomers ?? 0 }}</div>
-              <div class="stat-label">{{ t('individualReport.activeCustomersCts') }}</div>
             </div>
           </div>
+          <div class="stat-label">{{ t('individualReport.activeCustomersCts') }}</div>
         </el-card>
       </el-col>
 
@@ -21,14 +21,14 @@
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
           <div class="stat-inner">
-            <div class="stat-icon" style="background:#e8f0fd;color:#1B60CB">
+            <div class="stat-icon">
               <el-icon size="28"><DocumentChecked /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ report?.stats.newCts ?? 0 }}</div>
-              <div class="stat-label">{{ t('individualReport.newCtsThisMonth') }}</div>
             </div>
           </div>
+          <div class="stat-label">{{ t('individualReport.newCtsThisMonth') }}</div>
         </el-card>
       </el-col>
 
@@ -36,14 +36,14 @@
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
           <div class="stat-inner">
-            <div class="stat-icon" style="background:#f0ebfd;color:#7c3aed">
+            <div class="stat-icon">
               <el-icon size="28"><DataAnalysis /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ (report?.stats.signings ?? 0).toLocaleString('vi-VN') }}</div>
-              <div class="stat-label">{{ t('individualReport.signingsThisMonth') }}</div>
             </div>
           </div>
+          <div class="stat-label">{{ t('individualReport.signingsThisMonth') }}</div>
         </el-card>
       </el-col>
 
@@ -66,7 +66,7 @@
 
     <!-- Month selector -->
     <div class="month-bar">
-      <el-select v-model="selectedMonth" size="small" style="width:140px" @change="loadReport">
+      <el-select v-model="selectedMonth" size="small" style="width:180px" @change="loadReport">
         <el-option v-for="m in monthOptions" :key="m.value" :label="m.label" :value="m.value" />
       </el-select>
     </div>
@@ -90,7 +90,7 @@
             <div class="chart-header">
               <span class="chart-title">{{ t('individualReport.ctsCreatedChart') }}</span>
               <el-select v-model="filterCts" size="small" style="width:100px" @change="renderCtsChart">
-                <el-option :label="t('individualReport.filterAll')" value="" />
+                <el-option :label="t('individualReport.filterAll')" value="ALL" />
                 <el-option :label="t('individualReport.filterIndividual')" value="INDIVIDUAL" />
                 <el-option :label="t('individualReport.filterOrganization')" value="ORGANIZATION" />
                 <el-option :label="t('individualReport.filterIndividualOfOrg')" value="INDIVIDUAL_OF_ORG" />
@@ -111,7 +111,7 @@
             <div class="chart-header">
               <span class="chart-title">{{ t('individualReport.signingChart') }}</span>
               <el-select v-model="filterSigning" size="small" style="width:100px" @change="renderSigningChart">
-                <el-option :label="t('individualReport.filterAll')" value="" />
+                <el-option :label="t('individualReport.filterAll')" value="ALL" />
                 <el-option :label="t('individualReport.filterIndividual')" value="INDIVIDUAL" />
                 <el-option :label="t('individualReport.filterOrganization')" value="ORGANIZATION" />
                 <el-option :label="t('individualReport.filterIndividualOfOrg')" value="INDIVIDUAL_OF_ORG" />
@@ -129,7 +129,7 @@
             <div class="chart-header">
               <span class="chart-title">{{ t('individualReport.failureRateChart') }}</span>
               <el-select v-model="filterFailure" size="small" style="width:100px">
-                <el-option :label="t('individualReport.filterAll')" value="" />
+                <el-option :label="t('individualReport.filterAll')" value="ALL" />
                 <el-option :label="t('individualReport.filterIndividual')" value="INDIVIDUAL" />
                 <el-option :label="t('individualReport.filterOrganization')" value="ORGANIZATION" />
               </el-select>
@@ -152,9 +152,9 @@ import type { IndividualReportResponse } from '@/api/reports'
 
 const selectedMonth = ref(currentMonthKey())
 const { t } = useI18n()
-const filterCts = ref('')
-const filterSigning = ref('')
-const filterFailure = ref('')
+const filterCts = ref('ALL')
+const filterSigning = ref('ALL')
+const filterFailure = ref('ALL')
 const loading = ref(false)
 
 const report = ref<IndividualReportResponse | null>(null)
@@ -261,11 +261,11 @@ function renderCtsChart() {
   const { individual, organization, individualOfOrg } = report.value.ctsChart
 
   const visibleSeries = []
-  if (!filterCts.value || filterCts.value === 'INDIVIDUAL')
+  if (filterCts.value === 'ALL' || filterCts.value === 'INDIVIDUAL')
     visibleSeries.push({ name: t('individualReport.filterIndividual'), type: 'bar', stack: 'total', data: individual, itemStyle: { color: COLORS.individual }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
-  if (!filterCts.value || filterCts.value === 'ORGANIZATION')
+  if (filterCts.value === 'ALL' || filterCts.value === 'ORGANIZATION')
     visibleSeries.push({ name: t('individualReport.filterOrganization'), type: 'bar', stack: 'total', data: organization, itemStyle: { color: COLORS.organization }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
-  if (!filterCts.value || filterCts.value === 'INDIVIDUAL_OF_ORG')
+  if (filterCts.value === 'ALL' || filterCts.value === 'INDIVIDUAL_OF_ORG')
     visibleSeries.push({ name: t('individualReport.filterIndividualOfOrg'), type: 'bar', stack: 'total', data: individualOfOrg, itemStyle: { color: COLORS.individualOfOrg }, barMaxWidth: 48 })
 
   ctsChart.setOption({
@@ -285,11 +285,11 @@ function renderSigningChart() {
   const { individual, organization, individualOfOrg } = report.value.signingChart
 
   const visibleSeries = []
-  if (!filterSigning.value || filterSigning.value === 'INDIVIDUAL')
+  if (filterSigning.value === 'ALL' || filterSigning.value === 'INDIVIDUAL')
     visibleSeries.push({ name: t('individualReport.filterIndividual'), type: 'bar', stack: 'total', data: individual, itemStyle: { color: COLORS.individual }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
-  if (!filterSigning.value || filterSigning.value === 'ORGANIZATION')
+  if (filterSigning.value === 'ALL' || filterSigning.value === 'ORGANIZATION')
     visibleSeries.push({ name: t('individualReport.filterOrganization'), type: 'bar', stack: 'total', data: organization, itemStyle: { color: COLORS.organization }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#fff', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
-  if (!filterSigning.value || filterSigning.value === 'INDIVIDUAL_OF_ORG')
+  if (filterSigning.value === 'ALL' || filterSigning.value === 'INDIVIDUAL_OF_ORG')
     visibleSeries.push({ name: t('individualReport.filterIndividualOfOrg'), type: 'bar', stack: 'total', data: individualOfOrg, itemStyle: { color: COLORS.individualOfOrg }, barMaxWidth: 48, label: { show: true, position: 'inside', color: '#606266', fontSize: 11, formatter: (p: any) => p.value > 0 ? p.value : '' } })
 
   signingChart.setOption({
@@ -351,16 +351,75 @@ onUnmounted(() => {
 
 <style scoped>
 .stat-card { height: 100%; }
-.stat-inner { display: flex; align-items: flex-start; gap: 12px; }
-.stat-icon { width: 52px; height: 52px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-inner { display: flex; align-items: center; gap: 1rem; }
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #e8f0fd; 
+  color: #1B60CB
+}
 .stat-info { flex: 1; }
-.stat-value { font-size: 28px; font-weight: 700; color: #303133; line-height: 1.2; }
-.stat-label { font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4; }
+.stat-value { font-size: 28px; font-weight: 700; color: #2F2B3DE5; line-height: 42px; }
+.stat-label { font-size: 15px; color: var(--el-text-color-regular); margin-top: 8px; line-height: 22px; }
+.stat-growth { font-size: 15px; margin-top: 4px; font-weight: 500; color: #2F2B3DE5;}
+:deep(.stat-card .el-card__body) {
+  padding: 1rem;
+}
 
 .donut-wrap { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .donut-label { position: absolute; font-size: 12px; font-weight: 700; color: #303133; pointer-events: none; }
 
-.month-bar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+/* Month selector styles */
+.month-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.month-bar :deep(.el-input__wrapper),
+.month-bar :deep(.el-select__wrapper) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+  padding-right: 0 !important;
+  border-radius: 4px;
+  overflow: hidden; 
+  height: 38px;
+}
+
+.month-bar :deep(.el-input__wrapper.is-focus),
+.month-bar :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
+
+.month-bar :deep(.el-input__inner),
+.month-bar :deep(.el-select__placeholder) {
+  color: var(--el-color-primary) !important;
+  font-size: 15px; 
+}
+
+.month-bar :deep(.el-input__suffix),
+.month-bar :deep(.el-select__suffix) {
+  border-left: 1px solid var(--el-color-primary);
+  width: 32px; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  right: 0;
+  height: 100%;
+  top: 0;
+  background-color: transparent;
+}
+
+.month-bar :deep(.el-select__caret),
+.month-bar :deep(.el-icon) {
+  color: var(--el-color-primary) !important;
+  font-weight: bold;
+}
 
 .chart-header { display: flex; justify-content: space-between; align-items: center; }
 .chart-title { font-size: 14px; font-weight: 600; color: #303133; }

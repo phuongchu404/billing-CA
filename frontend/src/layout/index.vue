@@ -50,14 +50,14 @@ const appStore = useAppStore()
 .logo {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: start;
   padding: 14px 16px;
   border-bottom: 1px solid #E1E7F1;
   height: 60px;
 }
 .logo-img {
-  height: 34px;
-  width: auto;
+  height: 54px;
+  width: 130px;
   max-width: 100%;
   object-fit: contain;
 }
