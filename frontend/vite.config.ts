@@ -26,6 +26,8 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   server: {
+
+    host: true,
     port: 3000,
     // Proxy disabled for offline mode
 

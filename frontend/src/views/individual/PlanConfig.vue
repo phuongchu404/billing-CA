@@ -8,18 +8,18 @@
     </div>
 
     <el-card shadow="never">
-      <div class="current-plan-info">
+      <div class="current-plan-info text-regular">
         <div v-if="currentPlan">
           {{ t("individualPlan.currentPlan") }}
-          <b>{{ currentPlan.name }}</b>
+          <span class="text-primary">{{ currentPlan.name }}</span>
           {{ t("individualPlan.applyUntil") }}
-          <b>{{ currentPlan.applyUntil }}</b>
+          <span class="text-primary">{{ currentPlan.applyUntil }}</span>
         </div>
         <div v-if="nextPlan">
           {{ t("individualPlan.nextPlan") }}
-          <b>{{ nextPlan.name }}</b>
+          <span class="text-primary">{{ nextPlan.name }}</span>
           {{ t("individualPlan.applyFrom") }}
-          <b>{{ nextPlan.applyFrom }}</b>
+          <span class="text-primary">{{ nextPlan.applyFrom }}</span>
         </div>
       </div>
 
@@ -61,11 +61,12 @@
         />
       </div> -->
 
-      <el-table :data="pagedList" v-loading="loading" border>
+      <el-table :data="pagedList" v-loading="loading" border @sort-change="handleSort">
         <el-table-column
-          width="55"
+          width="60"
           type="index"
           :index="(i: number) => (page - 1) * pageSize + i + 1"
+          align="center"
         >
           <template #header>
             <div class="col-label">#</div>
@@ -75,7 +76,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="name" sortable min-width="240">
+        <el-table-column prop="name" sortable="custom" min-width="240" :sort-orders="['ascending', 'descending']">
           <template #header>
             <div class="col-label">{{ t("individualPlan.colPlanName") }}</div>
             <div class="col-filter"></div>
@@ -144,7 +145,7 @@
           <template #default="{ row }">{{ row.applyFrom ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="applyUntil" sortable width="130" align="center">
+        <el-table-column prop="applyUntil" sortable width="160" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colApplyTo") }}</div>
             <div class="col-filter">
@@ -161,7 +162,7 @@
           <template #default="{ row }">{{ row.applyUntil ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="updatedAt" sortable width="180" align="center">
+        <el-table-column prop="updatedAt" sortable width="210" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colUpdatedAt") }}</div>
             <div class="col-filter">
@@ -178,7 +179,7 @@
           <template #default="{ row }">{{ row.updatedAt ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column fixed="right" width="250" header-align="center">
+        <el-table-column fixed="right" width="240" header-align="center">
           <template #header>
             <div class="col-label">{{ t("common.action") }}</div>
             <div class="col-filter"></div>
@@ -190,7 +191,7 @@
                 icon="InfoFilled" 
                 @click.stop="goDetail(row)"
               >
-                {{ t("individualPlan.viewDetails") }}
+                {{ t("common.detail") }}
               </el-button>
 
               <el-button
@@ -448,9 +449,27 @@ const disabledDate = (time: Date) => {
   return time.getTime() < today.getTime();
 };
 
+const currentSort = ref({ prop: '', order: null as string | null })
+const handleSort = ({ prop, order }: any) => {
+  currentSort.value = { prop, order }
+}
+
 const pagedList = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  return filteredList.value.slice(start, start + pageSize.value);
+  let result = [...filteredList.value]
+
+  if (currentSort.value.prop === 'name' && currentSort.value.order !== null) {
+    result.sort((a, b) => {
+      const nameA = (a.name || '').toString().trim().toLowerCase()
+      const nameB = (b.name || '').toString().trim().toLowerCase()
+
+      const compare = nameA.localeCompare(nameB, 'vi')
+      return currentSort.value.order === 'ascending' ? compare : -compare
+    })
+  }
+
+  const start = (page.value - 1) * pageSize.value
+  return result.slice(start, start + pageSize.value)
+  //return filteredList.value.slice(start, start + pageSize.value);
 });
 
 function statusLabel(status: PlanStatus): string {
@@ -631,18 +650,17 @@ onMounted(load);
 }
 .page-header h2 {
   margin: 0;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
 .page-subtitle {
   margin: 4px 0 0;
-  color: #909399;
-  font-size: 13px;
+  color: var(--el-text-color-regular);
+  font-size: 15px;
 }
 
 .current-plan-info {
   margin-bottom: 12px;
-  font-size: 14px;
-  line-height: 1.8;
-  color: #303133;
 }
 
 .info-bar {
