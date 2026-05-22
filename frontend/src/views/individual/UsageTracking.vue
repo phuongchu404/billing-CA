@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h2>{{ $t('usageTracking.title') }}</h2>
-        <p class="page-subtitle">{{ $t('usageTracking.subtitle') }}</p>
+        <p class="page-subtitle">{{ $t('menu.regularCustomer') }}</p>
       </div>
     </div>
 
@@ -11,27 +11,27 @@
       <!-- Stats -->
       <div class="stats-grid">
         <div class="stat-item">
-          {{ $t('usageTracking.accountsLabel') }} <b>{{ stats.accounts }}</b>
+          {{ $t('usageTracking.accountsLabel') }} {{ stats.accounts }}
         </div>
         <div class="stat-item">
-          {{ $t('usageTracking.plansBoughtLabel') }} <b>{{ stats.plansBought }}</b>
+          {{ $t('usageTracking.plansBoughtLabel') }} {{ stats.plansBought }}
         </div>
         <div class="stat-item">
-          {{ $t('usageTracking.signingsLabel') }} <b>{{ stats.signings.toLocaleString("vi-VN") }}</b>
+          {{ $t('usageTracking.signingsLabel') }} {{ stats.signings.toLocaleString("vi-VN") }}
         </div>
         <div class="stat-item">
-          {{ $t('usageTracking.ctsIndividualLabel') }} <b>{{ stats.ctsIndividual }}</b>
+          {{ $t('usageTracking.ctsIndividualLabel') }} {{ stats.ctsIndividual }}
         </div>
         <div class="stat-item">
-          {{ $t('usageTracking.ctsOrgLabel') }} <b>{{ stats.ctsOrg }}</b>
+          {{ $t('usageTracking.ctsOrgLabel') }} {{ stats.ctsOrg }}
         </div>
         <div class="stat-item">
-          {{ $t('usageTracking.ctsIndividualOfOrgLabel') }} <b>{{ stats.ctsIndividualOfOrg }}</b>
+          {{ $t('usageTracking.ctsIndividualOfOrgLabel') }} {{ stats.ctsIndividualOfOrg }}
         </div>
       </div>
 
       <div class="action-bar">
-        <el-button :icon="Grid" @click="handleExport">{{ $t('usageTracking.exportData') }}</el-button>
+        <el-button class="btn-primary" :icon="Grid" @click="handleExport">{{ $t('usageTracking.exportData') }}</el-button>
         <span class="last-updated">{{ $t('usageTracking.lastUpdatedLabel', { time: lastUpdated }) }}</span>
       </div>
 
@@ -59,8 +59,10 @@
       <!-- Table -->
       <el-table :data="pagedList" v-loading="loading" border>
         <el-table-column
-          width="55"
+          width="50"
           type="index"
+          header-align="center"
+          align="center"
           :index="(i: number) => (page - 1) * pageSize + i + 1"
         >
           <template #header>
@@ -71,14 +73,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="account" sortable min-width="145">
-          <template #header>
-            <div class="col-label">{{ $t('usageTracking.colAccount') }}</div>
-            <div class="col-filter"></div>
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="purchasedAt" sortable width="165">
+        <el-table-column prop="purchasedAt" sortable width="210"  align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colPurchaseDate') }}</div>
             <div class="col-filter">
@@ -94,7 +89,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="ctsType" sortable width="155">
+        <el-table-column prop="ctsType" sortable width="165">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colCtsType') }}</div>
             <div class="col-filter">
@@ -118,8 +113,8 @@
             ctsTypeLabel(row.ctsType)
           }}</template>
         </el-table-column>
-
-        <el-table-column prop="ctsDuration" sortable width="130">
+        
+        <el-table-column prop="ctsDuration" sortable width="160" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colCtsDuration') }}</div>
             <div class="col-filter">
@@ -140,7 +135,14 @@
           <template #default="{ row }">{{ row.ctsDuration }} {{ $t('usageTracking.months') }}</template>
         </el-table-column>
 
-        <el-table-column prop="ctsStatus" sortable width="145">
+        <el-table-column prop="account" sortable min-width="180">
+          <template #header>
+            <div class="col-label">{{ $t('usageTracking.colAccount') }}</div>
+            <div class="col-filter"></div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="ctsStatus" sortable width="170" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colCtsStatus') }}</div>
             <div class="col-filter">
@@ -160,27 +162,15 @@
             </div>
           </template>
           <template #default="{ row }">
-            <el-tag
-              v-if="row.ctsStatus === 'PENDING_ACTIVATE'"
-              type="primary"
-              size="small"
-              effect="plain"
-              >{{ $t('usageTracking.statusPendingActivate') }}</el-tag
+            <span 
+              :class="['custom-cts-tag', `status-${(row.ctsStatus || '').toLowerCase().replace('_', '-')}`]"
             >
-            <el-tag
-              v-else-if="row.ctsStatus === 'REVOKED'"
-              type="info"
-              size="small"
-              effect="plain"
-              >{{ $t('usageTracking.statusRevoked') }}</el-tag
-            >
-            <span v-else :class="ctsStatusClass(row.ctsStatus)">{{
-              ctsStatusLabel(row.ctsStatus)
-            }}</span>
+              {{ ctsStatusLabel(row.ctsStatus) }}
+            </span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="signings" sortable width="120" align="right">
+        <el-table-column prop="signings" sortable width="140" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colSigningUsed') }}</div>
             <div class="col-filter"></div>
@@ -190,7 +180,7 @@
           }}</template>
         </el-table-column>
 
-        <el-table-column prop="plan" sortable min-width="145">
+        <el-table-column prop="plan" sortable min-width="200">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colPlanApplied') }}</div>
             <div class="col-filter">
@@ -208,7 +198,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="fee" sortable width="120" align="right">
+        <el-table-column prop="fee" sortable width="140" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colFee') }}</div>
             <div class="col-filter"></div>
@@ -235,14 +225,32 @@
           </el-select>
           {{ $t('usageTracking.totalPlans', { total: filteredList.length }) }}
         </span>
-        <el-pagination
-          v-model:current-page="page"
-          :total="filteredList.length"
-          :page-size="pageSize"
-          layout="prev, pager, next, jumper"
-          :pager-count="5"
-          background
-        />
+        <div class="custom-pagination-wrapper">
+          <button 
+            class="custom-nav-btn" 
+            :disabled="page === 1"
+            @click="page = 1"
+          >
+            <el-icon><DArrowLeft /></el-icon>
+          </button>
+
+          <el-pagination
+            v-model:current-page="page"
+            :total="filteredList.length"
+            :page-size="pageSize"
+            layout="prev, pager, next"
+            :pager-count="5"
+            background
+          />
+
+          <button 
+            class="custom-nav-btn" 
+            :disabled="page === Math.ceil(filteredList.length / pageSize)"
+            @click="page = Math.ceil(filteredList.length / pageSize)"
+          >
+            <el-icon><DArrowRight /></el-icon>
+          </button>
+        </div>
       </div>
     </el-card>
   </div>
@@ -385,19 +393,23 @@ onMounted(load);
 }
 .page-header h2 {
   margin: 0;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
 }
 .page-subtitle {
   margin: 4px 0 0;
-  color: #909399;
-  font-size: 13px;
+  color: var(--el-text-color-regular);
+  font-weight: 400;
+  font-size: 15px;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px 24px;
-  font-size: 14px;
-  color: #303133;
+  gap: 0.5rem 1.5rem;
+  font-size: 18px;
+  font-weight: 500; 
+  color: var(--el-text-color-regular);
   margin-bottom: 16px;
   line-height: 1.8;
 }
@@ -454,5 +466,108 @@ onMounted(load);
 .status-inactive {
   color: #909399;
   font-size: 13px;
+}
+
+:deep(.el-card) {
+  padding: 28px 34px;
+}
+
+/*custom-tag */
+.custom-cts-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 15px; 
+  white-space: nowrap;
+  width: 120px;
+  height: 34px;
+}
+
+/* 1. Đang hoạt động (Chữ xanh lá, không nền) */
+.status-active {
+  color: var(--el-color-success); 
+  background-color: transparent;
+  padding: 6px 0; 
+}
+
+/* 2. Chờ kích hoạt (Chữ xanh dương, nền xanh lơ nhạt) */
+.status-pending-activate {
+  color: var(--el-color-primary); 
+  background-color: #1B60CB14; 
+}
+
+/* 3. Chờ cấp duyệt (Chữ xanh dương, không nền) */
+.status-pending-approve {
+  color: var(--el-color-primary); 
+  background-color: transparent;
+  padding: 6px 0;
+}
+
+/* 4. Đã thu hồi (Chữ xám, nền xám nhạt) */
+.status-revoked {
+  color: var(--el-text-color-regular); 
+  background-color: #80839014; 
+}
+
+/* 5. Hết hạn (Chữ xám, không nền) */
+.status-expired {
+  color: var(--el-text-color-regular); 
+  background-color: transparent;
+  padding: 6px 0;
+}
+
+/*pagination*/
+:deep(.el-select__wrapper) {
+  padding: 0.25px 0.75rem!important;
+}
+
+
+.custom-pagination-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.custom-pagination-wrapper :deep(.el-pagination) {
+  padding: 0;
+}
+
+.custom-nav-btn,
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-next),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-prev),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .el-pager li) {
+  background-color: #f4f5f7 !important;
+  border-radius: 6px !important;        
+  min-width: 36px;
+  height: 36px;
+  border: none;
+  font-weight: 500;
+  color: #4b5563 !important; 
+  margin: 0 4px !important;  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-nav-btn:not(:disabled):hover,
+.custom-pagination-wrapper :deep(.el-pagination.is-background .el-pager li:not(.is-active):hover),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-next:hover),
+.custom-pagination-wrapper :deep(.el-pagination.is-background .btn-prev:hover) {
+  background-color: #e5e7eb !important; 
+}
+
+.custom-pagination-wrapper :deep(.el-pagination.is-background .el-pager li.is-active) {
+  background-color: var(--el-color-primary) !important; 
+  color: #ffffff !important;            
+  font-weight: 600;
+}
+
+.custom-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

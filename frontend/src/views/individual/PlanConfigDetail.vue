@@ -22,51 +22,53 @@
 
     <!-- THÔNG TIN GÓI CƯỚC -->
     <div class="section-card" v-loading="loading">
-      <div class="section-header" @click="toggleSection('info')">
+      <div class="section-header">
         <span class="section-title">{{ t('agency.planSection') }}</span>
-        <el-icon class="chevron" :class="{ rotated: !openSections.has('info') }"><ArrowDown /></el-icon>
+        <!--
+          <el-icon class="chevron" :class="{ rotated: !openSections.has('info') }"><ArrowDown /></el-icon>
+        -->
       </div>
       <div v-show="openSections.has('info')" class="info-grid" v-if="info">
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">{{ t('agency.dialogPlanName') }}</span>
-            <span class="info-value">{{ info.name }}</span>
+            <span class="text-regular">{{ t('approvals.planNameLabel') }}</span>
+            <span class="text-regular ">{{ info.name }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">{{ t('agency.statusField') }}</span>
-            <span class="info-value">{{ statusLabel(info.status as any) }}</span>
+            <span class="text-regular">{{ t('agency.statusField') }}</span>
+            <span class="text-regular">{{ statusLabel(info.status as any) }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">{{ t('agency.colApplyFrom') }}:</span>
-            <span class="info-value">{{ info.applyFrom ?? '' }}</span>
+            <span class="text-regular">{{ t('approvals.applyFromLabel') }}</span>
+            <span class="text-regular">{{ info.applyFrom ?? '' }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">{{ t('agency.colApplyTo') }}:</span>
-            <span class="info-value">{{ info.applyUntil ?? '' }}</span>
+            <span class="text-regular">{{ t('approvals.applyToLabel') }}</span>
+            <span class="text-regular">{{ info.applyUntil ?? '' }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item info-item--full">
-            <span class="info-label">{{ t('individualPlan.applyHistory') }}</span>
-            <span class="info-value">{{ info.applyHistory }}</span>
+            <span class="text-regular">{{ t('individualPlan.applyHistory') }}</span>
+            <span class="text-primary">{{ info.applyHistory }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">{{ t('agency.createdByField') }}</span>
-            <span class="info-value">{{ info.createdBy }}</span>
+            <span class="text-regular">{{ t('agency.createdByField') }}</span>
+            <span class="text-regular">{{ info.createdBy }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">{{ t('agency.createdAtField') }}</span>
-            <span class="info-value">{{ info.createdAt }}</span>
+            <span class="text-regular">{{ t('agency.createdAtField') }}</span>
+            <span class="text-regular">{{ info.createdAt }}</span>
           </div>
         </div>
         <div class="info-row">
           <div class="info-item">
-            <span class="info-label">{{ t('agency.updatedAtField') }}</span>
-            <span class="info-value">{{ info.updatedAt }}</span>
+            <span class="text-regular">{{ t('agency.updatedAtField') }}</span>
+            <span class="text-regular">{{ info.updatedAt }}</span>
           </div>
         </div>
       </div>
@@ -96,41 +98,41 @@
         </div>
 
         <el-table :data="currentConfigRows" border style="margin-top: 12px" table-layout="fixed">
-          <el-table-column type="index" width="55" :index="(i: number) => i + 1">
+          <el-table-column type="index" width="100" :index="(i: number) => i + 1" header-align="center" align="center">
             <template #header>
               <span>#</span>
             </template>
           </el-table-column>
 
-          <el-table-column prop="subject" sortable min-width="130">
+          <el-table-column prop="subject" sortable width="200" header-align="left">
             <template #header>
               <span>{{ t('individualPlan.colSubjectType') }}</span>
             </template>
             <template #default>{{ subjectLabel(activeTab) }}</template>
           </el-table-column>
 
-          <el-table-column prop="durationMonths" sortable width="160" align="center">
+          <el-table-column prop="durationMonths" sortable width="180" align="right" header-align="left">
             <template #header>
               <span>{{ t('individualPlan.durationHeader1') }}</span><br /><span>{{ t('individualPlan.durationHeader2') }}</span>
             </template>
             <template #default="{ row }">{{ row.durationMonths }} {{ t('agency.monthUnit') }}</template>
           </el-table-column>
 
-          <el-table-column prop="condition" sortable width="150" align="center">
+          <el-table-column prop="condition" sortable width="180" align="center" header-align="left">
             <template #header>
               <span>{{ t('agency.colCondition') }}</span>
             </template>
             <template #default="{ row }">{{ conditionLabel(row.condition) }}</template>
           </el-table-column>
 
-          <el-table-column prop="minValue" sortable width="160" align="center">
+          <el-table-column prop="minValue" sortable width="180" align="right" header-align="left">
             <template #header>
               <span>{{ t('individualPlan.minHeader') }}</span><br /><span>{{ t('individualPlan.conditionHeader') }}</span>
             </template>
             <template #default="{ row }">{{ row.minValue }}</template>
           </el-table-column>
 
-          <el-table-column prop="maxValue" sortable width="180" align="center">
+          <el-table-column prop="maxValue" sortable width="180" align="right" header-align="left">
             <template #header>
               <span>{{ t('individualPlan.maxHeader') }}</span><br /><span>{{ t('individualPlan.conditionHeader') }}</span>
             </template>
@@ -139,7 +141,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="fee" sortable width="140" align="right">
+          <el-table-column prop="fee" sortable width="200" align="right" header-align="left">
             <template #header>
               <span>{{ t('agency.colFeePerCondition') }}</span>
             </template>
@@ -157,34 +159,34 @@
       </div>
       <div v-show="openSections.has('history')">
         <el-table :data="statusHistory" border>
-          <el-table-column type="index" width="55" :index="(i: number) => i + 1">
+          <el-table-column type="index" width="60" :index="(i: number) => i + 1" header-align="center" align="center">
             <template #header>
               <div class="col-label">#</div>
-              <div class="col-filter">
-                <el-button link :icon="Refresh" @click="historyPage = 1" />
-              </div>
+              <!--
+                <div class="col-filter">
+                  <el-button link :icon="Refresh" @click="historyPage = 1" />
+                </div>
+
+              -->
             </template>
           </el-table-column>
 
-          <el-table-column prop="status" sortable min-width="140">
+          <el-table-column prop="status" sortable width="200">
             <template #header>
               <div class="col-label">{{ t('common.status') }}</div>
-              <div class="col-filter"></div>
             </template>
             <template #default="{ row }">{{ statusLabel(row.status) }}</template>
           </el-table-column>
 
-          <el-table-column prop="updatedAt" sortable width="190">
+          <el-table-column prop="updatedAt" sortable width="200">
             <template #header>
               <div class="col-label">{{ t('agency.updatedAtField') }}</div>
-              <div class="col-filter"></div>
             </template>
           </el-table-column>
 
-          <el-table-column prop="updatedBy" sortable width="180">
+          <el-table-column prop="updatedBy" sortable width="200">
             <template #header>
               <div class="col-label">{{ t('individualPlan.updatedBy') }}</div>
-              <div class="col-filter"></div>
             </template>
           </el-table-column>
         </el-table>
@@ -434,40 +436,38 @@ onMounted(load)
 
 .section-card {
   background: #fff;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+  border-radius: 6px;
   margin-bottom: 16px;
   overflow: hidden;
+  box-shadow: 0px 3px 12px 0px #2F2B3D24;
+  padding: 14px 22px;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 20px;
   cursor: pointer;
   user-select: none;
+  margin-bottom: 0.5rem;
 }
 .section-header:hover { background: #fafafa; }
 
 .section-title {
+  font-size: 18px;
+  line-height: 28px;
   font-weight: 700;
-  font-size: 14px;
-  color: #1B60CB;
-  letter-spacing: 0.3px;
+  color: var(--el-color-primary);
 }
 
 .chevron {
-  color: #1B60CB;
+  color: var(--el-color-primary);
   font-size: 14px;
   transition: transform 0.2s;
 }
 .chevron.rotated { transform: rotate(-90deg); }
 
 /* Info grid */
-.info-grid {
-  padding: 4px 20px 20px;
-}
 .info-row {
   display: flex;
   gap: 24px;
@@ -483,7 +483,6 @@ onMounted(load)
 }
 .info-item--full { flex: 2; }
 .info-label { color: #303133; white-space: nowrap; }
-.info-value { color: #303133; }
 
 /* Tabs */
 .category-tabs {
@@ -543,18 +542,13 @@ onMounted(load)
   flex-shrink: 0;
 }
 
-/* Section inner padding for tables */
-.section-card > div:not(.section-header) {
-  padding: 0 20px 20px;
-}
-
 /* Column filter row pattern */
 :deep(.el-table th.el-table__cell) {
   color: #606266;
   font-size: 12px;
   font-weight: 600;
 }
-.col-label { font-weight: 600; font-size: 13px; white-space: normal; line-height: 1.3; }
+.col-label { font-weight: 500; font-size: 13px; white-space: normal; line-height: 1.3; text-transform: uppercase; min-height: 56px; display: flex; align-items: center; }
 .col-filter { min-height: 28px; }
 
 :deep(.el-table th.el-table__cell) { vertical-align: top; padding: 8px 0; }

@@ -743,6 +743,7 @@ export default {
   },
   agency: {
     title: 'Agency Customers',
+    subTitle: '',
     addNewAgency: 'Add New',
     addPlanTitle: 'Add New Plan',
     exportReconciliation: 'Export Reconciliation Data',

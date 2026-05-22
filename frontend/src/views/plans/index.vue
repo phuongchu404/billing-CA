@@ -6,19 +6,24 @@
 
     <el-card shadow="never">
       <div class="info-bar">
-        <span
-          >{{ $t('agency.activeAgencyCount', { count: '' }) }}<b>{{ activeCount }}</b></span
-        >
-        <el-button
-          type="primary"
-          :icon="Plus"
-          :disabled="!can('group:create')"
-          @click="handleAddNew"
-          >{{ $t('agency.addNewAgency') }}</el-button
-        >
-        <el-button :icon="Download" :loading="exportingAll" @click="handleExport"
-          >{{ $t('agency.exportReconciliation') }}</el-button
-        >
+        <div>
+          <p class="text-regular">{{ $t('agency.activeAgencyCount', { count: '' }) }} {{ activeCount }}</p>
+          <p class="text-regular text-italic">{{ $t('agency.subTitle') }}</p>
+        </div>
+        <el-row>
+          <el-button
+            type="primary"
+            icon="Plus"
+            :disabled="!can('group:create')"
+            @click="handleAddNew"
+            class="btn-primary"
+            style="min-width: 130px;"
+            >{{ $t('agency.addNewAgency') }}</el-button
+          >
+          <el-button icon="Download" :loading="exportingAll" @click="handleExport" class="btn-primary"
+            >{{ $t('agency.exportReconciliation') }}</el-button
+          >
+        </el-row>
         <span class="last-updated">{{ $t('agency.lastUpdated', { time: lastUpdated }) }}</span>
       </div>
 
@@ -44,9 +49,10 @@
 
       <el-table :data="pagedList" v-loading="loading" border>
         <el-table-column
-          width="55"
+          width="60"
           type="index"
           :index="(i: number) => (page - 1) * pageSize + i + 1"
+          align="center"
         >
           <template #header>
             <div class="col-label">#</div>
@@ -56,21 +62,21 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="groupCode" sortable width="110">
+        <el-table-column prop="groupCode" sortable width="140">
           <template #header>
             <div class="col-label">{{ $t('agency.colCode') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="groupName" sortable min-width="180">
+        <el-table-column prop="groupName" sortable min-width="200">
           <template #header>
             <div class="col-label">{{ $t('agency.colName') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" sortable width="140">
+        <el-table-column prop="status" sortable width="170" align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colStatus') }}</div>
             <div class="col-filter">
@@ -86,16 +92,17 @@
               </el-select>
             </div>
           </template>
+          
           <template #default="{ row }">
             <span
-              :class="row.status === 'ACTIVE' ? 'text-active' : 'text-inactive'"
+              :class="['custom-status-tag', row.status === 'ACTIVE' ? 'status-active' : 'status-inactive']"
             >
               {{ row.status === "ACTIVE" ? $t("agency.statusActive") : $t("agency.statusInactive") }}
             </span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="ownerName" sortable min-width="150">
+        <el-table-column prop="ownerName" sortable min-width="200">
           <template #header>
             <div class="col-label">{{ $t('agency.colOwner') }}</div>
             <div class="col-filter"></div>
@@ -114,7 +121,7 @@
           <template #default="{ row }">{{ row.currentPlan ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="applyUntil" sortable width="130">
+        <el-table-column prop="applyUntil" sortable width="160">
           <template #header>
             <div class="col-label">{{ $t('agency.colApplyUntil') }}</div>
             <div class="col-filter">
@@ -131,7 +138,7 @@
           <template #default="{ row }">{{ row.applyUntil ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="ctsCreated" sortable width="130">
+        <el-table-column prop="ctsCreated" sortable width="160">
           <template #header>
             <div class="col-label">{{ $t('agency.colCtsCreated') }}</div>
             <div class="col-filter"></div>
@@ -141,7 +148,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="ctsCreatedPct" sortable width="130">
+        <el-table-column prop="ctsCreatedPct" sortable width="160">
           <template #header>
             <div class="col-label">{{ $t('agency.colCtsCreatedPct') }}</div>
             <div class="col-filter"></div>
@@ -149,7 +156,7 @@
           <template #default="{ row }">{{ row.ctsCreatedPct ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="signingUsed" sortable width="130">
+        <el-table-column prop="signingUsed" sortable width="160">
           <template #header>
             <div class="col-label">{{ $t('agency.colSigningUsed') }}</div>
             <div class="col-filter"></div>
@@ -161,7 +168,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="signingUsedPct" sortable width="130">
+        <el-table-column prop="signingUsedPct" sortable width="160">
           <template #header>
             <div class="col-label">{{ $t('agency.colSigningUsedPct') }}</div>
             <div class="col-filter"></div>
@@ -169,7 +176,7 @@
           <template #default="{ row }">{{ row.signingUsedPct ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="updatedAt" sortable width="175">
+        <el-table-column prop="updatedAt" sortable width="210">
           <template #header>
             <div class="col-label">{{ $t('agency.colUpdatedAt') }}</div>
             <div class="col-filter">
@@ -186,30 +193,21 @@
           <template #default="{ row }">{{ row.updatedAt ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column fixed="right" width="330">
+        <el-table-column fixed="right" width="245">
           <template #header>
             <div class="col-label">{{ $t('agency.colActions') }}</div>
             <div class="col-filter"></div>
           </template>
           <template #default="{ row }">
             <div class="action-btns">
-              <el-button size="small" :icon="View" @click.stop="goDetail(row)"
-                >{{ $t('agency.btnDetail') }}</el-button
-              >
-              <el-button
-                size="small"
-                :icon="UserFilled"
-                :disabled="!canAssignOwner"
-                @click.stop="openAssignOwner(row)"
-                >{{ $t('agency.btnAssignOwner') }}</el-button
-              >
-              <el-button
-                size="small"
-                :icon="Document"
-                :loading="exportingRowId === row.groupId"
-                @click.stop="handleExportRow(row)"
-                >{{ $t('agency.btnExportRow') }}</el-button
-              >
+              <el-button size="small" icon="InfoFilled" @click.stop="goDetail(row)">
+                {{ $t('agency.btnDetail') }}</el-button>
+              <el-button size="small" :icon="UserFilled" :disabled="!canAssignOwner" @click.stop="openAssignOwner(row)">
+                {{ $t('agency.btnAssignOwner') }}
+              </el-button>
+              <el-button size="small" icon="Document" :loading="exportingRowId === row.groupId" @click.stop="handleExportRow(row)">
+                {{ $t('agency.btnExportRow') }}
+              </el-button>
             </div>
           </template>
         </el-table-column>
@@ -475,13 +473,15 @@ onMounted(load);
 }
 .page-header h2 {
   margin: 0;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+  font-size: 1.5rem;
 }
 
 .info-bar {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 40px;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 .last-updated {
   margin-left: auto;
@@ -520,6 +520,29 @@ onMounted(load);
 .text-inactive {
   color: #ff9f43;
   font-weight: 500;
+}
+
+/*custom-tag*/
+.custom-status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.status-active {
+  color: var(--el-color-primary); 
+  background-color: #80839014; 
+}
+
+.status-inactive {
+  color: var(--el-color-warning); 
+  background-color: transparent;
+  padding: 6px 0; 
 }
 
 .action-btns {

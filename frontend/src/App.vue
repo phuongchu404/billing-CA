@@ -50,7 +50,7 @@ const locale = en
   --card-shadow:                0 3px 12px rgba(47, 43, 61, 0.14);
 
   /* ── Success: #28C76F ── */
-  --el-color-success:           #28C76F;
+  --el-color-success:           #24B364;
   --el-color-success-dark-2:    #20A85A;
   --el-color-success-light-3:   #64D493;
   --el-color-success-light-5:   #93E2B7;
@@ -144,7 +144,6 @@ const locale = en
 #app .el-input__wrapper,
 #app .el-range-editor .el-input__wrapper,
 #app .el-select__wrapper {
-  padding: 0.75rem 1rem;
   font-size: 15px;
   height: 100%;
 }
@@ -168,6 +167,16 @@ const locale = en
   border: none;
 }
 
+#app .btn-primary {
+  background-color: transparent;
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  min-height: 38px;
+  min-width: 150px;
+}
+
 #app .text-color-primary {
   color: var(--el-color-primary)!important;
 }
@@ -177,5 +186,21 @@ const locale = en
   font-size: 18px;
   font-weight: 500;
   line-height: 28px;
+}
+
+#app .text-regular {
+  color: var(--el-text-color-regular);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 28px;
+}
+
+#app p.text-regular {
+  margin: 0;
+}
+
+/* ── Custom class ── */
+.text-italic {
+  font-style: italic;
 }
 </style>
