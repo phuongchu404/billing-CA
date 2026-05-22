@@ -354,7 +354,7 @@
         </div>
         <i18n-t keypath="agency.dialogRequestNote" tag="p" class="dlg-note">
           <template #status>
-            <b>{{ $t('agency.dialogPendingApprovalStatus') }}</b>
+            <b v-html="$t('agency.dialogPendingApprovalStatus')"></b>
           </template>
         </i18n-t>
       </div>

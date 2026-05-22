@@ -64,6 +64,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/public/plans").permitAll()
                 // SSE stream for frontend-public real-time updates
                 .requestMatchers(HttpMethod.GET, "/api/v1/public/plan-updates/stream").permitAll()
+                // Public subscription APIs — called after payment callback or to query user's subs
+                .requestMatchers(HttpMethod.POST, "/api/v1/public/subscriptions").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/public/subscriptions").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);

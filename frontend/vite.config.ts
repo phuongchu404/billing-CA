@@ -30,9 +30,9 @@ export default defineConfig({
     // Proxy disabled for offline mode
 
     proxy: {
-      "/api": { target: "http://localhost:9292", changeOrigin: true },
-      "/internal": { target: "http://localhost:9292", changeOrigin: true },
-      "/webhooks": { target: "http://localhost:9292", changeOrigin: true },
+      "/api": { target: "http://10.30.21.123:9292", changeOrigin: true },
+      "/internal": { target: "http://10.30.21.123:9292", changeOrigin: true },
+      "/webhooks": { target: "http://10.30.21.123:9292", changeOrigin: true },
     },
   },
 });

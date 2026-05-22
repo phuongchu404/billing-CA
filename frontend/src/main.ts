@@ -13,7 +13,7 @@ const app = createApp(App)
 const pinia = createPinia()
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component as any)
+  app.component(key, component)
 }
 
 router.beforeEach((to, _from, next) => {
