@@ -185,10 +185,10 @@
                 v-model="row.durationMonths"
                 :min="1"
                 :max="48"
-                :controls="false"
+                controls-position="right"
                 :placeholder="t('individualPlan.numberPlaceholder')"
                 size="small"
-                style="width: 68px"
+                style="width: 90px"
               />
               <span class="unit-text">{{ t("agency.monthUnit") }}</span>
             </div>
@@ -232,7 +232,7 @@
             <el-input-number
               v-model="row.minValue"
               :min="1"
-              :controls="false"
+              controls-position="right"
               :placeholder="t('individualPlan.numberPlaceholder')"
               size="small"
               style="width: 100%"
@@ -253,7 +253,7 @@
             <el-input-number
               v-model="row.maxValue"
               :min="0"
-              :controls="false"
+              controls-position="right"
               :placeholder="t('agency.maxValuePlaceholder')"
               size="small"
               style="width: 100%"
@@ -271,10 +271,10 @@
               <el-input-number
                 v-model="row.fee"
                 :min="0"
-                :controls="false"
+                controls-position="right"
                 :placeholder="t('individualPlan.numberPlaceholder')"
                 size="small"
-                style="width: 80px"
+                style="flex: 1"
               />
               <span class="unit-text">{{ t("agency.vnd") }}</span>
             </div>
@@ -291,7 +291,7 @@
               <el-input-number
                 v-model="row.totalFee"
                 :min="0"
-                :controls="false"
+                controls-position="right"
                 :placeholder="t('agency.totalPricePlaceholder')"
                 size="small"
                 style="flex: 1; min-width: 0"
