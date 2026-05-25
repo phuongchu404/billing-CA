@@ -283,7 +283,7 @@
 
         <el-table-column
           :label="t('agency.colTotalPrice')"
-          width="160"
+          min-width="150"
           align="right"
         >
           <template #default="{ row }">
@@ -294,7 +294,7 @@
                 :controls="false"
                 :placeholder="t('agency.totalPricePlaceholder')"
                 size="small"
-                style="width: 90px"
+                style="flex: 1; min-width: 0"
               />
               <span class="unit-text">{{ t("agency.vnd") }}</span>
             </div>
