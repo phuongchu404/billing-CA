@@ -102,6 +102,7 @@
               style="width:100%"
               size="small"
               :placeholder="$t('agency.maxValuePlaceholder')"
+              @change="autoCalcTotalPrice(row)"
             />
           </template>
         </el-table-column>
@@ -109,7 +110,23 @@
         <el-table-column :label="$t('agency.colFeePerCondition')" sortable>
           <template #default="{ row }">
             <div class="cell-row">
-              <el-input-number v-model="row.fee" :min="0" controls-position="right" style="flex:1" size="small" />
+              <el-input-number v-model="row.fee" :min="0" controls-position="right" style="flex:1" size="small" @change="autoCalcTotalPrice(row)" />
+              <span>{{ $t('agency.vnd') }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column :label="$t('agency.colTotalPrice')" sortable>
+          <template #default="{ row }">
+            <div class="cell-row">
+              <el-input-number
+                v-model="row.totalPrice"
+                :min="0"
+                :controls="false"
+                style="flex:1"
+                size="small"
+                :placeholder="$t('agency.totalPricePlaceholder')"
+              />
               <span>{{ $t('agency.vnd') }}</span>
             </div>
           </template>
@@ -222,6 +239,7 @@ interface ConfigRow {
   minValue: number
   maxValue: number | null
   fee: number
+  totalPrice: number | null
 }
 
 // Dữ liệu đại lý (read-only) — load từ API
@@ -246,10 +264,16 @@ const form = reactive({
 })
 
 const configRows = reactive<ConfigRow[]>([
-  { subject: t('agency.subjectIndividual'), subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0 },
-  { subject: t('agency.subjectOrganization'), subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
-  { subject: t('agency.subjectIndividualOfOrg'), subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: t('agency.subjectIndividual'), subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0, totalPrice: null },
+  { subject: t('agency.subjectOrganization'), subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0, totalPrice: null },
+  { subject: t('agency.subjectIndividualOfOrg'), subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0, totalPrice: null },
 ])
+
+function autoCalcTotalPrice(row: ConfigRow) {
+  if (row.maxValue != null) {
+    row.totalPrice = row.fee * row.maxValue
+  }
+}
 
 const showGuide = ref(true)
 const submitting = ref(false)
@@ -306,6 +330,7 @@ async function confirmTemplate() {
           configRows[i].minValue = rule.rangeMin
           configRows[i].maxValue = rule.rangeMax
           configRows[i].fee = Number(rule.unitPrice)
+          configRows[i].totalPrice = rule.totalPrice != null ? Number(rule.totalPrice) : null
         }
       })
     }
@@ -320,6 +345,10 @@ async function handleSubmit() {
     ElMessage.warning(t('agency.warningPlanName'))
     return
   }
+  if (configRows.some((row) => row.totalPrice == null || row.totalPrice < 0)) {
+    ElMessage.warning(t('agency.warningTotalPrice'))
+    return
+  }
 
   submitting.value = true
   try {
@@ -331,6 +360,7 @@ async function handleSubmit() {
       rangeMin: row.minValue,
       rangeMax: row.maxValue,
       unitPrice: row.fee,
+      totalPrice: row.totalPrice,
       currency: 'VND',
       quotaTotal: null,
       sortOrder: i + 1,

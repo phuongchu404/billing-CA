@@ -185,10 +185,10 @@
                 v-model="row.durationMonths"
                 :min="1"
                 :max="48"
-                :controls="false"
+                controls-position="right"
                 :placeholder="t('individualPlan.numberPlaceholder')"
                 size="small"
-                style="width: 68px"
+                style="width: 90px"
               />
               <span class="unit-text">{{ t("agency.monthUnit") }}</span>
             </div>
@@ -232,7 +232,7 @@
             <el-input-number
               v-model="row.minValue"
               :min="1"
-              :controls="false"
+              controls-position="right"
               :placeholder="t('individualPlan.numberPlaceholder')"
               size="small"
               style="width: 100%"
@@ -253,7 +253,7 @@
             <el-input-number
               v-model="row.maxValue"
               :min="0"
-              :controls="false"
+              controls-position="right"
               :placeholder="t('agency.maxValuePlaceholder')"
               size="small"
               style="width: 100%"
@@ -271,10 +271,30 @@
               <el-input-number
                 v-model="row.fee"
                 :min="0"
-                :controls="false"
+                controls-position="right"
                 :placeholder="t('individualPlan.numberPlaceholder')"
                 size="small"
-                style="width: 80px"
+                style="flex: 1"
+              />
+              <span class="unit-text">{{ t("agency.vnd") }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column
+          :label="t('agency.colTotalPrice')"
+          min-width="150"
+          align="right"
+        >
+          <template #default="{ row }">
+            <div class="inline-cell fee-cell">
+              <el-input-number
+                v-model="row.totalFee"
+                :min="0"
+                controls-position="right"
+                :placeholder="t('agency.totalPricePlaceholder')"
+                size="small"
+                style="flex: 1; min-width: 0"
               />
               <span class="unit-text">{{ t("agency.vnd") }}</span>
             </div>
@@ -374,7 +394,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   CopyDocument,
@@ -404,9 +424,10 @@ interface ConfigRow {
   id: number;
   durationMonths: number | undefined;
   condition: string;
-  minValue: number | undefined;
+  minValue: number;
   maxValue: number | undefined;
   fee: number | undefined;
+  totalFee: number | undefined;
 }
 
 interface SubjectDisplayConfig {
@@ -489,19 +510,32 @@ function isTabCompleted(tab: TabKey): boolean {
         r.durationMonths != null &&
         r.condition !== "" &&
         r.minValue != null &&
-        r.fee != null,
+        r.fee != null &&
+        r.totalFee != null,
     )
   );
 }
+
+// Auto-calculate totalFee = fee * (maxValue - minValue) when maxValue is set
+watch(tabData, (data) => {
+  (Object.values(data) as ConfigRow[][]).forEach((rows) => {
+    rows.forEach((row) => {
+      if (row.maxValue != null && row.fee != null) {
+        row.totalFee = row.fee * row.maxValue;
+      }
+    });
+  });
+}, { deep: true });
 
 function addRow() {
   tabData[activeTab.value].push({
     id: ++rowIdSeq,
     durationMonths: undefined,
     condition: "",
-    minValue: undefined,
+    minValue: 1,
     maxValue: undefined,
     fee: undefined,
+    totalFee: undefined,
   });
 }
 
@@ -551,6 +585,7 @@ async function applyTemplate() {
             minValue: r.minValue,
             maxValue: r.maxValue ?? undefined,
             fee: r.fee,
+            totalFee: r.totalFee ?? undefined,
           });
         }
       });
@@ -583,6 +618,12 @@ async function handleSubmit() {
     return;
   }
 
+  const allRows = [...tabData.INDIVIDUAL, ...tabData.ORGANIZATION, ...tabData.INDIVIDUAL_OF_ORG];
+  if (allRows.length > 0 && allRows.some((r) => r.totalFee == null || r.totalFee < 0)) {
+    ElMessage.warning(t("agency.warningTotalPrice"));
+    return;
+  }
+
   const allRules = [
     ...tabData.INDIVIDUAL.map((r, i) => ({
       ...r,
@@ -608,6 +649,7 @@ async function handleSubmit() {
       minValue: r.minValue,
       maxValue: r.maxValue,
       fee: r.fee,
+      totalFee: r.totalFee,
       sortOrder: r.sortOrder,
     }));
 

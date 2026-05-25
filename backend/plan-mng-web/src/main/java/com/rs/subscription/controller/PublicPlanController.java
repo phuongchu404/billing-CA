@@ -39,6 +39,81 @@ public class PublicPlanController {
             "INDIVIDUAL", "ORGANIZATION", "INDIVIDUAL_OF_ORG"
     );
 
+    /**
+     * Returns all active pricing rules for the current plan, grouped by subject type.
+     * Used by mobile/public clients to display the full plan selection list.
+     */
+    @GetMapping("/plans/pricing")
+    public PublicPlanPricing getPublicPlanPricing() {
+        Optional<RetailPlanSchedule> activeSchedule =
+                scheduleRepo.findTopByScheduleStatusOrderByApplyFromAsc(CommercialEnums.ScheduleStatus.ACTIVE.name())
+                .or(() -> scheduleRepo.findTopByScheduleStatusOrderByApplyFromAsc(
+                        CommercialEnums.ScheduleStatus.APPROVED.name()));
+
+        if (activeSchedule.isEmpty()) return null;
+
+        PlanTemplate template = activeSchedule.get().getPlanTemplate();
+
+        List<PricingRuleItem> rules = template.getPricingRules().stream()
+                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+                .sorted((a, b) -> {
+                    int si = SUBJECT_ORDER.indexOf(a.getSubjectType()) - SUBJECT_ORDER.indexOf(b.getSubjectType());
+                    if (si != 0) return si;
+                    return Integer.compare(a.getSortOrder(), b.getSortOrder());
+                })
+                .map(r -> toPricingRuleItem(r, template.getPlanName()))
+                .collect(Collectors.toList());
+
+        PublicPlanPricing result = new PublicPlanPricing();
+        result.setPlanName(template.getPlanName());
+        result.setRules(rules);
+        return result;
+    }
+
+    private PricingRuleItem toPricingRuleItem(PlanPricingRule r, String planName) {
+        PricingRuleItem item = new PricingRuleItem();
+        item.setSubjectType(r.getSubjectType());
+        item.setSubjectLabel(subjectLabel(r.getSubjectType()));
+        item.setPlanName(planName);
+        item.setDurationValue(r.getCertificateValidityValue());
+        item.setDurationUnit(validityUnitLabel(r.getCertificateValidityUnit()));
+        item.setPricingMetric(r.getPricingMetric());
+        item.setPricingMetricLabel(metricLabel(r.getPricingMetric()));
+        item.setRangeMin(r.getRangeMin());
+        item.setRangeMax(r.getRangeMax());
+        item.setRangeLabel(r.getRangeMax() == null ? "Không giới hạn"
+                : r.getRangeMin() + " – " + r.getRangeMax());
+        item.setTotalPrice(r.getTotalPrice());
+        item.setTotalPriceFormatted(formatVnd(r.getTotalPrice()));
+        return item;
+    }
+
+    private String subjectLabel(String subjectType) {
+        return switch (subjectType) {
+            case "INDIVIDUAL"         -> "Cá nhân";
+            case "ORGANIZATION"       -> "Tổ chức";
+            case "INDIVIDUAL_OF_ORG"  -> "Cá nhân thuộc tổ chức";
+            default                   -> subjectType;
+        };
+    }
+
+    private String validityUnitLabel(String unit) {
+        return switch (unit) {
+            case "MONTH" -> "tháng";
+            case "YEAR"  -> "năm";
+            case "DAY"   -> "ngày";
+            default      -> unit;
+        };
+    }
+
+    private String metricLabel(String metric) {
+        return switch (metric) {
+            case "SIGNING_COUNT"     -> "Lượt ký số";
+            case "CERTIFICATE_COUNT" -> "Số chứng thư";
+            default                  -> metric;
+        };
+    }
+
     @GetMapping("/plans")
     public List<PublicPlanCard> getPublicPlans() {
         Optional<RetailPlanSchedule> activeSchedule =
@@ -50,12 +125,12 @@ public class PublicPlanController {
 
         PlanTemplate template = activeSchedule.get().getPlanTemplate();
 
-        // Min fee per subject type — from active pricing rules
+        // Min total price per subject type — from active pricing rules
         Map<String, BigDecimal> minFeeBySubject = template.getPricingRules().stream()
-                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
+                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
                 .collect(Collectors.groupingBy(
                         PlanPricingRule::getSubjectType,
-                        Collectors.mapping(PlanPricingRule::getUnitPrice,
+                        Collectors.mapping(PlanPricingRule::getTotalPrice,
                                 Collectors.minBy(BigDecimal::compareTo))))
                 .entrySet().stream()
                 .filter(e -> e.getValue().isPresent())
@@ -101,6 +176,28 @@ public class PublicPlanController {
         NumberFormat fmt = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
         fmt.setMaximumFractionDigits(0);
         return fmt.format(amount) + "đ";
+    }
+
+    @Data
+    public static class PublicPlanPricing {
+        private String planName;
+        private List<PricingRuleItem> rules;
+    }
+
+    @Data
+    public static class PricingRuleItem {
+        private String subjectType;
+        private String subjectLabel;
+        private String planName;
+        private Integer durationValue;
+        private String durationUnit;
+        private String pricingMetric;
+        private String pricingMetricLabel;
+        private Integer rangeMin;
+        private Integer rangeMax;
+        private String rangeLabel;
+        private BigDecimal totalPrice;
+        private String totalPriceFormatted;
     }
 
     @Data

@@ -1,6 +1,8 @@
 package com.rs.subscription.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
@@ -15,6 +17,7 @@ public class CreateIndividualPlanConfigRequest {
     private String applyUntil;
     private String requestedBy;
 
+    @Valid
     private List<PricingRuleRequest> pricingRules;
 
     /** Per-subject display config: icon, features, displayPrice for each card in frontend-public. */
@@ -30,6 +33,8 @@ public class CreateIndividualPlanConfigRequest {
         private Integer minValue;
         private Integer maxValue;
         private Long fee;
+        @NotNull
+        private Long totalFee;
         private Integer sortOrder;
     }
 

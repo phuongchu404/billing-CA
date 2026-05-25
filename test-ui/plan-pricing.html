@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chọn gói cước – SmartCA</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+      min-height: 100vh;
+    }
+
+    .phone-frame {
+      width: 390px;
+      background: #fff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+      min-height: 700px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
+      padding: 20px 20px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .header-logo span { color: #90caf9; }
+
+    /* Page title */
+    .page-title {
+      text-align: center;
+      padding: 20px 20px 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1565c0;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid #1565c0;
+      margin: 0 20px 0;
+    }
+
+    /* Config bar */
+    .config-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px 4px;
+    }
+    .config-label {
+      font-size: 12px;
+      color: #666;
+    }
+    .config-input {
+      flex: 1;
+      height: 34px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 0 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    .config-input:focus { border-color: #1976d2; }
+    .config-btn {
+      height: 34px;
+      padding: 0 14px;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .config-btn:hover { background: #1565c0; }
+
+    /* Subject tabs */
+    .subject-tabs {
+      display: flex;
+      gap: 0;
+      padding: 12px 20px 0;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #888;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: #1565c0;
+      border-bottom-color: #1565c0;
+      font-weight: 700;
+    }
+    .tab-btn:hover:not(.active) { color: #555; }
+
+    /* Plan list */
+    .plan-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px 20px;
+    }
+
+    /* Plan card */
+    .plan-card {
+      background: #fff;
+      border: 1px solid #e8ecf0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .plan-card:hover { border-color: #1976d2; box-shadow: 0 2px 10px rgba(25,118,210,0.15); }
+    .plan-card.selected { border-color: #1565c0; background: #e8f0fe; }
+
+    .plan-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1565c0;
+      margin-bottom: 10px;
+    }
+
+    .plan-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #444;
+      margin-bottom: 5px;
+    }
+    .plan-row:last-child { margin-bottom: 0; }
+    .plan-row-label { color: #777; }
+    .plan-row-value { font-weight: 500; color: #222; text-align: right; }
+    .plan-fee { color: #d32f2f; font-weight: 700; font-size: 14px; }
+
+    /* Empty / loading states */
+    .state-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      color: #999;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .state-box .icon { font-size: 36px; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #1976d2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg { color: #c62828; font-size: 13px; text-align: center; }
+
+    /* Badge for range */
+    .range-badge {
+      display: inline-block;
+      background: #e8f0fe;
+      color: #1565c0;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    /* Bottom nav */
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 12px 0 16px;
+      border-top: 1px solid #eee;
+      background: #fff;
+    }
+    .nav-icon { font-size: 22px; color: #bbb; cursor: pointer; }
+    .nav-icon.active { color: #1565c0; }
+  </style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">MK<span>SmartCA</span></div>
+  </div>
+
+  <!-- API base URL config -->
+  <div class="config-bar">
+    <span class="config-label">API:</span>
+    <input id="apiBase" class="config-input" value="http://localhost:8080" placeholder="http://localhost:8080" />
+    <button class="config-btn" onclick="loadData()">Tải</button>
+  </div>
+
+  <!-- Page title -->
+  <div class="page-title">THÔNG TIN MUA GÓI CHỨNG THƯ SỐ</div>
+
+  <!-- Subject tabs -->
+  <div class="subject-tabs" id="subjectTabs"></div>
+
+  <!-- Plan list -->
+  <div class="plan-list" id="planList">
+    <div class="state-box">
+      <div class="icon">📋</div>
+      <span>Nhập URL API rồi nhấn <b>Tải</b></span>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-icon">📋</div>
+    <div class="nav-icon active">⬇️</div>
+    <div class="nav-icon">⚙️</div>
+  </div>
+</div>
+
+<script>
+  const SUBJECT_LABELS = {
+    INDIVIDUAL:        'Cá nhân',
+    ORGANIZATION:      'Tổ chức',
+    INDIVIDUAL_OF_ORG: 'Cá nhân thuộc TC',
+  };
+
+  let allRules = [];
+  let activeSubject = null;
+
+  async function loadData() {
+    const base = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+    const listEl = document.getElementById('planList');
+    const tabsEl = document.getElementById('subjectTabs');
+
+    listEl.innerHTML = '<div class="state-box"><div class="spinner"></div><span>Đang tải...</span></div>';
+    tabsEl.innerHTML = '';
+
+    try {
+      const res = await fetch(`${base}/api/v1/public/plans/pricing`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (!data || !data.rules || data.rules.length === 0) {
+        listEl.innerHTML = '<div class="state-box"><div class="icon">📭</div><span>Không có gói cước nào đang hoạt động</span></div>';
+        return;
+      }
+
+      allRules = data.rules;
+
+      // Build subject tabs (preserve order)
+      const subjects = [...new Set(allRules.map(r => r.subjectType))];
+      activeSubject = subjects[0];
+
+      subjects.forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn' + (s === activeSubject ? ' active' : '');
+        btn.textContent = SUBJECT_LABELS[s] || s;
+        btn.onclick = () => selectTab(s, btn);
+        tabsEl.appendChild(btn);
+      });
+
+      renderList();
+    } catch (e) {
+      listEl.innerHTML = `<div class="state-box"><div class="icon">⚠️</div><span class="error-msg">Lỗi: ${e.message}</span></div>`;
+    }
+  }
+
+  function selectTab(subject, btnEl) {
+    activeSubject = subject;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+    renderList();
+  }
+
+  function renderList() {
+    const listEl = document.getElementById('planList');
+    const rules = allRules.filter(r => r.subjectType === activeSubject);
+
+    if (rules.length === 0) {
+      listEl.innerHTML = '<div class="state-box"><div class="icon">📭</div><span>Không có gói nào</span></div>';
+      return;
+    }
+
+    listEl.innerHTML = rules.map((r, i) => `
+      <div class="plan-card" onclick="this.classList.toggle('selected')">
+        <div class="plan-name">${r.planName}</div>
+        <div class="plan-row">
+          <span class="plan-row-label">Thời gian sử dụng</span>
+          <span class="plan-row-value">${r.durationValue} ${r.durationUnit}</span>
+        </div>
+        <div class="plan-row">
+          <span class="plan-row-label">${r.pricingMetricLabel}</span>
+          <span class="plan-row-value">
+            ${r.rangeMax == null
+              ? 'Không giới hạn'
+              : r.rangeMin + ' – ' + r.rangeMax + ' ' + metricShort(r.pricingMetric)
+            }
+          </span>
+        </div>
+        <div class="plan-row">
+          <span class="plan-row-label">Phí dịch vụ</span>
+          <span class="plan-row-value plan-fee">${r.totalPriceFormatted || '—'}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function metricShort(metric) {
+    return metric === 'SIGNING_COUNT' ? 'lượt' : 'chứng thư';
+  }
+</script>
+</body>
+</html>

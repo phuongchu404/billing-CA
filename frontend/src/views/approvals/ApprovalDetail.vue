@@ -150,6 +150,12 @@
                 <span class="price-value">{{ formatAmount(row.unitPrice) }}</span>
               </template>
             </el-table-column>
+            <el-table-column :label="t('approvals.totalPrice')" min-width="140" align="right">
+              <template #default="{ row }">
+                <span v-if="row.totalPrice != null" class="price-value">{{ formatAmount(row.totalPrice) }}</span>
+                <span v-else class="price-empty">—</span>
+              </template>
+            </el-table-column>
             <el-table-column :label="t('approvals.quotaTotal')" width="110" align="right">
               <template #default="{ row }">{{ row.quotaTotal ?? '—' }}</template>
             </el-table-column>

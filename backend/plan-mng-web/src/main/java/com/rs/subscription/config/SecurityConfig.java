@@ -61,7 +61,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/plan-templates").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/plan-templates/**").permitAll()
                 // Public pricing page API (no auth required)
-                .requestMatchers(HttpMethod.GET, "/api/v1/public/plans").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/public/plans/**").permitAll()
                 // SSE stream for frontend-public real-time updates
                 .requestMatchers(HttpMethod.GET, "/api/v1/public/plan-updates/stream").permitAll()
                 // Public subscription APIs — called after payment callback or to query user's subs

@@ -26,6 +26,7 @@ export interface IndividualPricingRuleRow {
   minValue: number
   maxValue: number | null
   fee: number
+  totalFee: number | null
   sortOrder: number
 }
 
@@ -70,6 +71,7 @@ export interface IndividualPricingRuleRequest {
   minValue: number | undefined
   maxValue: number | undefined
   fee: number | undefined
+  totalFee: number | undefined
   sortOrder: number
 }
 

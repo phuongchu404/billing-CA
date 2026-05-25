@@ -14,6 +14,7 @@ public class PlanPricingRuleResponse {
     private Integer rangeMin;
     private Integer rangeMax;
     private BigDecimal unitPrice;
+    private BigDecimal totalPrice;
     private String currency;
     private Integer quotaTotal;
     private Integer sortOrder;

@@ -215,12 +215,16 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         RetailPlanSchedule saved = createSchedule(template, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), CommercialEnums.ScheduleStatus.REQUESTED.name());
 
-        // Tính giá trị hợp đồng từ unitPrice tối đa của pricing rules
+        // Tính giá trị hợp đồng từ totalPrice tối đa của pricing rules (khách hàng trả trước)
         BigDecimal contractValue = template.getPricingRules().stream()
-            .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
-            .map(PlanPricingRule::getUnitPrice)
+            .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+            .map(PlanPricingRule::getTotalPrice)
             .max(BigDecimal::compareTo)
-            .orElse(BigDecimal.ZERO);
+            .orElseGet(() -> template.getPricingRules().stream()
+                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
+                .map(PlanPricingRule::getUnitPrice)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO));
 
         // Tạo multi-level ApprovalRequest và auto-submit → gửi email approver Level 1
         ApprovalRequest draft = ApprovalRequest.builder()
@@ -428,6 +432,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         row.setMinValue(rule.getRangeMin());
         row.setMaxValue(rule.getRangeMax());
         row.setFee(rule.getUnitPrice() != null ? rule.getUnitPrice().longValue() : 0L);
+        row.setTotalFee(rule.getTotalPrice() != null ? rule.getTotalPrice().longValue() : null);
         row.setSortOrder(rule.getSortOrder());
         return row;
     }
@@ -495,6 +500,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .rangeMin(rr.getMinValue() != null ? rr.getMinValue() : 1)
                 .rangeMax(rr.getMaxValue())
                 .unitPrice(rr.getFee() != null ? BigDecimal.valueOf(rr.getFee()) : BigDecimal.ZERO)
+                .totalPrice(rr.getTotalFee() != null ? BigDecimal.valueOf(rr.getTotalFee()) : null)
                 .currency("VND")
                 .sortOrder(rr.getSortOrder() != null ? rr.getSortOrder() : sortOrder)
                 .isActive(true)

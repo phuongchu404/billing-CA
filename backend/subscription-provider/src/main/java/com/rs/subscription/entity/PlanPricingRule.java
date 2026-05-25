@@ -51,6 +51,9 @@ public class PlanPricingRule {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal unitPrice;
 
+    @Column(precision = 15, scale = 2)
+    private BigDecimal totalPrice;
+
     @Column(nullable = false, columnDefinition = "CHAR(3)")
     private String currency;
 

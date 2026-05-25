@@ -192,6 +192,7 @@
               style="width: 100%"
               size="small"
               :placeholder="$t('agency.maxValuePlaceholder')"
+              @change="autoCalcTotalPrice(row)"
             />
           </template>
         </el-table-column>
@@ -205,6 +206,23 @@
                 controls-position="right"
                 style="flex: 1"
                 size="small"
+                @change="autoCalcTotalPrice(row)"
+              />
+              <span>{{ $t("agency.vnd") }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column :label="$t('agency.colTotalPrice')" sortable>
+          <template #default="{ row }">
+            <div class="cell-row">
+              <el-input-number
+                v-model="row.totalPrice"
+                :min="0"
+                :controls="false"
+                style="flex: 1"
+                size="small"
+                :placeholder="$t('agency.totalPricePlaceholder')"
               />
               <span>{{ $t("agency.vnd") }}</span>
             </div>
@@ -393,6 +411,7 @@ interface ConfigRow {
   minValue: number;
   maxValue: number | null;
   fee: number;
+  totalPrice: number | null;
 }
 
 const form = reactive({
@@ -420,6 +439,7 @@ const configRows = reactive<ConfigRow[]>([
     minValue: 1,
     maxValue: null,
     fee: 0,
+    totalPrice: null,
   },
   {
     subject: t("agency.subjectOrganization"),
@@ -429,6 +449,7 @@ const configRows = reactive<ConfigRow[]>([
     minValue: 1,
     maxValue: null,
     fee: 0,
+    totalPrice: null,
   },
   {
     subject: t("agency.subjectIndividualOfOrg"),
@@ -438,8 +459,15 @@ const configRows = reactive<ConfigRow[]>([
     minValue: 1,
     maxValue: null,
     fee: 0,
+    totalPrice: null,
   },
 ]);
+
+function autoCalcTotalPrice(row: ConfigRow) {
+  if (row.maxValue != null) {
+    row.totalPrice = row.fee * row.maxValue;
+  }
+}
 
 function addEmail(type: "pic" | "contact") {
   const inputRef = type === "pic" ? picEmailInput : contactEmailInput;
@@ -507,6 +535,7 @@ function applyTemplate() {
       configRows[idx].minValue = rule.rangeMin;
       configRows[idx].maxValue = rule.rangeMax;
       configRows[idx].fee = rule.unitPrice as unknown as number;
+      configRows[idx].totalPrice = rule.totalPrice as unknown as number | null;
     }
   });
 
@@ -521,6 +550,10 @@ async function handleSubmit() {
   }
   if (!form.planName.trim()) {
     ElMessage.warning(t("agency.warningPlanName"));
+    return;
+  }
+  if (configRows.some((row) => row.totalPrice == null || row.totalPrice < 0)) {
+    ElMessage.warning(t("agency.warningTotalPrice"));
     return;
   }
 
@@ -562,6 +595,7 @@ async function handleSubmit() {
       rangeMin: row.minValue,
       rangeMax: row.maxValue,
       unitPrice: row.fee,
+      totalPrice: row.totalPrice,
       currency: "VND",
       quotaTotal: null,
       sortOrder: i + 1,

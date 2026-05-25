@@ -8,6 +8,7 @@ export interface PlanPricingRule {
   rangeMin: number
   rangeMax: number | null
   unitPrice: number
+  totalPrice: number | null
   currency?: string
   quotaTotal?: number | null
   sortOrder?: number
@@ -61,6 +62,7 @@ export interface PlanPricingRuleRequest {
   rangeMin: number
   rangeMax: number | null
   unitPrice: number
+  totalPrice: number | null
   currency: string
   quotaTotal?: number | null
   sortOrder: number

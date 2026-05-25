@@ -30,6 +30,10 @@ public class PlanPricingRuleRequest {
     @DecimalMin(value = "0.0", inclusive = true)
     private BigDecimal unitPrice;
 
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = true)
+    private BigDecimal totalPrice;
+
     @Size(min = 3, max = 3)
     private String currency = "VND";
 
