@@ -68,7 +68,10 @@ const router = createRouter({
           path: "individual-usage-tracking",
           name: "IndividualUsageTracking",
           component: () => import("@/views/individual/UsageTracking.vue"),
-          meta: { title: "Theo dõi sử dụng", permission: "individual:usage:view" },
+          meta: {
+            title: "Theo dõi sử dụng",
+            permission: "individual:usage:view",
+          },
         },
         {
           path: "users",
@@ -92,12 +95,12 @@ const router = createRouter({
             permission: "report:view",
           },
         },
-        {
-          path: "partner-access",
-          name: "PartnerAccess",
-          component: () => import("@/views/partner/AccessManagement.vue"),
-          meta: { title: "Quyền truy cập đối tác", permission: "partner:access:grant" },
-        },
+        // {
+        //   path: "partner-access",
+        //   name: "PartnerAccess",
+        //   component: () => import("@/views/partner/AccessManagement.vue"),
+        //   meta: { title: "Quyền truy cập đối tác", permission: "partner:access:grant" },
+        // },
         {
           path: "approvals",
           name: "ApprovalList",
