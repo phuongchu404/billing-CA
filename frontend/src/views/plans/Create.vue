@@ -465,8 +465,8 @@ const configRows = reactive<ConfigRow[]>([
 // Auto-calculate totalPrice = fee * (maxValue - minValue) when maxValue is set
 watch(configRows, (rows) => {
   rows.forEach((row) => {
-    if (row.maxValue != null && row.maxValue > row.minValue) {
-      row.totalPrice = row.fee * (row.maxValue - row.minValue);
+    if (row.maxValue != null) {
+      row.totalPrice = row.fee * row.maxValue;
     }
   });
 }, { deep: true });
