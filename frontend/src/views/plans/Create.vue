@@ -192,6 +192,7 @@
               style="width: 100%"
               size="small"
               :placeholder="$t('agency.maxValuePlaceholder')"
+              @change="autoCalcTotalPrice(row)"
             />
           </template>
         </el-table-column>
@@ -205,6 +206,7 @@
                 controls-position="right"
                 style="flex: 1"
                 size="small"
+                @change="autoCalcTotalPrice(row)"
               />
               <span>{{ $t("agency.vnd") }}</span>
             </div>
@@ -373,7 +375,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from "vue";
+import { ref, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Document, ArrowUp, ArrowDown } from "@element-plus/icons-vue";
@@ -461,14 +463,11 @@ const configRows = reactive<ConfigRow[]>([
   },
 ]);
 
-// Auto-calculate totalPrice = fee * (maxValue - minValue) when maxValue is set
-watch(configRows, (rows) => {
-  rows.forEach((row) => {
-    if (row.maxValue != null) {
-      row.totalPrice = row.fee * row.maxValue;
-    }
-  });
-}, { deep: true });
+function autoCalcTotalPrice(row: ConfigRow) {
+  if (row.maxValue != null) {
+    row.totalPrice = row.fee * row.maxValue;
+  }
+}
 
 function addEmail(type: "pic" | "contact") {
   const inputRef = type === "pic" ? picEmailInput : contactEmailInput;

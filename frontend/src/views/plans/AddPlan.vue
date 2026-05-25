@@ -102,6 +102,7 @@
               style="width:100%"
               size="small"
               :placeholder="$t('agency.maxValuePlaceholder')"
+              @change="autoCalcTotalPrice(row)"
             />
           </template>
         </el-table-column>
@@ -109,7 +110,7 @@
         <el-table-column :label="$t('agency.colFeePerCondition')" sortable>
           <template #default="{ row }">
             <div class="cell-row">
-              <el-input-number v-model="row.fee" :min="0" controls-position="right" style="flex:1" size="small" />
+              <el-input-number v-model="row.fee" :min="0" controls-position="right" style="flex:1" size="small" @change="autoCalcTotalPrice(row)" />
               <span>{{ $t('agency.vnd') }}</span>
             </div>
           </template>
@@ -214,7 +215,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Document, ArrowUp, ArrowDown, CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -268,14 +269,11 @@ const configRows = reactive<ConfigRow[]>([
   { subject: t('agency.subjectIndividualOfOrg'), subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0, totalPrice: null },
 ])
 
-// Auto-calculate totalPrice = fee * (maxValue - minValue) when maxValue is set
-watch(configRows, (rows) => {
-  rows.forEach((row) => {
-    if (row.maxValue != null) {
-      row.totalPrice = row.fee * row.maxValue
-    }
-  })
-}, { deep: true })
+function autoCalcTotalPrice(row: ConfigRow) {
+  if (row.maxValue != null) {
+    row.totalPrice = row.fee * row.maxValue
+  }
+}
 
 const showGuide = ref(true)
 const submitting = ref(false)
