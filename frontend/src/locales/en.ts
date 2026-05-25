@@ -774,6 +774,8 @@ export default {
     colMaxValue: 'MAX VALUE (CONDITION)',
     colFeePerCondition: 'FEE / CONDITION',
     colTotalPrice: 'TOTAL PRICE',
+    totalPricePlaceholder: 'Enter total price',
+    warningTotalPrice: 'Please enter total price for all rows',
     colSubject: 'SUBJECT',
     statusActive: 'Active',
     statusInactive: 'Suspended',

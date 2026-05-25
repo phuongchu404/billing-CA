@@ -776,6 +776,8 @@ export default {
     colMaxValue: 'GIÁ TRỊ MAX (CỦA ĐIỀU KIỆN)',
     colFeePerCondition: 'PHÍ/ ĐIỀU KIỆN',
     colTotalPrice: 'TỔNG TIỀN',
+    totalPricePlaceholder: 'Nhập tổng tiền',
+    warningTotalPrice: 'Vui lòng nhập tổng tiền cho tất cả các dòng',
     colSubject: 'ĐỐI TƯỢNG',
     statusActive: 'Đang hoạt động',
     statusInactive: 'Tạm dừng',

@@ -121,11 +121,10 @@
               <el-input-number
                 v-model="row.totalPrice"
                 :min="0"
-                controls-position="right"
+                :controls="false"
                 style="flex:1"
                 size="small"
-                :placeholder="row.maxValue == null ? $t('agency.maxValuePlaceholder') : ''"
-                :disabled="row.maxValue != null"
+                :placeholder="$t('agency.totalPricePlaceholder')"
               />
               <span>{{ $t('agency.vnd') }}</span>
             </div>
@@ -346,6 +345,10 @@ async function confirmTemplate() {
 async function handleSubmit() {
   if (!form.planName.trim()) {
     ElMessage.warning(t('agency.warningPlanName'))
+    return
+  }
+  if (configRows.some((row) => row.totalPrice == null || row.totalPrice < 0)) {
+    ElMessage.warning(t('agency.warningTotalPrice'))
     return
   }
 

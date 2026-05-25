@@ -292,8 +292,7 @@
                 v-model="row.totalFee"
                 :min="0"
                 :controls="false"
-                :placeholder="row.maxValue == null ? t('agency.maxValuePlaceholder') : ''"
-                :disabled="row.maxValue != null"
+                :placeholder="t('agency.totalPricePlaceholder')"
                 size="small"
                 style="width: 90px"
               />
@@ -511,7 +510,8 @@ function isTabCompleted(tab: TabKey): boolean {
         r.durationMonths != null &&
         r.condition !== "" &&
         r.minValue != null &&
-        r.fee != null,
+        r.fee != null &&
+        r.totalFee != null,
     )
   );
 }
@@ -615,6 +615,12 @@ async function applyTemplate() {
 async function handleSubmit() {
   if (!form.name.trim()) {
     ElMessage.warning(t("agency.warningPlanName"));
+    return;
+  }
+
+  const allRows = [...tabData.INDIVIDUAL, ...tabData.ORGANIZATION, ...tabData.INDIVIDUAL_OF_ORG];
+  if (allRows.length > 0 && allRows.some((r) => r.totalFee == null || r.totalFee < 0)) {
+    ElMessage.warning(t("agency.warningTotalPrice"));
     return;
   }
 
