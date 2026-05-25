@@ -13,6 +13,7 @@ import com.rs.subscription.entity.ApprovalRequest;
 import com.rs.subscription.entity.AssignmentAudit;
 import com.rs.subscription.entity.Group;
 import com.rs.subscription.entity.GroupPlanAssignment;
+import com.rs.subscription.entity.PlanPricingRule;
 import com.rs.subscription.entity.PlanTemplate;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
@@ -182,14 +183,12 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
 
     /**
      * Tạo ApprovalRequest multi-level và tự động submit → gửi email cho Level 1 approver.
-     * Giá trị hợp đồng = unitPrice tối đa trong các pricing rules của plan template.
+     * Giá trị hợp đồng = totalPrice tối đa trong các pricing rules của plan template.
      */
     private Long createMultiLevelApproval(GroupPlanAssignment entity, String actor, Integer approvalLevel) {
         BigDecimal contractValue = entity.getPlanTemplate().getPricingRules().stream()
-            .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
-            .map(r -> r.getQuotaTotal() != null
-                ? r.getUnitPrice().multiply(BigDecimal.valueOf(r.getQuotaTotal()))
-                : r.getUnitPrice())
+            .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+            .map(PlanPricingRule::getTotalPrice)
             .max(BigDecimal::compareTo)
             .orElse(BigDecimal.ZERO);
 

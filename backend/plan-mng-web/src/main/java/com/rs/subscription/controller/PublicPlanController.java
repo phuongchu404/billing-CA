@@ -50,12 +50,12 @@ public class PublicPlanController {
 
         PlanTemplate template = activeSchedule.get().getPlanTemplate();
 
-        // Min fee per subject type — from active pricing rules
+        // Min total price per subject type — from active pricing rules
         Map<String, BigDecimal> minFeeBySubject = template.getPricingRules().stream()
-                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
+                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
                 .collect(Collectors.groupingBy(
                         PlanPricingRule::getSubjectType,
-                        Collectors.mapping(PlanPricingRule::getUnitPrice,
+                        Collectors.mapping(PlanPricingRule::getTotalPrice,
                                 Collectors.minBy(BigDecimal::compareTo))))
                 .entrySet().stream()
                 .filter(e -> e.getValue().isPresent())
