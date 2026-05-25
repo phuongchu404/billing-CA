@@ -424,7 +424,7 @@ interface ConfigRow {
   id: number;
   durationMonths: number | undefined;
   condition: string;
-  minValue: number | undefined;
+  minValue: number;
   maxValue: number | undefined;
   fee: number | undefined;
   totalFee: number | undefined;
@@ -532,7 +532,7 @@ function addRow() {
     id: ++rowIdSeq,
     durationMonths: undefined,
     condition: "",
-    minValue: undefined,
+    minValue: 1,
     maxValue: undefined,
     fee: undefined,
     totalFee: undefined,
