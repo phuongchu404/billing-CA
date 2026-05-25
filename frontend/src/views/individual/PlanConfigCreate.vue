@@ -520,8 +520,8 @@ function isTabCompleted(tab: TabKey): boolean {
 watch(tabData, (data) => {
   (Object.values(data) as ConfigRow[][]).forEach((rows) => {
     rows.forEach((row) => {
-      if (row.maxValue != null && row.minValue != null && row.fee != null && row.maxValue > row.minValue) {
-        row.totalFee = row.fee * (row.maxValue - row.minValue);
+      if (row.maxValue != null && row.fee != null) {
+        row.totalFee = row.fee * row.maxValue;
       }
     });
   });
