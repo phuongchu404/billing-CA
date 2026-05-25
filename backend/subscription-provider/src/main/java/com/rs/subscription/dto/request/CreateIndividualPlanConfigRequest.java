@@ -30,6 +30,7 @@ public class CreateIndividualPlanConfigRequest {
         private Integer minValue;
         private Integer maxValue;
         private Long fee;
+        private Long totalFee;
         private Integer sortOrder;
     }
 

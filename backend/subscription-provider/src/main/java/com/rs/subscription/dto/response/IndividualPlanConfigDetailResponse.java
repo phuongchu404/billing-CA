@@ -34,6 +34,7 @@ public class IndividualPlanConfigDetailResponse {
         private Integer minValue;
         private Integer maxValue;
         private Long fee;
+        private Long totalFee;
         private Integer sortOrder;
     }
 

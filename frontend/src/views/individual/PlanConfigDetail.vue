@@ -141,11 +141,21 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="fee" sortable width="200" align="right" header-align="left">
+          <el-table-column prop="fee" sortable width="180" align="right" header-align="left">
             <template #header>
               <span>{{ t('agency.colFeePerCondition') }}</span>
             </template>
             <template #default="{ row }">{{ formatFee(row.fee) }} {{ t('agency.vnd') }}</template>
+          </el-table-column>
+
+          <el-table-column prop="totalFee" sortable width="180" align="right" header-align="left">
+            <template #header>
+              <span>{{ t('agency.colTotalPrice') }}</span>
+            </template>
+            <template #default="{ row }">
+              <span v-if="row.totalFee != null">{{ formatFee(row.totalFee) }} {{ t('agency.vnd') }}</span>
+              <span v-else>—</span>
+            </template>
           </el-table-column>
         </el-table>
       </div>

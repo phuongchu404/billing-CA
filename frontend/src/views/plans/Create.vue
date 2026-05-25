@@ -210,6 +210,23 @@
             </div>
           </template>
         </el-table-column>
+
+        <el-table-column :label="$t('agency.colTotalPrice')" sortable>
+          <template #default="{ row }">
+            <div class="cell-row">
+              <el-input-number
+                v-model="row.totalPrice"
+                :min="0"
+                controls-position="right"
+                style="flex: 1"
+                size="small"
+                :placeholder="row.maxValue == null ? $t('agency.maxValuePlaceholder') : ''"
+                :disabled="row.maxValue != null"
+              />
+              <span>{{ $t("agency.vnd") }}</span>
+            </div>
+          </template>
+        </el-table-column>
       </el-table>
 
       <div class="guide-toggle" @click="showGuide = !showGuide">
@@ -357,7 +374,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Document, ArrowUp, ArrowDown } from "@element-plus/icons-vue";
@@ -393,6 +410,7 @@ interface ConfigRow {
   minValue: number;
   maxValue: number | null;
   fee: number;
+  totalPrice: number | null;
 }
 
 const form = reactive({
@@ -420,6 +438,7 @@ const configRows = reactive<ConfigRow[]>([
     minValue: 1,
     maxValue: null,
     fee: 0,
+    totalPrice: null,
   },
   {
     subject: t("agency.subjectOrganization"),
@@ -429,6 +448,7 @@ const configRows = reactive<ConfigRow[]>([
     minValue: 1,
     maxValue: null,
     fee: 0,
+    totalPrice: null,
   },
   {
     subject: t("agency.subjectIndividualOfOrg"),
@@ -438,8 +458,18 @@ const configRows = reactive<ConfigRow[]>([
     minValue: 1,
     maxValue: null,
     fee: 0,
+    totalPrice: null,
   },
 ]);
+
+// Auto-calculate totalPrice = fee * (maxValue - minValue) when maxValue is set
+watch(configRows, (rows) => {
+  rows.forEach((row) => {
+    if (row.maxValue != null && row.maxValue > row.minValue) {
+      row.totalPrice = row.fee * (row.maxValue - row.minValue);
+    }
+  });
+}, { deep: true });
 
 function addEmail(type: "pic" | "contact") {
   const inputRef = type === "pic" ? picEmailInput : contactEmailInput;
@@ -507,6 +537,7 @@ function applyTemplate() {
       configRows[idx].minValue = rule.rangeMin;
       configRows[idx].maxValue = rule.rangeMax;
       configRows[idx].fee = rule.unitPrice as unknown as number;
+      configRows[idx].totalPrice = rule.totalPrice as unknown as number | null;
     }
   });
 
@@ -562,6 +593,7 @@ async function handleSubmit() {
       rangeMin: row.minValue,
       rangeMax: row.maxValue,
       unitPrice: row.fee,
+      totalPrice: row.totalPrice,
       currency: "VND",
       quotaTotal: null,
       sortOrder: i + 1,

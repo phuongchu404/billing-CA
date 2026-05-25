@@ -516,10 +516,16 @@
             :label="$t('agency.colMaxValue')"
             width="155"
           />
-          <el-table-column :label="$t('agency.colFeePerCondition')">
+          <el-table-column :label="$t('agency.colFeePerCondition')" width="155">
             <template #default="{ row }"
               >{{ row.fee.toLocaleString() }} {{ $t('agency.vnd') }}</template
             >
+          </el-table-column>
+          <el-table-column :label="$t('agency.colTotalPrice')">
+            <template #default="{ row }">
+              <span v-if="row.totalPrice != null">{{ row.totalPrice.toLocaleString() }} {{ $t('agency.vnd') }}</span>
+              <span v-else>—</span>
+            </template>
           </el-table-column>
         </el-table>
 
@@ -1024,6 +1030,7 @@ async function handlePlanDetail(row: PlanRow) {
           min: r.rangeMin,
           max: r.rangeMax ?? t('agency.unlimited'),
           fee: Number(r.unitPrice),
+          totalPrice: r.totalPrice != null ? Number(r.totalPrice) : null,
         }));
     }
   } catch {

@@ -116,6 +116,7 @@ public class PlanTemplateServiceImpl implements PlanTemplateService {
             .rangeMin(request.getRangeMin())
             .rangeMax(request.getRangeMax())
             .unitPrice(request.getUnitPrice())
+            .totalPrice(request.getTotalPrice())
             .currency(request.getCurrency())
             .quotaTotal(request.getQuotaTotal())
             .sortOrder(request.getSortOrder())
@@ -168,6 +169,7 @@ public class PlanTemplateServiceImpl implements PlanTemplateService {
         response.setRangeMin(entity.getRangeMin());
         response.setRangeMax(entity.getRangeMax());
         response.setUnitPrice(entity.getUnitPrice());
+        response.setTotalPrice(entity.getTotalPrice());
         response.setCurrency(entity.getCurrency());
         response.setQuotaTotal(entity.getQuotaTotal());
         response.setSortOrder(entity.getSortOrder());

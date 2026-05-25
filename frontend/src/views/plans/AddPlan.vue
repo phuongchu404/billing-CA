@@ -114,6 +114,23 @@
             </div>
           </template>
         </el-table-column>
+
+        <el-table-column :label="$t('agency.colTotalPrice')" sortable>
+          <template #default="{ row }">
+            <div class="cell-row">
+              <el-input-number
+                v-model="row.totalPrice"
+                :min="0"
+                controls-position="right"
+                style="flex:1"
+                size="small"
+                :placeholder="row.maxValue == null ? $t('agency.maxValuePlaceholder') : ''"
+                :disabled="row.maxValue != null"
+              />
+              <span>{{ $t('agency.vnd') }}</span>
+            </div>
+          </template>
+        </el-table-column>
       </el-table>
 
       <div class="guide-toggle" @click="showGuide = !showGuide">
@@ -198,7 +215,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Document, ArrowUp, ArrowDown, CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -222,6 +239,7 @@ interface ConfigRow {
   minValue: number
   maxValue: number | null
   fee: number
+  totalPrice: number | null
 }
 
 // Dữ liệu đại lý (read-only) — load từ API
@@ -246,10 +264,19 @@ const form = reactive({
 })
 
 const configRows = reactive<ConfigRow[]>([
-  { subject: t('agency.subjectIndividual'), subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0 },
-  { subject: t('agency.subjectOrganization'), subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
-  { subject: t('agency.subjectIndividualOfOrg'), subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0 },
+  { subject: t('agency.subjectIndividual'), subjectType: 'INDIVIDUAL', duration: 1, condition: 'signing', minValue: 1, maxValue: null, fee: 0, totalPrice: null },
+  { subject: t('agency.subjectOrganization'), subjectType: 'ORGANIZATION', duration: 24, condition: 'certificate', minValue: 1, maxValue: null, fee: 0, totalPrice: null },
+  { subject: t('agency.subjectIndividualOfOrg'), subjectType: 'INDIVIDUAL_OF_ORG', duration: 12, condition: 'certificate', minValue: 1, maxValue: null, fee: 0, totalPrice: null },
 ])
+
+// Auto-calculate totalPrice = fee * (maxValue - minValue) when maxValue is set
+watch(configRows, (rows) => {
+  rows.forEach((row) => {
+    if (row.maxValue != null && row.maxValue > row.minValue) {
+      row.totalPrice = row.fee * (row.maxValue - row.minValue)
+    }
+  })
+}, { deep: true })
 
 const showGuide = ref(true)
 const submitting = ref(false)
@@ -306,6 +333,7 @@ async function confirmTemplate() {
           configRows[i].minValue = rule.rangeMin
           configRows[i].maxValue = rule.rangeMax
           configRows[i].fee = Number(rule.unitPrice)
+          configRows[i].totalPrice = rule.totalPrice != null ? Number(rule.totalPrice) : null
         }
       })
     }
@@ -331,6 +359,7 @@ async function handleSubmit() {
       rangeMin: row.minValue,
       rangeMax: row.maxValue,
       unitPrice: row.fee,
+      totalPrice: row.totalPrice,
       currency: 'VND',
       quotaTotal: null,
       sortOrder: i + 1,

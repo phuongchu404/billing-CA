@@ -280,6 +280,27 @@
             </div>
           </template>
         </el-table-column>
+
+        <el-table-column
+          :label="t('agency.colTotalPrice')"
+          width="160"
+          align="right"
+        >
+          <template #default="{ row }">
+            <div class="inline-cell fee-cell">
+              <el-input-number
+                v-model="row.totalFee"
+                :min="0"
+                :controls="false"
+                :placeholder="row.maxValue == null ? t('agency.maxValuePlaceholder') : ''"
+                :disabled="row.maxValue != null"
+                size="small"
+                style="width: 90px"
+              />
+              <span class="unit-text">{{ t("agency.vnd") }}</span>
+            </div>
+          </template>
+        </el-table-column>
       </el-table>
 
       <div class="table-footer">
@@ -374,7 +395,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   CopyDocument,
@@ -407,6 +428,7 @@ interface ConfigRow {
   minValue: number | undefined;
   maxValue: number | undefined;
   fee: number | undefined;
+  totalFee: number | undefined;
 }
 
 interface SubjectDisplayConfig {
@@ -494,6 +516,17 @@ function isTabCompleted(tab: TabKey): boolean {
   );
 }
 
+// Auto-calculate totalFee = fee * (maxValue - minValue) when maxValue is set
+watch(tabData, (data) => {
+  (Object.values(data) as ConfigRow[][]).forEach((rows) => {
+    rows.forEach((row) => {
+      if (row.maxValue != null && row.minValue != null && row.fee != null && row.maxValue > row.minValue) {
+        row.totalFee = row.fee * (row.maxValue - row.minValue);
+      }
+    });
+  });
+}, { deep: true });
+
 function addRow() {
   tabData[activeTab.value].push({
     id: ++rowIdSeq,
@@ -502,6 +535,7 @@ function addRow() {
     minValue: undefined,
     maxValue: undefined,
     fee: undefined,
+    totalFee: undefined,
   });
 }
 
@@ -551,6 +585,7 @@ async function applyTemplate() {
             minValue: r.minValue,
             maxValue: r.maxValue ?? undefined,
             fee: r.fee,
+            totalFee: r.totalFee ?? undefined,
           });
         }
       });
@@ -608,6 +643,7 @@ async function handleSubmit() {
       minValue: r.minValue,
       maxValue: r.maxValue,
       fee: r.fee,
+      totalFee: r.totalFee,
       sortOrder: r.sortOrder,
     }));
 
