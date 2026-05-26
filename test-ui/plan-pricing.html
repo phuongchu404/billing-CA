@@ -265,12 +265,12 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      if (!data || !data.rules || data.rules.length === 0) {
+      if (!Array.isArray(data) || data.length === 0) {
         listEl.innerHTML = '<div class="state-box"><div class="icon">📭</div><span>Không có gói cước nào đang hoạt động</span></div>';
         return;
       }
 
-      allRules = data.rules;
+      allRules = data;
 
       // Build subject tabs (preserve order)
       const subjects = [...new Set(allRules.map(r => r.subjectType))];
