@@ -18,6 +18,7 @@ import com.rs.subscription.enums.CommercialEnums;
 import com.rs.subscription.event.PlanUpdatedEvent;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
+import com.rs.subscription.security.SecurityUtil;
 import com.rs.subscription.repository.AssignmentAuditRepository;
 import com.rs.subscription.repository.PlanTemplateRepository;
 import com.rs.subscription.repository.RetailPlanScheduleRepository;
@@ -154,6 +155,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Tên gói cước đã tồn tại: " + req.getName(), 400);
         }
 
+        String createdBy = SecurityUtil.getCurrentUsername().orElse(req.getRequestedBy());
         String planCode = generatePlanCode();
         PlanTemplate template = PlanTemplate.builder()
                 .planCode(planCode)
@@ -164,7 +166,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .isVisible(true)
                 .allowBulkSigning(false)
                 .allowApiAccess(false)
-                .createdBy(req.getRequestedBy())
+                .createdBy(createdBy)
                 .versionNo(1)
                 .build();
 
@@ -264,14 +266,21 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         if (req.getApplyFrom() != null) schedule.setApplyFrom(LocalDate.parse(req.getApplyFrom()));
         if (req.getApplyUntil() != null) schedule.setApplyTo(LocalDate.parse(req.getApplyUntil()));
-        schedule.setScheduleStatus(CommercialEnums.ScheduleStatus.APPROVED.name());
+
+        LocalDate today = LocalDate.now();
+        boolean activateImmediately = schedule.getApplyFrom() != null && !schedule.getApplyFrom().isAfter(today);
+        String newStatus = activateImmediately
+                ? CommercialEnums.ScheduleStatus.ACTIVE.name()
+                : CommercialEnums.ScheduleStatus.APPROVED.name();
+
+        schedule.setScheduleStatus(newStatus);
         schedule.setApprovedBy(req.getApprovedBy());
         schedule.setApprovedAt(LocalDateTime.now());
         scheduleRepository.save(schedule);
 
         recordAudit(schedule, CommercialEnums.AuditAction.APPROVE.name(),
-            CommercialEnums.ScheduleStatus.REQUESTED.name(), CommercialEnums.ScheduleStatus.APPROVED.name(), req.getApprovedBy(), null);
-        eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, "APPROVED"));
+            CommercialEnums.ScheduleStatus.REQUESTED.name(), newStatus, req.getApprovedBy(), null);
+        eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, newStatus));
         return getDetail(id);
     }
 

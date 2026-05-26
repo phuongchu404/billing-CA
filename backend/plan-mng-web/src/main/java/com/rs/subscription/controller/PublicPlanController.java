@@ -15,11 +15,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -40,34 +42,31 @@ public class PublicPlanController {
     );
 
     /**
-     * Returns all active pricing rules for the current plan, grouped by subject type.
+     * Returns all active pricing rules for all ACTIVE/APPROVED plans, grouped by plan.
      * Used by mobile/public clients to display the full plan selection list.
      */
     @GetMapping("/plans/pricing")
-    public PublicPlanPricing getPublicPlanPricing() {
-        Optional<RetailPlanSchedule> activeSchedule =
-                scheduleRepo.findTopByScheduleStatusOrderByApplyFromAsc(CommercialEnums.ScheduleStatus.ACTIVE.name())
-                .or(() -> scheduleRepo.findTopByScheduleStatusOrderByApplyFromAsc(
-                        CommercialEnums.ScheduleStatus.APPROVED.name()));
+    public List<PricingRuleItem> getPublicPlanPricing() {
+        List<String> statuses = List.of(
+                CommercialEnums.ScheduleStatus.ACTIVE.name(),
+                CommercialEnums.ScheduleStatus.APPROVED.name());
+        LocalDate today = LocalDate.now();
 
-        if (activeSchedule.isEmpty()) return null;
+        List<RetailPlanSchedule> schedules = scheduleRepo.findCurrentlyApplicableWithPricingRules(statuses, today);
 
-        PlanTemplate template = activeSchedule.get().getPlanTemplate();
-
-        List<PricingRuleItem> rules = template.getPricingRules().stream()
-                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
-                .sorted((a, b) -> {
-                    int si = SUBJECT_ORDER.indexOf(a.getSubjectType()) - SUBJECT_ORDER.indexOf(b.getSubjectType());
-                    if (si != 0) return si;
-                    return Integer.compare(a.getSortOrder(), b.getSortOrder());
+        return schedules.stream()
+                .flatMap(schedule -> {
+                    PlanTemplate template = schedule.getPlanTemplate();
+                    return template.getPricingRules().stream()
+                            .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+                            .sorted((a, b) -> {
+                                int si = SUBJECT_ORDER.indexOf(a.getSubjectType()) - SUBJECT_ORDER.indexOf(b.getSubjectType());
+                                if (si != 0) return si;
+                                return Integer.compare(a.getSortOrder(), b.getSortOrder());
+                            })
+                            .map(r -> toPricingRuleItem(r, template.getPlanName()));
                 })
-                .map(r -> toPricingRuleItem(r, template.getPlanName()))
                 .collect(Collectors.toList());
-
-        PublicPlanPricing result = new PublicPlanPricing();
-        result.setPlanName(template.getPlanName());
-        result.setRules(rules);
-        return result;
     }
 
     private PricingRuleItem toPricingRuleItem(PlanPricingRule r, String planName) {
@@ -116,50 +115,65 @@ public class PublicPlanController {
 
     @GetMapping("/plans")
     public List<PublicPlanCard> getPublicPlans() {
-        Optional<RetailPlanSchedule> activeSchedule =
-                scheduleRepo.findTopByScheduleStatusOrderByApplyFromAsc(CommercialEnums.ScheduleStatus.ACTIVE.name())
-                .or(() -> scheduleRepo.findTopByScheduleStatusOrderByApplyFromAsc(
-                        CommercialEnums.ScheduleStatus.APPROVED.name()));
+        List<String> statuses = List.of(
+                CommercialEnums.ScheduleStatus.ACTIVE.name(),
+                CommercialEnums.ScheduleStatus.APPROVED.name());
+        LocalDate today = LocalDate.now();
 
-        if (activeSchedule.isEmpty()) return List.of();
+        Map<Long, RetailPlanSchedule> byId = scheduleRepo
+                .findCurrentlyApplicableWithPricingRules(statuses, today)
+                .stream()
+                .collect(Collectors.toMap(
+                        RetailPlanSchedule::getRetailPlanScheduleId, s -> s,
+                        (a, b) -> a, LinkedHashMap::new));
 
-        PlanTemplate template = activeSchedule.get().getPlanTemplate();
+        scheduleRepo.findCurrentlyApplicableWithSubjectConfigs(statuses, today)
+                .forEach(s -> byId.merge(s.getRetailPlanScheduleId(), s, (existing, incoming) -> existing));
 
-        // Min total price per subject type — from active pricing rules
-        Map<String, BigDecimal> minFeeBySubject = template.getPricingRules().stream()
-                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
-                .collect(Collectors.groupingBy(
-                        PlanPricingRule::getSubjectType,
-                        Collectors.mapping(PlanPricingRule::getTotalPrice,
-                                Collectors.minBy(BigDecimal::compareTo))))
-                .entrySet().stream()
-                .filter(e -> e.getValue().isPresent())
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
+        List<RetailPlanSchedule> schedules = new ArrayList<>(byId.values());
 
-        // Subject configs indexed by subjectType
-        Map<String, PlanSubjectConfig> configBySubject = template.getSubjectConfigs().stream()
-                .collect(Collectors.toMap(PlanSubjectConfig::getSubjectType, c -> c));
+        if (schedules.isEmpty()) return List.of();
 
-        Long scheduleId = activeSchedule.get().getRetailPlanScheduleId();
+        List<PublicPlanCard> cards = new ArrayList<>();
+        for (RetailPlanSchedule schedule : schedules) {
+            PlanTemplate template = schedule.getPlanTemplate();
+            Long scheduleId = schedule.getRetailPlanScheduleId();
 
-        return SUBJECT_ORDER.stream()
-                .map(subjectType -> {
-                    PlanSubjectConfig config = configBySubject.get(subjectType);
-                    BigDecimal minFee = minFeeBySubject.get(subjectType);
-                    if (config == null && minFee == null) return null;
+            // Min total price per subject type — from active pricing rules
+            Map<String, BigDecimal> minFeeBySubject = template.getPricingRules().stream()
+                    .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+                    .collect(Collectors.groupingBy(
+                            PlanPricingRule::getSubjectType,
+                            Collectors.mapping(PlanPricingRule::getTotalPrice,
+                                    Collectors.minBy(BigDecimal::compareTo))))
+                    .entrySet().stream()
+                    .filter(e -> e.getValue().isPresent())
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
 
-                    PublicPlanCard card = new PublicPlanCard();
-                    card.setScheduleId(scheduleId);
-                    card.setSubjectType(subjectType);
-                    card.setPlanName(template.getPlanName());
-                    card.setIconUrl(config != null ? minioStorageService.toPublicUrl(config.getIconUrl()) : null);
-                    card.setMinFee(minFee);
-                    card.setMinFeeFormatted(minFee != null ? formatVnd(minFee) : null);
-                    card.setFeatures(config != null ? parseFeatures(config.getFeaturesText()) : List.of());
-                    return card;
-                })
-                .filter(c -> c != null)
-                .collect(Collectors.toList());
+            // Subject configs indexed by subjectType
+            Map<String, PlanSubjectConfig> configBySubject = template.getSubjectConfigs().stream()
+                    .collect(Collectors.toMap(PlanSubjectConfig::getSubjectType, c -> c));
+
+            SUBJECT_ORDER.stream()
+                    .map(subjectType -> {
+                        PlanSubjectConfig config = configBySubject.get(subjectType);
+                        BigDecimal minFee = minFeeBySubject.get(subjectType);
+                        if (config == null && minFee == null) return null;
+
+                        PublicPlanCard card = new PublicPlanCard();
+                        card.setScheduleId(scheduleId);
+                        card.setSubjectType(subjectType);
+                        card.setPlanName(template.getPlanName());
+                        card.setIconUrl(config != null ? minioStorageService.toPublicUrl(config.getIconUrl()) : null);
+                        card.setMinFee(minFee);
+                        card.setMinFeeFormatted(minFee != null ? formatVnd(minFee) : null);
+                        card.setFeatures(config != null ? parseFeatures(config.getFeaturesText()) : List.of());
+                        return card;
+                    })
+                    .filter(c -> c != null)
+                    .forEach(cards::add);
+        }
+        return cards;
     }
 
     private List<String> parseFeatures(String featuresText) {
@@ -176,12 +190,6 @@ public class PublicPlanController {
         NumberFormat fmt = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
         fmt.setMaximumFractionDigits(0);
         return fmt.format(amount) + "đ";
-    }
-
-    @Data
-    public static class PublicPlanPricing {
-        private String planName;
-        private List<PricingRuleItem> rules;
     }
 
     @Data
