@@ -17,7 +17,7 @@
       >
         {{ t('agency.btnRequestApply') }}
       </el-button>
-      <el-button :icon="Remove" @click="deactivateVisible = true">{{ t('common.deactivate') }}</el-button>
+      <el-button v-if="info.status !== 'UNAVAILABLE'" :icon="Remove" @click="deactivateVisible = true">{{ t('common.deactivate') }}</el-button>
     </div>
 
     <!-- THÔNG TIN GÓI CƯỚC -->
