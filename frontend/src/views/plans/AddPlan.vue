@@ -374,6 +374,10 @@ async function handleSubmit() {
     ElMessage.warning(t('agency.warningPlanName'))
     return
   }
+  if (form.planName.length > 150) {
+    ElMessage.warning(t('agency.warningPlanNameMaxLength'))
+    return
+  }
   if (configRows.some((row) => row.totalPrice == null || row.totalPrice < 0)) {
     ElMessage.warning(t('agency.warningTotalPrice'))
     return
