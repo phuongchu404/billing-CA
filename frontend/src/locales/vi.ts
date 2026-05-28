@@ -883,6 +883,7 @@ export default {
     warningPartnerEmail: 'Vui lòng nhập email hợp lệ cho đối tác',
     warningPartnerPassword: 'Vui lòng nhập mật khẩu',
     warningPartnerPasswordMismatch: 'Mật khẩu nhập lại không khớp',
+    warningEmailInvalid: 'Email không hợp lệ: {email}',
     // Detail page
     detailTitle: 'Thông tin đại lý',
     detailSection: 'THÔNG TIN CHI TIẾT',

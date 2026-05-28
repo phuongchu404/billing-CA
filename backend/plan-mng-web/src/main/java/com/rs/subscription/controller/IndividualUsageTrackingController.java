@@ -22,9 +22,13 @@ public class IndividualUsageTrackingController {
             @RequestParam(required = false) String ctsType,
             @RequestParam(required = false) String ctsDuration,
             @RequestParam(required = false) String ctsStatus,
-            @RequestParam(required = false) String plan) {
+            @RequestParam(required = false) String plan,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir) {
         return ApiResponse.success(
-            service.getUsageTracking(purchasedAt, ctsType, ctsDuration, ctsStatus, plan),
+            service.getUsageTracking(purchasedAt, ctsType, ctsDuration, ctsStatus, plan, page, size, sortBy, sortDir),
             "Fetched individual usage tracking");
     }
 }

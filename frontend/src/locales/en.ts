@@ -881,6 +881,7 @@ export default {
     warningPartnerEmail: 'Please enter a valid email for the partner',
     warningPartnerPassword: 'Please enter a password',
     warningPartnerPasswordMismatch: 'Passwords do not match',
+    warningEmailInvalid: 'Invalid email: {email}',
     // Detail page
     detailTitle: 'Agency Information',
     detailSection: 'DETAILED INFORMATION',

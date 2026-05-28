@@ -79,6 +79,10 @@ export interface IndividualUsageFilterParams {
   ctsDuration?: string
   ctsStatus?: string
   plan?: string
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: string
 }
 
 export const getIndividualUsageTracking = (params?: IndividualUsageFilterParams) =>

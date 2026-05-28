@@ -26,15 +26,14 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   server: {
-
     host: true,
     port: 3000,
     // Proxy disabled for offline mode
 
     proxy: {
-      "/api": { target: "http://10.30.21.123:9292", changeOrigin: true },
-      "/internal": { target: "http://10.30.21.123:9292", changeOrigin: true },
-      "/webhooks": { target: "http://10.30.21.123:9292", changeOrigin: true },
+      "/api": { target: "http://localhost:9292", changeOrigin: true },
+      "/internal": { target: "http://localhost:9292", changeOrigin: true },
+      "/webhooks": { target: "http://localhost:9292", changeOrigin: true },
     },
   },
 });

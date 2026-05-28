@@ -128,6 +128,10 @@ export interface IndividualUsageTrackingResponse {
   stats: IndividualUsageStats
   list: IndividualUsageRow[]
   lastUpdated: string | null
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
 }
 
 

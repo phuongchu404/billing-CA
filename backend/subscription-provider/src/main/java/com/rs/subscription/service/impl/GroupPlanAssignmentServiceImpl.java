@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -128,9 +129,15 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
         if (CommercialEnums.ReviewDecision.APPROVE.name().equals(decision)) {
             if (request.getApplyFrom() != null) entity.setApplyFrom(request.getApplyFrom());
             if (request.getApplyTo() != null) entity.setApplyTo(request.getApplyTo());
-            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.APPROVED.name());
             entity.setApprovedBy(request.getActor());
             entity.setApprovedAt(LocalDateTime.now());
+            // Nếu applyFrom là hôm nay hoặc trong quá khứ → kích hoạt ngay, không cần chờ scheduler
+            if (entity.getApplyFrom() != null && !entity.getApplyFrom().isAfter(LocalDate.now())) {
+                entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.ACTIVE.name());
+                entity.setActivatedAt(LocalDateTime.now());
+            } else {
+                entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.APPROVED.name());
+            }
         } else if (CommercialEnums.ReviewDecision.REJECT.name().equals(decision)) {
             entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.AVAILABLE.name());
             entity.setRejectedBy(request.getActor());
@@ -259,6 +266,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
         response.setActivatedAt(entity.getActivatedAt());
         response.setStoppedAt(entity.getStoppedAt());
         response.setStopReason(entity.getStopReason());
+        response.setUpdatedAt(entity.getUpdatedAt());
         approvalRequestRepository
             .findAllByEntityTypeAndEntityIdOrderByCreatedAtDesc("GROUP_PLAN_ASSIGNMENT",
                 String.valueOf(entity.getGroupPlanAssignmentId()))

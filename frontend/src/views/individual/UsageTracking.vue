@@ -57,7 +57,7 @@
       </div> -->
 
       <!-- Table -->
-      <el-table :data="pagedList" v-loading="loading" border>
+      <el-table :data="pagedList" v-loading="loading" border @sort-change="handleSortChange">
         <el-table-column
           width="50"
           type="index"
@@ -73,7 +73,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="purchasedAt" sortable width="210"  align="center">
+        <el-table-column prop="purchasedAt" sortable="custom"width="210"  align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colPurchaseDate') }}</div>
             <div class="col-filter">
@@ -89,7 +89,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="ctsType" sortable width="165">
+        <el-table-column prop="ctsType" sortable="custom"width="165">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colCtsType') }}</div>
             <div class="col-filter">
@@ -114,7 +114,7 @@
           }}</template>
         </el-table-column>
         
-        <el-table-column prop="ctsDuration" sortable width="160" align="center">
+        <el-table-column prop="ctsDuration" sortable="custom"width="160" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colCtsDuration') }}</div>
             <div class="col-filter">
@@ -135,14 +135,14 @@
           <template #default="{ row }">{{ row.ctsDuration }} {{ $t('usageTracking.months') }}</template>
         </el-table-column>
 
-        <el-table-column prop="account" sortable min-width="180">
+        <el-table-column prop="account" sortable="custom"min-width="180">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colAccount') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="ctsStatus" sortable width="170" align="center">
+        <el-table-column prop="ctsStatus" sortable="custom"width="170" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colCtsStatus') }}</div>
             <div class="col-filter">
@@ -170,7 +170,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="signings" sortable width="140" align="center">
+        <el-table-column prop="signings" sortable="custom"width="140" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colSigningUsed') }}</div>
             <div class="col-filter"></div>
@@ -180,7 +180,7 @@
           }}</template>
         </el-table-column>
 
-        <el-table-column prop="plan" sortable min-width="200">
+        <el-table-column prop="plan" sortable="custom"min-width="200">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colPlanApplied') }}</div>
             <div class="col-filter">
@@ -198,7 +198,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="fee" sortable width="140" align="center">
+        <el-table-column prop="fee" sortable="custom"width="140" align="center">
           <template #header>
             <div class="col-label">{{ $t('usageTracking.colFee') }}</div>
             <div class="col-filter"></div>
@@ -217,36 +217,37 @@
             v-model="pageSize"
             size="small"
             style="width: 64px; margin: 0 4px"
-            @change="page = 1"
+            @change="() => { page = 1; load(); }"
           >
             <el-option :value="10" label="10" />
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
           </el-select>
-          {{ $t('usageTracking.totalPlans', { total: filteredList.length }) }}
+          {{ $t('usageTracking.totalPlans', { total: totalElements }) }}
         </span>
         <div class="custom-pagination-wrapper">
-          <button 
-            class="custom-nav-btn" 
+          <button
+            class="custom-nav-btn"
             :disabled="page === 1"
-            @click="page = 1"
+            @click="page = 1; load()"
           >
             <el-icon><DArrowLeft /></el-icon>
           </button>
 
           <el-pagination
             v-model:current-page="page"
-            :total="filteredList.length"
+            :total="totalElements"
             :page-size="pageSize"
             layout="prev, pager, next"
             :pager-count="5"
             background
+            @current-change="load"
           />
 
-          <button 
-            class="custom-nav-btn" 
-            :disabled="page === Math.ceil(filteredList.length / pageSize)"
-            @click="page = Math.ceil(filteredList.length / pageSize)"
+          <button
+            class="custom-nav-btn"
+            :disabled="page === Math.ceil(totalElements / pageSize)"
+            @click="page = Math.ceil(totalElements / pageSize); load()"
           >
             <el-icon><DArrowRight /></el-icon>
           </button>
@@ -277,6 +278,8 @@ type CtsStatus =
 const loading = ref(false);
 const page = ref(1);
 const pageSize = ref(10);
+const totalElements = ref(0);
+const currentSort = ref<{ prop: string; order: string | null }>({ prop: '', order: null });
 const filterPurchasedAt = ref<Date | null>(null);
 const filterCtsType = ref("");
 const filterCtsDuration = ref("");
@@ -296,12 +299,7 @@ const stats = ref<IndividualUsageStats>({
 
 const list = ref<IndividualUsageRow[]>([]);
 
-const filteredList = computed(() => list.value);
-
-const pagedList = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  return filteredList.value.slice(start, start + pageSize.value);
-});
+const pagedList = computed(() => list.value);
 
 function ctsTypeLabel(type: CtsType): string {
   const map: Record<CtsType, string> = {
@@ -334,12 +332,19 @@ function ctsStatusClass(status: CtsStatus): string {
   return map[status] ?? "";
 }
 
+function handleSortChange({ prop, order }: { prop: string; order: string | null }) {
+  currentSort.value = { prop: prop || '', order };
+  page.value = 1;
+  load();
+}
+
 function resetFilters() {
   filterPurchasedAt.value = null;
   filterCtsType.value = "";
   filterCtsDuration.value = "";
   filterCtsStatus.value = "";
   filterPlan.value = "";
+  currentSort.value = { prop: '', order: null };
   page.value = 1;
   load();
 }
@@ -366,6 +371,10 @@ async function load() {
     ctsDuration: filterCtsDuration.value || undefined,
     ctsStatus: filterCtsStatus.value || undefined,
     plan: filterPlan.value || undefined,
+    page: page.value - 1,
+    size: pageSize.value,
+    sortBy: currentSort.value.prop || undefined,
+    sortDir: currentSort.value.order === 'ascending' ? 'asc' : 'desc',
   };
   try {
     const res = await getIndividualUsageTracking(params);
@@ -373,6 +382,7 @@ async function load() {
       list.value = res.data.list ?? [];
       stats.value = res.data.stats ?? stats.value;
       lastUpdated.value = res.data.lastUpdated ?? null;
+      totalElements.value = res.data.totalElements ?? 0;
     }
   } catch {
     ElMessage.error(t('usageTracking.errorLoad'));

@@ -791,7 +791,7 @@ function mapAssignment(a: GroupPlanAssignment): PlanRow {
     applyTo: formatDate(a.applyTo),
     rawApplyFrom: a.applyFrom,
     rawApplyTo: a.applyTo,
-    updatedAt: "",
+    updatedAt: formatDatetime(a.updatedAt),
   };
 }
 
