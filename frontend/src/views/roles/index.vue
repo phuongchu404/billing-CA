@@ -210,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { Plus, EditPen, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -440,6 +440,8 @@ async function openCreate() {
   }
   createExpandedModules.value = new Set(permTree.value.map(m => m.moduleName))
   dialogVisible.value = true
+  await nextTick()
+  formRef.value?.clearValidate()
 }
 
 async function handleSave() {
