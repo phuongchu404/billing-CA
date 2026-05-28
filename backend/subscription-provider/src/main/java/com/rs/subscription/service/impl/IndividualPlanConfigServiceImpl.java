@@ -318,6 +318,18 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                     "Gói cước đã có yêu cầu áp dụng đang chờ xử lý", 400);
         }
 
+        LocalDate applyFrom = LocalDate.parse(req.getApplyFrom());
+        LocalDate applyUntil = LocalDate.parse(req.getApplyUntil());
+        LocalDate today = LocalDate.now();
+        if (applyFrom.isBefore(today)) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Ngày bắt đầu áp dụng không được nhỏ hơn ngày hiện tại", 400);
+        }
+        if (!applyUntil.isAfter(applyFrom)) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Ngày kết thúc phải sau ngày bắt đầu áp dụng", 400);
+        }
+
         RetailPlanSchedule saved = createSchedule(template, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), CommercialEnums.ScheduleStatus.REQUESTED.name());
 
         // Tính giá trị hợp đồng từ totalPrice tối đa của pricing rules (khách hàng trả trước)
