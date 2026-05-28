@@ -382,6 +382,10 @@ async function handleSubmit() {
     ElMessage.warning('Giá trị max phải lớn hơn hoặc bằng giá trị min')
     return
   }
+  if (configRows.some((row) => !row.duration)) {
+    ElMessage.warning('Vui lòng nhập số tháng thời hạn chứng thư cho tất cả các dòng')
+    return
+  }
 
   submitting.value = true
   try {

@@ -638,6 +638,10 @@ async function handleSubmit() {
     ElMessage.warning("Giá trị max phải lớn hơn hoặc bằng giá trị min");
     return;
   }
+  if (allRows.some((r) => !r.durationMonths)) {
+    ElMessage.warning("Vui lòng nhập số tháng thời hạn chứng thư cho tất cả các dòng");
+    return;
+  }
 
   const allRules = [
     ...tabData.INDIVIDUAL.map((r, i) => ({
