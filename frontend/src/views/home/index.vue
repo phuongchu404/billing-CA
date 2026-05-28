@@ -147,6 +147,7 @@ import { useAuthStore } from "@/store";
 import { ElMessage } from "element-plus";
 import { UserFilled, View, Hide } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
+import { changePassword } from "@/api/users";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -176,7 +177,7 @@ async function handleLogout() {
   router.push("/login");
 }
 
-function confirmChangePass() {
+async function confirmChangePass() {
   if (
     !passForm.oldPassword ||
     !passForm.newPassword ||
@@ -189,11 +190,12 @@ function confirmChangePass() {
     ElMessage.error(t("profile.passwordMismatch"));
     return;
   }
+  const res = await changePassword({ currentPassword: passForm.oldPassword, newPassword: passForm.newPassword });
+  if (!res.success) return;
   ElMessage.success(t("profile.passwordChanged"));
   changePassVisible.value = false;
-  passForm.oldPassword = "";
-  passForm.newPassword = "";
-  passForm.confirmPassword = "";
+  await authStore.doLogout();
+  router.push("/login");
 }
 
 function confirmEditInfo() {
