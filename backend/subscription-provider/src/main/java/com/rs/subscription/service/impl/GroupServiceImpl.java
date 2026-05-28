@@ -45,13 +45,14 @@ public class GroupServiceImpl implements GroupService {
     // ----------------------------------------------------------------
     // LIST ALL — lọc theo scope của user hiện tại, sau đó filter theo params
     // ----------------------------------------------------------------
-    public GroupListResponse listAll(String status, String applyUntil, String updatedAt) {
+    public GroupListResponse listAll(String status, String applyUntil, String updatedAt,
+                                     int page, int size, String sortBy, String sortDir) {
         List<Long> visibleIds = dataScopeService.resolveVisibleGroupIds();
         List<Group> groups;
         if (visibleIds == null) {
             groups = groupRepository.findAll();
         } else if (visibleIds.isEmpty()) {
-            return new GroupListResponse(List.of(), 0L);
+            return new GroupListResponse(List.of(), 0L, 0L, 0, page, size);
         } else {
             groups = groupRepository.findAllById(visibleIds);
         }
@@ -67,9 +68,18 @@ public class GroupServiceImpl implements GroupService {
 
         List<GroupListItemResponse> filtered = allItems.stream()
                 .filter(item -> matchesGroupFilter(item, status, applyUntil, updatedAt))
+                .sorted(buildComparator(sortBy, sortDir))
                 .toList();
 
-        return new GroupListResponse(filtered, activeCount);
+        long totalElements = filtered.size();
+        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        int offset = page * size;
+        List<GroupListItemResponse> paged = filtered.stream()
+                .skip(offset)
+                .limit(size)
+                .toList();
+
+        return new GroupListResponse(paged, activeCount, totalElements, totalPages, page, size);
     }
 
     private boolean matchesGroupFilter(GroupListItemResponse item,
@@ -84,6 +94,27 @@ public class GroupServiceImpl implements GroupService {
             if (!item.getUpdatedAt().toLocalDate().equals(LocalDate.parse(updatedAt))) return false;
         }
         return true;
+    }
+
+    private java.util.Comparator<GroupListItemResponse> buildComparator(String sortBy, String sortDir) {
+        boolean desc = "desc".equalsIgnoreCase(sortDir);
+        java.util.Comparator<GroupListItemResponse> cmp = switch (sortBy != null ? sortBy : "updatedAt") {
+            case "groupCode"  -> java.util.Comparator.comparing(GroupListItemResponse::getGroupCode,
+                                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "groupName"  -> java.util.Comparator.comparing(GroupListItemResponse::getGroupName,
+                                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "status"     -> java.util.Comparator.comparing(GroupListItemResponse::getStatus,
+                                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "ownerName"  -> java.util.Comparator.comparing(GroupListItemResponse::getOwnerName,
+                                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "currentPlan"-> java.util.Comparator.comparing(GroupListItemResponse::getCurrentPlan,
+                                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "applyUntil" -> java.util.Comparator.comparing(GroupListItemResponse::getApplyUntil,
+                                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            default           -> java.util.Comparator.comparing(GroupListItemResponse::getUpdatedAt,
+                                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+        };
+        return desc ? cmp.reversed() : cmp;
     }
 
     // ----------------------------------------------------------------

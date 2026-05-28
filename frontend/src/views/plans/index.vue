@@ -47,7 +47,7 @@
         />
       </div> -->
 
-      <el-table :data="pagedList" v-loading="loading" border>
+      <el-table :data="pagedList" v-loading="loading" border @sort-change="handleSortChange">
         <el-table-column
           width="60"
           type="index"
@@ -62,21 +62,21 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="groupCode" sortable width="140">
+        <el-table-column prop="groupCode" sortable="custom" width="140">
           <template #header>
             <div class="col-label">{{ $t('agency.colCode') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="groupName" sortable min-width="200">
+        <el-table-column prop="groupName" sortable="custom" min-width="200">
           <template #header>
             <div class="col-label">{{ $t('agency.colName') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" sortable width="170" align="center">
+        <el-table-column prop="status" sortable="custom" width="170" align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colStatus') }}</div>
             <div class="col-filter">
@@ -102,7 +102,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="ownerName" sortable min-width="200">
+        <el-table-column prop="ownerName" sortable="custom" min-width="200">
           <template #header>
             <div class="col-label">{{ $t('agency.colOwner') }}</div>
             <div class="col-filter"></div>
@@ -113,7 +113,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="currentPlan" sortable min-width="200">
+        <el-table-column prop="currentPlan" sortable="custom" min-width="200">
           <template #header>
             <div class="col-label">{{ $t('agency.colCurrentPlan') }}</div>
             <div class="col-filter"></div>
@@ -121,7 +121,7 @@
           <template #default="{ row }">{{ row.currentPlan ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="applyUntil" sortable width="160">
+        <el-table-column prop="applyUntil" sortable="custom" width="160">
           <template #header>
             <div class="col-label">{{ $t('agency.colApplyUntil') }}</div>
             <div class="col-filter">
@@ -215,22 +215,22 @@
 
       <div class="pagination-row" style="margin-top: 12px">
         <span class="page-label">
-          {{ $t('agency.showOf', { size: '', total: filteredList.length }).split('  ')[0] }}
+          {{ $t('agency.showOf', { size: '', total: totalElements }).split('  ')[0] }}
           <el-select
             v-model="pageSize"
             size="small"
             style="width: 64px; margin: 0 4px"
-            @change="page = 1"
+            @change="() => { page = 1; load(); }"
           >
             <el-option :value="10" label="10" />
             <el-option :value="20" label="20" />
             <el-option :value="50" label="50" />
           </el-select>
-          {{ $t('agency.showOf', { size: '', total: filteredList.length }).split('  ')[1] || '' }}
+          {{ $t('agency.showOf', { size: '', total: totalElements }).split('  ')[1] || '' }}
         </span>
         <el-pagination
           v-model:current-page="page"
-          :total="filteredList.length"
+          :total="totalElements"
           :page-size="pageSize"
           layout="prev, pager, next"
           :pager-count="5"
@@ -321,6 +321,9 @@ const filterApplyUntil = ref<Date | null>(null);
 const filterUpdatedAt = ref<Date | null>(null);
 const page = ref(1);
 const pageSize = ref(10);
+const sortBy = ref("");
+const sortDir = ref("desc");
+const totalElements = ref(0);
 
 const activeCount = ref(0);
 const canAssignOwner = computed(() => can("group:assign:owner"));
@@ -351,12 +354,7 @@ function mapRow(item: GroupListItem): AgencyRow {
   };
 }
 
-const filteredList = computed(() => list.value);
-
-const pagedList = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  return filteredList.value.slice(start, start + pageSize.value);
-});
+const pagedList = computed(() => list.value);
 
 function toIsoDate(d: Date | null): string | undefined {
   if (!d) return undefined;
@@ -369,14 +367,16 @@ watch([filterStatus, filterApplyUntil, filterUpdatedAt], () => {
 });
 
 watch(page, (newPage) => {
-  router.push({
-    query: {
-      ...route.query, 
-      page: newPage
-    }
-  })
+  router.push({ query: { ...route.query, page: newPage } });
   load();
-})
+});
+
+function handleSortChange({ prop, order }: { prop: string; order: string | null }) {
+  sortBy.value = order ? prop : '';
+  sortDir.value = order === 'ascending' ? 'asc' : 'desc';
+  page.value = 1;
+  load();
+}
 
 async function load() {
   loading.value = true;
@@ -384,12 +384,17 @@ async function load() {
     status: filterStatus.value || undefined,
     applyUntil: toIsoDate(filterApplyUntil.value),
     updatedAt: toIsoDate(filterUpdatedAt.value),
+    page: page.value - 1,
+    size: pageSize.value,
+    sortBy: sortBy.value || undefined,
+    sortDir: sortDir.value,
   };
   try {
     const res = await listGroups(params);
     if (res.success && res.data) {
       list.value = res.data.list.map(mapRow);
       activeCount.value = res.data.activeCount;
+      totalElements.value = res.data.totalElements;
     } else {
       ElMessage.error(res.message || t('agency.errorNotFound'));
     }

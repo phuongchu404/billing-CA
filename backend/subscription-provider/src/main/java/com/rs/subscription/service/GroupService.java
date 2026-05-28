@@ -28,7 +28,8 @@ import java.util.Optional;
 
 public interface GroupService {
 
-    GroupListResponse listAll(String status, String applyUntil, String updatedAt);
+    GroupListResponse listAll(String status, String applyUntil, String updatedAt,
+                              int page, int size, String sortBy, String sortDir);
 
     GroupDetailResponse getById(Long id);
 
