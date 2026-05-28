@@ -463,13 +463,6 @@ onMounted(load)
 }
 .section-header:hover { background: #fafafa; }
 
-.section-title {
-  font-size: 18px;
-  line-height: 28px;
-  font-weight: 700;
-  color: var(--el-color-primary);
-}
-
 .chevron {
   color: var(--el-color-primary);
   font-size: 14px;

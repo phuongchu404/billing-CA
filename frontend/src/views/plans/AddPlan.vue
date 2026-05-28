@@ -5,7 +5,7 @@
       <span class="breadcrumb">{{ $t('agency.breadcrumb') }}</span>
     </div>
 
-    <el-button :icon="Document" style="margin-bottom:20px" @click="templateVisible = true">
+    <el-button :icon="Document" style="margin-bottom:20px" @click="templateVisible = true" class="btn">
       {{ $t('agency.chooseTemplate') }}
     </el-button>
 
@@ -13,18 +13,22 @@
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t('agency.infoSection') }}</div>
       <div class="info-grid">
-        <div class="info-row two-col">
-          <span><b>{{ $t('agency.agencyNameField') }}</b> {{ agency.groupName }}</span>
-          <span><b>{{ $t('agency.agencyCodeField') }}</b> {{ agency.groupCode }}</span>
+        <el-row class="text-regular">
+          <el-col :span="12">
+            <span>{{ $t('agency.agencyNameField') }} {{ agency.groupName }}</span>
+          </el-col>
+          <el-col :span="12">
+            <span>{{ $t('agency.agencyCodeField') }} {{ agency.groupCode }}</span>
+          </el-col>
+        </el-row>
+        <div class="info-row text-regular">
+          <span>{{ $t('agency.picEmailLabel') }}: {{ agency.picEmails.join(', ') }}</span>
         </div>
-        <div class="info-row">
-          <span><b>{{ $t('agency.picField') }}</b> {{ agency.picEmails.join(', ') }}</span>
+        <div class="info-row text-regular">
+          <span>{{ $t('agency.contactEmailLabel') }}: {{ agency.contactEmails.join(', ') }}</span>
         </div>
-        <div class="info-row">
-          <span><b>{{ $t('agency.representativeField') }}</b> {{ agency.contactEmails.join(', ') }}</span>
-        </div>
-        <div class="info-row">
-          <span><b>{{ $t('agency.refContractField') }}</b> {{ agency.refContractNo }}</span>
+        <div class="info-row text-regular">
+          <span>{{ $t('agency.refContractField') }} {{ agency.refContractNo }}</span>
         </div>
       </div>
     </el-card>
@@ -32,7 +36,7 @@
     <!-- THÔNG TIN GÓI CƯỚC -->
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t('agency.planSection') }}</div>
-      <el-form :model="form" label-width="220px" label-position="left">
+      <el-form :model="form" label-width="280" label-position="left">
         <el-form-item :label="$t('agency.planNameLabel')">
           <el-input v-model="form.planName" :placeholder="$t('agency.planNamePlaceholder')" />
           <div class="field-hint">{{ $t('agency.planNameHint') }}</div>
@@ -49,10 +53,24 @@
           />
         </el-form-item>
       </el-form>
+      <!--  
+        <div class="plan-notes">
+          <p>
+            {{ $t('agency.addPlanAvailablePrefix') }} <b>{{ $t('agency.applyNoteAvailableStatus') }}</b>
+            {{ $t('agency.addPlanAvailableSuffix') }}
+          </p>
+        </div>
+      -->
       <div class="plan-notes">
         <p>
-          {{ $t('agency.addPlanAvailablePrefix') }} <b>{{ $t('agency.applyNoteAvailableStatus') }}</b>
-          {{ $t('agency.addPlanAvailableSuffix') }}
+          {{ $t("agency.applyNotePendingPrefix") }}
+          {{ $t("agency.applyNotePendingStatus") }}
+          {{ $t("agency.applyNotePendingSuffix") }}
+        </p>
+        <p>
+          {{ $t("agency.applyNoteAvailablePrefix") }}
+          {{ $t("agency.applyNoteAvailableStatus") }}
+          {{ $t("agency.applyNoteAvailableSuffix") }}
         </p>
       </div>
     </el-card>
@@ -61,14 +79,14 @@
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t('agency.configSection') }}</div>
       <el-table :data="configRows" border>
-        <el-table-column type="index" width="50" />
-        <el-table-column :label="$t('agency.colSubject')" width="160" sortable>
+        <el-table-column type="index" width="50" align="center"/>
+        <el-table-column :label="$t('agency.colSubject')" width="200" sortable>
           <template #default="{ row }">
             <span class="subject-label">{{ row.subject }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colCtsDuration')" width="165" sortable>
+        <el-table-column :label="$t('agency.colCtsDuration')" width="180" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number v-model="row.duration" :min="0" :max="48" controls-position="right" style="width:80px" size="small" />
@@ -77,7 +95,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colCondition')" width="150" sortable>
+        <el-table-column :label="$t('agency.colCondition')" width="180" sortable>
           <template #default="{ row }">
             <el-select v-model="row.condition" size="small" style="width:100%">
               <el-option :label="$t('agency.conditionSigning')" value="signing" />
@@ -86,13 +104,13 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colMinValue')" width="175" sortable>
+        <el-table-column :label="$t('agency.colMinValue')" width="180" sortable>
           <template #default="{ row }">
             <el-input-number v-model="row.minValue" :min="1" controls-position="right" style="width:100%" size="small" />
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colMaxValue')" width="175" sortable>
+        <el-table-column :label="$t('agency.colMaxValue')" width="180" sortable>
           <template #default="{ row }">
             <el-input-number
               v-model="row.maxValue"
@@ -107,7 +125,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colFeePerCondition')" sortable>
+        <el-table-column :label="$t('agency.colFeePerCondition')" width="200" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number v-model="row.fee" :min="0" controls-position="right" style="flex:1" size="small" @change="autoCalcTotalPrice(row)" />
@@ -116,7 +134,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colTotalPrice')" sortable>
+        <el-table-column :label="$t('agency.colTotalPrice')" width="200" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number
@@ -140,21 +158,33 @@
 
       <div v-show="showGuide" class="guide-content">
         <ul>
-          <li>{{ $t('agency.guideIntro') }}</li>
+          <li class="text-primary"><b>{{ $t("agency.guideIntro") }}</b></li>
           <li>
-            <b>{{ $t('agency.guideDurationLabel') }}</b> {{ $t('agency.guideDurationText') }}
+            <b class="text-primary">{{ $t("agency.guideDurationLabel") }}</b>
+            {{ $t("agency.guideDurationText") }}
           </li>
           <li>
-            <b>{{ $t('agency.guideConditionLabel') }}</b> {{ $t('agency.guideConditionText') }}
+            <b class="text-primary">{{ $t("agency.guideConditionLabel") }}</b>
+            {{ $t("agency.guideConditionText") }}
           </li>
           <li>
-            <b>{{ $t('agency.guideMinLabel') }}</b> {{ $t('agency.guideMinText') }}
-            <b>{{ $t('agency.guideMaxLabel') }}</b> {{ $t('agency.guideMaxText') }}
+            <span>
+              <b class="text-primary">{{ $t("agency.guideMinLabel") }}</b> 
+              {{ $t("agency.guideMinText") }}
+            </span>
+            <span>
+              <b class="text-primary">{{ $t("agency.guideMaxLabel") }}</b> 
+              {{ $t("agency.guideMaxText") }}
+            </span>
             <br />
-            <u>{{ $t('agency.guideNoteLabel') }}</u> {{ $t('agency.guideNoteText') }}
+            <span>
+              <u>{{ $t("agency.guideNoteLabel") }}</u>
+              {{ $t("agency.guideNoteText") }}
+            </span>
           </li>
           <li>
-            <b>{{ $t('agency.guideFeeLabel') }}</b> {{ $t('agency.guideFeeText') }}
+            <b class="text-primary">{{ $t("agency.guideFeeLabel") }}</b>
+            {{ $t("agency.guideFeeText") }}
           </li>
         </ul>
       </div>
@@ -162,7 +192,7 @@
 
     <div class="footer-btns">
       <el-button type="primary" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
-      <el-button @click="handleCancel">{{ $t('common.cancel') }}</el-button>
+      <el-button @click="handleCancel" class="btn-cancel">{{ $t('roles.cancelEdit') }}</el-button>
     </div>
 
     <!-- Dialog: Approval success -->
@@ -184,18 +214,17 @@
     </el-dialog>
 
     <!-- ===== DIALOG: CHỌN GÓI CƯỚC MẪU ===== -->
-    <el-dialog v-model="templateVisible" :title="$t('agency.chooseTemplateTitle')" width="460px" :close-on-click-modal="false">
+    <el-dialog v-model="templateVisible" :title="$t('agency.chooseTemplateTitle')" width="660" height="280" :close-on-click-modal="false">
       <div class="dlg-body">
-        <p class="dlg-desc">
+        <p class="text-regular">
           {{ $t('agency.chooseTemplateDesc') }}
         </p>
         <div class="dlg-select-row">
-          <span class="dlg-select-label">{{ $t('agency.dialogPlanName') }}</span>
+          <span class="text-primary">{{ $t('agency.dialogPlanName') }}</span>
           <el-select
             v-model="selectedTemplate"
             :placeholder="$t('agency.chooseTemplatePlaceholder')"
             style="flex:1"
-            clearable
           >
             <el-option
               v-for="t in templateOptions"
@@ -208,7 +237,7 @@
       </div>
       <template #footer>
         <el-button type="primary" :disabled="!selectedTemplate" @click="confirmTemplate">{{ $t('common.confirm') }}</el-button>
-        <el-button @click="templateVisible = false">{{ $t('common.cancel') }}</el-button>
+        <el-button @click="templateVisible = false" class="btn-cancel">{{ $t('roles.cancelEdit') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -411,29 +440,9 @@ onMounted(() => {
 .page-header h2 { margin: 0; font-size: 20px; }
 .breadcrumb { font-size: 13px; color: #909399; }
 
-.section-card { margin-bottom: 16px; }
-.section-title {
-  color: #1B60CB;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  margin-bottom: 16px;
-}
-
 .info-grid { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #303133; }
 .info-row { line-height: 1.6; }
 .info-row.two-col { display: flex; gap: 60px; }
-
-.field-hint { font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4; }
-
-.plan-notes {
-  padding-left: 220px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #606266;
-  line-height: 1.6;
-}
-.plan-notes p { margin: 4px 0; }
 
 .cell-row { display: flex; align-items: center; gap: 6px; }
 .subject-label { color: #909399; }
@@ -445,19 +454,26 @@ onMounted(() => {
   gap: 4px;
   margin-top: 10px;
   cursor: pointer;
-  color: #1B60CB;
-  font-size: 13px;
+  color: var(--el-color-primary);
+  font-size: 18px;
+  font-weight: 500;
+  font-style: italic;
   user-select: none;
 }
 
 .guide-content {
-  font-size: 13px;
-  color: #606266;
+  font-size: 18px;
+  color: var(--el-text-color-regular);
   margin-top: 8px;
   line-height: 1.6;
-}
+  font-style: italic;
+} 
+
 .guide-content ul { padding-left: 16px; margin: 0; list-style: disc; }
 .guide-content li { margin-bottom: 6px; }
+.guide-content li b {
+  font-weight: 600!important;
+}
 
 .footer-btns {
   display: flex;
@@ -466,9 +482,26 @@ onMounted(() => {
   padding: 20px 0 8px;
 }
 
+/* form */
+:deep(.el-input),
+:deep(.el-select),
+:deep(.el-select__wrapper) {
+  height: 3rem;
+}
+
+:deep(.el-date-editor.el-input__wrapper) {
+  height: 1.5rem;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  padding: 0.75rem 1rem;
+}
+
 /* Dialog */
 .dlg-body { font-size: 13px; color: #303133; line-height: 1.7; }
-.dlg-desc { margin: 0 0 16px; }
-.dlg-select-row { display: flex; align-items: center; gap: 12px; }
+.dlg-desc { margin: 0 0 0 1rem; }
+.dlg-select-row { display: flex; align-items: center; gap: 12px; margin-top: 1rem; }
 .dlg-select-label { white-space: nowrap; font-size: 13px; }
+
 </style>

@@ -1047,10 +1047,7 @@ onMounted(load);
   letter-spacing: 0.02em;
 }
 .field-hint {
-  font-size: 12px;
-  color: #909399;
   margin-top: 4px;
-  line-height: 1.4;
 }
 .dlg-footer-right {
   display: flex;

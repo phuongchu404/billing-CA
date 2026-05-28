@@ -751,24 +751,9 @@ onMounted(loadTemplatePlans);
   box-shadow: 0px 3px 12px 0px #2f2b3d24;
 }
 
-.section-title {
-  display: block;
-  font-weight: 700;
-  font-size: 18px;
-  color: var(--el-color-primary);
-  letter-spacing: 0.3px;
-}
-
 /* Form layout */
 .section-form {
   max-width: 100%;
-}
-
-.field-hint {
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  margin: 0 0 0 1rem;
-  font-style: italic;
 }
 
 .note-text {

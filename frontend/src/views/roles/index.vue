@@ -503,8 +503,8 @@ onMounted(load)
   white-space: nowrap;
   user-select: none;
 }
-.th-perm { text-align: left !important; }
-.th-role { cursor: pointer; }
+.th-perm { text-align: left !important; width: 440px;}
+.th-role { cursor: pointer; width: 10rem;}
 .th-role.selected  { background: #e8f0fe; color: #1B60CB; }
 .th-role.editable  { background: #e8f0fe; color: #1B60CB; cursor: default; }
 
@@ -529,18 +529,17 @@ onMounted(load)
 
 /* Module rows */
 .module-row td {
-  background: #1B60CB;
-  color: #fff;
+  background: #1B60CB14;
+  color: var(--el-color-primary);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 8px 16px;
   cursor: pointer;
   user-select: none;
-  border-top: 1px solid #1550b0;
 }
-.module-row:hover td { background: #1550b0; }
+.module-row:hover td { background: var(--el-color-primary-light-8); }
 .module-arrow {
   display: inline-block;
   margin-right: 6px;
@@ -551,19 +550,18 @@ onMounted(load)
 .module-arrow.expanded { transform: rotate(0deg); }
 
 /* Group rows */
-.group-row td { padding: 0; border-top: 1px solid var(--el-border-color-lighter); }
+.group-row td { padding: 0.75rem 2.5rem; border-top: 1px solid var(--el-border-color-lighter); }
 .group-name-cell {
-  padding: 7px 16px 7px 28px;
   font-weight: 600;
-  font-size: 14px;
-  color: #606266;
-  background: #f5f7fa;
+  font-size: 15px;
+  color: var(--el-text-color-primary);
+  background-color: var(--color-light-grey);
 }
 
 /* Permission rows */
-.perm-row td { border-top: 1px solid var(--el-border-color-lighter); padding: 7px 16px; }
+.perm-row td { border-top: 1px solid var(--el-border-color-lighter); padding: 0.75rem 2.5rem; }
 .perm-row:hover td { background: #fafafa; }
-.perm-name-cell { padding-left: 40px; font-size: 14px; color: #303133; }
+.perm-name-cell { padding-left: 40px; font-size: 15px; color: var(--el-text-color-primary); }
 .perm-name-cell span,
 .perm-name-cell small {
   display: block;
@@ -576,7 +574,15 @@ onMounted(load)
 .check-cell { text-align: center; }
 .check-cell.selected { background: #f0f5ff; }
 .check-cell.edit-col { background: #eef4ff; }
+:deep(.el-checkbox__input.is-disabled.is-checked .el-checkbox__inner) {
+  background-color: var(--el-color-primary) !important;
+  border: none;
+}
 
+:deep(.el-checkbox__input.is-disabled.is-checked .el-checkbox__inner:after) {
+  border-color: #fff !important;  
+  border-width: 2px;
+}
 /* Footer */
 .matrix-footer {
   text-align: right;
@@ -594,10 +600,7 @@ onMounted(load)
   letter-spacing: 0.02em;
 }
 .field-hint {
-  font-size: 12px;
-  color: #909399;
   margin-top: 4px;
-  line-height: 1.4;
 }
 .dlg-footer-right {
   display: flex;

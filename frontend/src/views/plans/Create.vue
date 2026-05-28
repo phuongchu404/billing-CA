@@ -7,6 +7,7 @@
 
     <el-button
       :icon="Document"
+      class="btn"
       style="margin-bottom: 20px"
       @click="handleChooseTemplate"
     >
@@ -16,7 +17,7 @@
     <!-- THÔNG TIN ĐẠI LÝ -->
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t("agency.infoSection") }}</div>
-      <el-form :model="form" label-width="220px" label-position="left">
+      <el-form :model="form" label-width="280px" label-position="left">
         <el-form-item :label="$t('agency.agencyNameLabel')">
           <el-input
             v-model="form.groupName"
@@ -33,7 +34,6 @@
               v-for="(email, i) in form.picEmails"
               :key="i"
               closable
-              size="small"
               @close="form.picEmails.splice(i, 1)"
               >{{ email }}</el-tag
             >
@@ -85,7 +85,7 @@
     <!-- THÔNG TIN GÓI CƯỚC -->
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t("agency.planSection") }}</div>
-      <el-form :model="form" label-width="220px" label-position="left">
+      <el-form :model="form" label-width="280px" label-position="left">
         <el-form-item :label="$t('agency.planNameLabel')">
           <el-input
             v-model="form.planName"
@@ -109,12 +109,12 @@
       <div class="plan-notes">
         <p>
           {{ $t("agency.applyNotePendingPrefix") }}
-          <b>{{ $t("agency.applyNotePendingStatus") }}</b>
+          {{ $t("agency.applyNotePendingStatus") }}
           {{ $t("agency.applyNotePendingSuffix") }}
         </p>
         <p>
           {{ $t("agency.applyNoteAvailablePrefix") }}
-          <b>{{ $t("agency.applyNoteAvailableStatus") }}</b>
+          {{ $t("agency.applyNoteAvailableStatus") }}
           {{ $t("agency.applyNoteAvailableSuffix") }}
         </p>
       </div>
@@ -124,18 +124,15 @@
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t("agency.configSection") }}</div>
       <el-table :data="configRows" border>
-        <el-table-column type="index" width="50" />
-        <el-table-column :label="$t('agency.colSubject')" width="160" sortable>
+        <el-table-column type="index" width="50" align="center"/>
+        <el-table-column :label="$t('agency.colSubject')" width="200" sortable>
           <template #default="{ row }">
             <span class="subject-label">{{ row.subject }}</span>
           </template>
         </el-table-column>
 
         <el-table-column
-          :label="$t('agency.colCtsDuration')"
-          width="165"
-          sortable
-        >
+          :label="$t('agency.colCtsDuration')" width="180" header-align="left" align="right" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number
@@ -153,7 +150,7 @@
 
         <el-table-column
           :label="$t('agency.colCondition')"
-          width="150"
+          width="180"
           sortable
         >
           <template #default="{ row }">
@@ -170,7 +167,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colMinValue')" width="175" sortable>
+        <el-table-column :label="$t('agency.colMinValue')" width="180" sortable>
           <template #default="{ row }">
             <el-input-number
               v-model="row.minValue"
@@ -182,7 +179,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colMaxValue')" width="175" sortable>
+        <el-table-column :label="$t('agency.colMaxValue')" width="180" sortable>
           <template #default="{ row }">
             <el-input-number
               v-model="row.maxValue"
@@ -197,7 +194,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colFeePerCondition')" sortable>
+        <el-table-column :label="$t('agency.colFeePerCondition')" width="180" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number
@@ -213,7 +210,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('agency.colTotalPrice')" sortable>
+        <el-table-column :label="$t('agency.colTotalPrice')" width="200" sortable>
           <template #default="{ row }">
             <div class="cell-row">
               <el-input-number
@@ -237,22 +234,22 @@
 
       <div v-show="showGuide" class="guide-content">
         <ul>
-          <li>{{ $t("agency.guideIntro") }}</li>
+          <li class="text-primary"><b>{{ $t("agency.guideIntro") }}</b></li>
           <li>
-            <b>{{ $t("agency.guideDurationLabel") }}</b>
+            <b class="text-primary">{{ $t("agency.guideDurationLabel") }}</b>
             {{ $t("agency.guideDurationText") }}
           </li>
           <li>
-            <b>{{ $t("agency.guideConditionLabel") }}</b>
+            <b class="text-primary">{{ $t("agency.guideConditionLabel") }}</b>
             {{ $t("agency.guideConditionText") }}
           </li>
           <li>
             <span>
-              <b>{{ $t("agency.guideMinLabel") }}</b>
+              <b class="text-primary">{{ $t("agency.guideMinLabel") }}</b> 
               {{ $t("agency.guideMinText") }}
             </span>
             <span>
-              <b>{{ $t("agency.guideMaxLabel") }}</b>
+              <b class="text-primary">{{ $t("agency.guideMaxLabel") }}</b> 
               {{ $t("agency.guideMaxText") }}
             </span>
             <br />
@@ -262,7 +259,7 @@
             </span>
           </li>
           <li>
-            <b>{{ $t("agency.guideFeeLabel") }}</b>
+            <b class="text-primary">{{ $t("agency.guideFeeLabel") }}</b>
             {{ $t("agency.guideFeeText") }}
           </li>
         </ul>
@@ -314,7 +311,7 @@
       <el-button type="primary" :loading="submitting" @click="handleSubmit">{{
         $t("common.confirm")
       }}</el-button>
-      <el-button @click="handleCancel">{{ $t("common.cancel") }}</el-button>
+      <el-button @click="handleCancel" class="btn-cancel">{{ $t("roles.cancelEdit") }}</el-button>
     </div>
 
     <!-- DIALOG CHỌN GÓI CƯỚC MẪU -->
@@ -650,34 +647,28 @@ function handleCancel() {
 </script>
 
 <style scoped>
-.page-header {
-  margin-bottom: 12px;
-}
-.page-header h2 {
-  margin: 0;
-  font-size: 20px;
-}
 .breadcrumb {
-  font-size: 13px;
-  color: #909399;
+  font-size: 15px;
+  color: var(--el-text-color-regular);
 }
 
-.section-card {
-  margin-bottom: 16px;
+/*form*/
+:deep(.el-input),
+:deep(.tag-input-wrap) {
+  height: 3rem;
 }
-.section-title {
-  color: #1b60cb;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  margin-bottom: 16px;
+
+:deep(.el-date-editor.el-input__wrapper) {
+  height: 1.5rem;
+}
+
+:deep(.tag-input-wrap),
+:deep(.el-input__wrapper) {
+  padding: 0.75rem 1rem;
 }
 
 .field-hint {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
-  line-height: 1.4;
+  margin: 0.25rem 0 0 1rem;
 }
 
 .tag-input-wrap {
@@ -707,15 +698,12 @@ function handleCancel() {
   background: transparent;
 }
 
-.plan-notes {
-  padding-left: 220px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #606266;
-  line-height: 1.6;
-}
-.plan-notes p {
-  margin: 4px 0;
+:deep(.el-tag.el-tag--primary){
+  background-color: var(--el-color-primary-light-8);
+  color: var(--el-text-color-primary);
+  font-size: 15px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 1rem;
 }
 
 .cell-row {
@@ -735,16 +723,19 @@ function handleCancel() {
   gap: 4px;
   margin-top: 10px;
   cursor: pointer;
-  color: #1b60cb;
-  font-size: 13px;
+  color: var(--el-color-primary);
+  font-size: 18px;
+  font-weight: 500;
+  font-style: italic;
   user-select: none;
 }
 
 .guide-content {
-  font-size: 13px;
-  color: #606266;
+  font-size: 18px;
+  color: var(--el-text-color-regular);
   margin-top: 8px;
   line-height: 1.6;
+  font-style: italic;
 }
 .guide-content ul {
   padding-left: 16px;
@@ -753,6 +744,10 @@ function handleCancel() {
 }
 .guide-content li {
   margin-bottom: 6px;
+}
+
+.guide-content li b {
+  font-weight: 600!important;
 }
 
 .footer-btns {

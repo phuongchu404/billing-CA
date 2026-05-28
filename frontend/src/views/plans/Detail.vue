@@ -2,20 +2,16 @@
   <div>
     <div class="page-header">
       <h2>{{ $t('agency.detailTitle') }}</h2>
-      <span class="breadcrumb">{{ $t('agency.breadcrumb') }}</span>
+      <el-page-header icon="ArrowLeft" :title="$t('common.back')" class="text-regular" @back="router.back()" />
     </div>
 
     <!-- Action buttons: khác nhau theo trạng thái -->
     <div class="action-bar">
       <template v-if="agency.status === 'ACTIVE'">
-        <el-button :icon="Download" @click="handleExport"
-          >{{ $t('agency.btnExportReconciliation') }}</el-button
-        >
-        <el-button :icon="Edit" @click="handleEdit">{{ $t('agency.btnEdit') }}</el-button>
-        <el-button :icon="Plus" @click="handleAddPlan">{{ $t('agency.btnAddPlan') }}</el-button>
-        <el-button :icon="VideoPause" @click="handleSuspend"
-          >{{ $t('agency.btnSuspend') }}</el-button
-        >
+        <el-button :icon="Download" @click="handleExport" class="btn btn-regular">{{ $t('agency.btnExportReconciliation') }}</el-button>
+        <el-button :icon="Edit" @click="handleEdit" class="btn btn-regular">{{ $t('agency.btnEdit') }}</el-button>
+        <el-button :icon="Plus" @click="handleAddPlan" class="btn btn-regular">{{ $t('agency.btnAddPlan') }}</el-button>
+        <el-button :icon="VideoPause" @click="handleSuspend" class="btn btn-regular">{{ $t('agency.btnSuspend') }}</el-button>
       </template>
       <template v-else>
         <el-button :icon="VideoPlay" @click="handleActivate"
@@ -28,40 +24,43 @@
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t('agency.detailSection') }}</div>
       <div class="info-grid">
-        <div class="info-row two-col">
-          <span><b>{{ $t('agency.agencyNameField') }}</b> {{ agency.groupName }}</span>
-          <span><b>{{ $t('agency.agencyCodeField') }}</b> {{ agency.groupCode }}</span>
-        </div>
-        <div class="info-row">
-          <b>{{ $t('agency.statusField') }}</b>
-          <span
-            :class="
-              agency.status === 'ACTIVE' ? 'text-active' : 'text-inactive'
-            "
-            style="margin-left: 4px"
-          >
+        <el-row>
+          <el-col :span="12" class="info-row text-regular">
+            <span>{{ $t('agency.agencyNameField') }} {{ agency.groupName }}</span>
+          </el-col>
+          <el-col :span="12" class="info-row text-regular">
+            <span>{{ $t('agency.agencyCodeField') }} {{ agency.groupCode }}</span>
+          </el-col>
+        </el-row>
+        <div class="info-row text-regular">
+          {{ $t('agency.statusField') }}
+          <span>
             {{ agency.status === "ACTIVE" ? $t("agency.statusActive") : $t("agency.statusInactive") }}
           </span>
         </div>
-        <div class="info-row">
+        <div class="info-row text-regular">
           <span
-            ><b>{{ $t('agency.picField') }}</b> {{ agency.picEmails.join(", ") }}</span
+            >{{ $t('agency.picField') }} {{ agency.picEmails.join(", ") }}</span
           >
         </div>
-        <div v-if="agency.contactEmails?.length" class="info-row">
+        <div v-if="agency.contactEmails?.length" class="info-row text-regular">
           <span
-            ><b>{{ $t('agency.representativeField') }}</b> {{ agency.contactEmails.join(", ") }}</span
+            >{{ $t('agency.representativeField') }} {{ agency.contactEmails.join(", ") }}</span
           >
         </div>
-        <div class="info-row">
-          <span><b>{{ $t('agency.refContractField') }}</b> {{ agency.refContractNo }}</span>
+        <div class="info-row text-regular">
+          <span>{{ $t('agency.refContractField') }} {{ agency.refContractNo }}</span>
         </div>
-        <div class="info-row two-col">
-          <span><b>{{ $t('agency.createdByField') }}</b> {{ agency.createdBy }}</span>
-          <span><b>{{ $t('agency.createdAtField') }}</b> {{ agency.createdAt }}</span>
-        </div>
-        <div class="info-row">
-          <span><b>{{ $t('agency.updatedAtField') }}</b> {{ agency.updatedAt }}</span>
+        <el-row>
+          <el-col :span="12" class="info-row text-regular">
+            <span>{{ $t('agency.createdByField') }} {{ agency.createdBy }}</span>
+          </el-col>
+          <el-col :span="12" class="info-row text-regular">
+            <span>{{ $t('agency.createdAtField') }} {{ agency.createdAt }}</span> 
+          </el-col>
+        </el-row>
+        <div class="info-row text-regular">
+          <span>{{ $t('agency.updatedAtField') }} {{ agency.updatedAt }}</span>
         </div>
       </div>
     </el-card>
@@ -70,7 +69,7 @@
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t('agency.planSectionTitle') }}</div>
       <el-table :data="filteredPlans" border>
-        <el-table-column type="index" width="50">
+        <el-table-column type="index" width="50" align="center">
           <template #header>
             <div class="col-label">#</div>
             <div class="col-filter">
@@ -79,14 +78,14 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="planName" sortable min-width="180">
+        <el-table-column prop="planName" sortable min-width="200">
           <template #header>
             <div class="col-label">{{ $t('agency.colPlanName') }}</div>
             <div class="col-filter"></div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" sortable width="145">
+        <el-table-column prop="status" sortable width="170" header-align="left" align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colStatus') }}</div>
             <div class="col-filter">
@@ -107,42 +106,15 @@
           </template>
           <template #default="{ row }">
             <el-tag
-              v-if="row.status === 'available'"
-              size="small"
-              type="info"
-              plain
-              >{{ $t('agency.statusAvailable') }}</el-tag
+              disable-transitions
+              :class="['custom-tag', `tag-${row.status.toLowerCase()}`]"
             >
-            <el-tag
-              v-else-if="row.status === 'unavailable'"
-              size="small"
-              type="info"
-              plain
-              style="color: #909399; border-color: #dcdfe6"
-              >{{ $t('agency.statusUnavailable') }}</el-tag
-            >
-            <el-tag
-              v-else-if="row.status === 'pending'"
-              size="small"
-              type="warning"
-              >{{ $t('agency.statusPending') }}</el-tag
-            >
-            <el-tag
-              v-else-if="row.status === 'approved'"
-              size="small"
-              class="tag-approved"
-              >{{ $t('agency.statusApproved') }}</el-tag
-            >
-            <el-tag
-              v-else-if="row.status === 'active'"
-              size="small"
-              type="primary"
-              >{{ $t('agency.planStatusActive') }}</el-tag
-            >
+              {{ getStatusLabel(row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column prop="applyFrom" sortable width="135">
+        <el-table-column prop="applyFrom" sortable width="160" header-align="left" align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colApplyFrom') }}</div>
             <div class="col-filter">
@@ -159,7 +131,7 @@
           <template #default="{ row }">{{ row.applyFrom }}</template>
         </el-table-column>
 
-        <el-table-column prop="applyTo" sortable width="135">
+        <el-table-column prop="applyTo" sortable width="160" header-align="left" align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colApplyTo') }}</div>
             <div class="col-filter">
@@ -176,7 +148,7 @@
           <template #default="{ row }">{{ row.applyTo }}</template>
         </el-table-column>
 
-        <el-table-column prop="updatedAt" sortable width="175">
+        <el-table-column prop="updatedAt" sortable width="200" header-align="left" align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colUpdatedAt') }}</div>
             <div class="col-filter">
@@ -193,7 +165,7 @@
           <template #default="{ row }">{{ row.updatedAt }}</template>
         </el-table-column>
 
-        <el-table-column width="190" fixed="right">
+        <el-table-column width="240" fixed="right" align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colActions') }}</div>
             <div class="col-filter"></div>
@@ -210,7 +182,7 @@
                 <el-button
                   v-if="row.status === 'available'"
                   size="small"
-                  type="primary"
+                  class="btn-light-blue"
                   :disabled="!can('group:update')"
                   @click="handleRequestApply(row)"
                   >{{ $t('agency.btnRequestApply') }}</el-button
@@ -218,7 +190,7 @@
                 <el-button
                   v-else-if="row.status === 'pending'"
                   size="small"
-                  type="success"
+                  class="btn-light-blue"
                   :icon="Check"
                   :disabled="!canApprovePlan"
                   @click="handleApprove(row)"
@@ -229,7 +201,8 @@
                     row.status === 'approved' || row.status === 'active'
                   "
                   size="small"
-                  type="warning"
+                  type="primary"
+                  plain
                   :disabled="!can('group:update')"
                   @click="handleStopApply(row)"
                   >{{ $t('agency.btnStopApply') }}</el-button
@@ -256,34 +229,37 @@
           prop="applyFrom"
           :label="$t('agency.colApplyFrom')"
           sortable
-          width="130"
+          width="160"
         />
         <el-table-column
           prop="applyTo"
           :label="$t('agency.colApplyTo')"
           sortable
-          width="130"
+          width="160"
         />
         <el-table-column
           prop="planName"
           :label="$t('agency.colPlanName')"
           sortable
-          min-width="180"
+          min-width="240"
         />
-        <el-table-column :label="$t('agency.colStatus')" width="130" sortable prop="assignmentStatus">
-          <template #default="{ row }">
-            <el-tag v-if="row.assignmentStatus === 'APPROVED'" size="small" type="info">{{ $t('agency.statusApproved') }}</el-tag>
-            <el-tag v-else-if="row.assignmentStatus === 'ACTIVE'" size="small" type="primary">{{ $t('agency.planStatusActive') }}</el-tag>
-            <el-tag v-else-if="row.assignmentStatus === 'STOPPED'" size="small" type="warning">{{ $t('agency.planStatusStopped') }}</el-tag>
-            <el-tag v-else-if="row.assignmentStatus === 'EXPIRED'" size="small" type="danger">{{ $t('agency.planStatusExpired') }}</el-tag>
-            <el-tag v-else size="small">{{ row.assignmentStatus }}</el-tag>
-          </template>
-        </el-table-column>
+
+        <!--
+          <el-table-column :label="$t('agency.colStatus')" width="150" sortable prop="assignmentStatus">
+            <template #default="{ row }">
+              <el-tag v-if="row.assignmentStatus === 'APPROVED'" size="small" type="info">{{ $t('agency.statusApproved') }}</el-tag>
+              <el-tag v-else-if="row.assignmentStatus === 'ACTIVE'" size="small" type="primary">{{ $t('agency.planStatusActive') }}</el-tag>
+              <el-tag v-else-if="row.assignmentStatus === 'STOPPED'" size="small" type="warning">{{ $t('agency.planStatusStopped') }}</el-tag>
+              <el-tag v-else-if="row.assignmentStatus === 'EXPIRED'" size="small" type="danger">{{ $t('agency.planStatusExpired') }}</el-tag>
+              <el-tag v-else size="small">{{ row.assignmentStatus }}</el-tag>
+            </template>
+          </el-table-column>
+        -->
         <el-table-column
           prop="ctsCreated"
           :label="$t('agency.colCtsCreated')"
           sortable
-          width="145"
+          width="150"
         >
           <template #default="{ row }">{{
             row.ctsCreated.toLocaleString()
@@ -293,13 +269,13 @@
           prop="ctsCreatedPct"
           :label="$t('agency.colCtsCreatedPct')"
           sortable
-          width="140"
+          width="150"
         />
         <el-table-column
           prop="signingUsed"
           :label="$t('agency.colSigningUsed')"
           sortable
-          width="145"
+          width="150"
         >
           <template #default="{ row }">{{
             row.signingUsed.toLocaleString()
@@ -309,7 +285,7 @@
           prop="signingUsedPct"
           :label="$t('agency.colSigningUsedPct')"
           sortable
-          width="140"
+          width="150"
         />
       </el-table>
     </el-card>
@@ -323,7 +299,7 @@
     >
       <div class="dlg-body">
         <p class="dlg-info-line">
-          {{ $t('agency.dialogPlanName') }}
+          {{ $t('agency.dialogPlanName') }}: 
           <span class="dlg-value">{{ selectedPlan?.planName }}</span>
         </p>
         <p class="dlg-info-line">
@@ -472,54 +448,40 @@
     <el-dialog
       v-model="planDetailVisible"
       :title="$t('agency.dialogPlanDetail')"
-      width="760px"
+      width="1100"
+      height="600"
       :close-on-click-modal="false"
     >
       <div class="dlg-body">
         <div class="detail-info-grid">
-          <div class="detail-info-row">
-            <span><b>{{ $t('agency.dialogPlanName') }}</b> {{ selectedPlan?.planName }}</span>
-            <span
-              ><b>{{ $t('agency.statusField') }}</b>
-              {{ planStatusLabel(selectedPlan?.status) }}</span
-            >
+          <div class="detail-info-row text-regular">
+            <span>{{ $t('agency.dialogPlanName') }}: {{ selectedPlan?.planName }}</span>
+            <span>{{ $t('agency.statusField') }}  {{ planStatusLabel(selectedPlan?.status) }}</span>
           </div>
-          <div class="detail-info-row">
-            <span><b>{{ $t('agency.agencyCodeField') }}</b> {{ agency.groupCode }}</span>
-            <span><b>{{ $t('agency.agencyNameField') }}</b> {{ agency.groupName }}</span>
+          <div class="detail-info-row text-regular">
+            <span>{{ $t('agency.agencyCodeField') }} {{ agency.groupCode }}</span>
+            <span>{{ $t('agency.agencyNameField') }} {{ agency.groupName }}</span>
           </div>
-          <div class="detail-info-row">
-            <span><b>{{ $t('agency.colApplyFrom') }}:</b> {{ selectedPlan?.applyFrom }}</span>
-            <span><b>{{ $t('agency.colApplyTo') }}:</b> {{ selectedPlan?.applyTo }}</span>
+          <div class="detail-info-row text-regular">
+            <span>{{ $t('approvals.applyFromLabel') }} {{ selectedPlan?.applyFrom }}</span>
+            <span>{{ $t('approvals.applyToLabel') }} {{ selectedPlan?.applyTo }}</span>
           </div>
-          <div class="detail-info-row">
-            <span
-              ><b>{{ $t('agency.updatedAtField') }}</b> {{ selectedPlan?.updatedAt }}</span
-            >
+          <div class="detail-info-row text-regular">
+            <span>{{ $t('agency.updatedAtField') }} {{ selectedPlan?.updatedAt }}</span>
           </div>
         </div>
 
         <el-table :data="planConfigRows" border style="margin-top: 16px" v-loading="planDetailLoading">
-          <el-table-column type="index" width="50" />
-          <el-table-column prop="subject" :label="$t('agency.colSubject')" width="160" />
-          <el-table-column :label="$t('agency.colCtsDuration')" width="160">
+          <el-table-column prop="subject" :label="$t('approvals.subject')" width="200" />
+          <el-table-column :label="$t('agency.colCtsDuration')" width="140" align="right" header-align="left">
             <template #default="{ row }">{{ row.duration }} {{ $t('agency.monthUnit') }}</template>
           </el-table-column>
-          <el-table-column prop="condition" :label="$t('agency.colCondition')" width="130" />
-          <el-table-column
-            prop="min"
-            :label="$t('agency.colMinValue')"
-            width="155"
-          />
-          <el-table-column
-            prop="max"
-            :label="$t('agency.colMaxValue')"
-            width="155"
-          />
-          <el-table-column :label="$t('agency.colFeePerCondition')" width="155">
+          <el-table-column prop="condition" :label="$t('agency.colCondition')" width="145" align="center"/>
+          <el-table-column prop="min" :label="$t('agency.colMinValue')" width="140" align="right" header-align="left"/>
+          <el-table-column prop="max" :label="$t('agency.colMaxValue')" width="140" align="right" header-align="left"/>
+          <el-table-column :label="$t('agency.colFeePerCondition')" width="140" align="right" header-align="left">
             <template #default="{ row }"
-              >{{ row.fee.toLocaleString() }} {{ $t('agency.vnd') }}</template
-            >
+              >{{ row.fee.toLocaleString() }} {{ $t('agency.vnd') }}</template>
           </el-table-column>
           <el-table-column :label="$t('agency.colTotalPrice')">
             <template #default="{ row }">
@@ -529,9 +491,9 @@
           </el-table-column>
         </el-table>
 
-        <i18n-t keypath="agency.dialogPlanNote" tag="p" class="dlg-note" style="margin-top: 12px">
+        <i18n-t keypath="agency.dialogPlanNote" tag="p" class="text-regular text-italic" style="margin-top: 12px">
           <template #label>
-            <b>{{ $t('agency.dialogPlanNoteLabel') }}</b>
+            {{ $t('agency.dialogPlanNoteLabel') }}
           </template>
         </i18n-t>
       </div>
@@ -540,10 +502,10 @@
           <el-button
             v-if="selectedPlan?.status !== 'unavailable'"
             type="warning"
+            class="btn-warning"
             :disabled="!can('group:update')"
             @click="openDisableDialog"
-            >{{ $t('agency.btnDisable') }}</el-button
-          >
+            >{{ $t('agency.btnDisable') }}</el-button>
           <div>
             <el-button
               v-if="selectedPlan?.status === 'available'"
@@ -552,7 +514,7 @@
               @click="openRequestFromDetail"
               >{{ $t('agency.btnRequestApply') }}</el-button
             >
-            <el-button @click="planDetailVisible = false">{{ $t('common.cancel') }}</el-button>
+            <el-button @click="planDetailVisible = false" class="btn-cancel">{{ $t('roles.cancelEdit') }}</el-button>
           </div>
         </div>
       </template>
@@ -646,10 +608,11 @@
     <el-dialog
       v-model="editVisible"
       :title="$t('agency.dialogEditTitle')"
-      width="520px"
+      width="620" 
+      height="500"
       :close-on-click-modal="false"
     >
-      <el-form :model="editForm" label-width="190px" class="edit-form">
+      <el-form :model="editForm" label-width="190px" class="edit-form" label-position="left">
         <el-form-item :label="$t('agency.dialogEditCodeLabel')">
           <div style="width: 100%">
             <el-input :value="agency.groupCode" disabled />
@@ -700,8 +663,8 @@
         <el-button type="primary" :loading="editSaving" @click="confirmEdit"
           >{{ $t('common.confirm') }}</el-button
         >
-        <el-button :disabled="editSaving" @click="editVisible = false"
-          >{{ $t('common.cancel') }}</el-button
+        <el-button :disabled="editSaving" @click="editVisible = false" class="btn-cancel"
+          >{{ $t('roles.cancelEdit') }}</el-button
         >
       </template>
     </el-dialog>
@@ -925,6 +888,20 @@ function planStatusLabel(status?: string): string {
   };
   return status ? (map[status] ?? status) : "";
 }
+
+const getStatusLabel = (status: string) => {
+  if (!status) return '';
+  
+  const statusMap: Record<string, string> = {
+    'available': t('agency.statusAvailable'),
+    'unavailable': t('agency.statusUnavailable'),
+    'pending': t('agency.statusPending'),
+    'approved': t('agency.statusApproved'),
+    'active': t('agency.planStatusActive'),
+  };
+
+  return statusMap[status.toLowerCase()] || status;
+};
 
 // ---- Action handlers ----
 function handleExport() {
@@ -1260,9 +1237,9 @@ async function confirmEdit() {
 .page-header {
   margin-bottom: 12px;
 }
-.page-header h2 {
-  margin: 0;
-  font-size: 20px;
+.page-header :deep(.el-divider),
+.page-header :deep(.el-page-header__divider) {
+  display: none !important;
 }
 .breadcrumb {
   font-size: 13px;
@@ -1276,16 +1253,6 @@ async function confirmEdit() {
   flex-wrap: wrap;
 }
 
-.section-card {
-  margin-bottom: 16px;
-}
-.section-title {
-  color: #1b60cb;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  margin-bottom: 14px;
-}
 .toggle-title {
   display: flex;
   align-items: center;
@@ -1327,12 +1294,6 @@ async function confirmEdit() {
   min-height: 28px;
 }
 
-:deep(.tag-approved) {
-  background-color: #303133;
-  border-color: #303133;
-  color: #fff;
-}
-
 .action-btns {
   display: flex;
   gap: 4px;
@@ -1365,12 +1326,7 @@ async function confirmEdit() {
 .dlg-desc {
   margin: 0 0 8px;
 }
-.dlg-note {
-  margin: 12px 0 0;
-  font-size: 12px;
-  color: #606266;
-  font-style: italic;
-}
+
 .dlg-bullets {
   margin: 6px 0 0 0;
   padding-left: 18px;
@@ -1414,5 +1370,24 @@ async function confirmEdit() {
 }
 .detail-info-row span {
   flex: 1;
+}
+
+/*form*/
+:deep(.el-form-item__label) {
+  line-height: 26px;
+}
+
+:deep(.el-input),
+:deep(.el-select) {
+  height: 3rem;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  padding: 0.75rem 1rem;
+}
+
+:deep(.el-select__wrapper) {
+  min-height: 3rem;
 }
 </style>
