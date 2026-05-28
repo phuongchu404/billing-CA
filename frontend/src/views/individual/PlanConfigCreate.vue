@@ -32,6 +32,8 @@
             <el-input
               v-model="form.name"
               :placeholder="t('agency.planNamePlaceholder')"
+              :maxlength="150"
+              show-word-limit
             />
             <div class="field-hint">{{ t("agency.planNameHint") }}</div>
           </div>
