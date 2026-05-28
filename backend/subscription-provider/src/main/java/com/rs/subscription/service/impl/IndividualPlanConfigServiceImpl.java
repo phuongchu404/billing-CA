@@ -361,6 +361,8 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         Long approvalId = multiLevelApprovalService.createAndSubmit(draft);
 
+        touchTemplate(template);
+
         IndividualPlanConfigDetailResponse response = getDetail(id);
         response.setApprovalRequestId(approvalId);
         return response;
@@ -395,6 +397,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         recordAudit(schedule, CommercialEnums.AuditAction.APPROVE.name(),
             CommercialEnums.ScheduleStatus.REQUESTED.name(), newStatus, req.getApprovedBy(), null);
+        touchTemplate(findTemplate(id));
         eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, newStatus));
         return getDetail(id);
     }
@@ -407,6 +410,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         scheduleRepository.save(schedule);
         recordAudit(schedule, CommercialEnums.AuditAction.REJECT.name(),
             CommercialEnums.ScheduleStatus.REQUESTED.name(), CommercialEnums.ScheduleStatus.INACTIVE.name(), actor, null);
+        touchTemplate(findTemplate(id));
         return getDetail(id);
     }
 
@@ -424,6 +428,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         schedule.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
         scheduleRepository.save(schedule);
         recordAudit(schedule, CommercialEnums.AuditAction.STOP.name(), oldStatus, CommercialEnums.ScheduleStatus.INACTIVE.name(), actor, null);
+        touchTemplate(findTemplate(id));
         eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, "STOPPED"));
         return getDetail(id);
     }
@@ -479,6 +484,11 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         if (!expectedStatus.equals(template.getStatus())) {
             throw new SmsException(ErrorCodes.INVALID_STATUS_TRANSITION, message, 400);
         }
+    }
+
+    private void touchTemplate(PlanTemplate template) {
+        template.setUpdatedAt(LocalDateTime.now());
+        planTemplateRepository.save(template);
     }
 
     private RetailPlanSchedule createSchedule(PlanTemplate template, String applyFrom, String applyUntil,

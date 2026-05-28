@@ -24,6 +24,7 @@ import com.rs.subscription.repository.ApprovalLevelConfigRepository;
 import com.rs.subscription.repository.ApprovalRequestRepository;
 import com.rs.subscription.repository.ApprovalRequestStepRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
+import com.rs.subscription.repository.PlanTemplateRepository;
 import com.rs.subscription.repository.RetailPlanScheduleRepository;
 import com.rs.subscription.repository.UserAccountRepository;
 import com.rs.subscription.security.SecurityUtil;
@@ -55,6 +56,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     private final ApprovalRequestStepRepository stepRepository;
     private final ApprovalLevelConfigRepository levelConfigRepository;
     private final GroupPlanAssignmentRepository groupPlanAssignmentRepository;
+    private final PlanTemplateRepository planTemplateRepository;
     private final RetailPlanScheduleRepository retailPlanScheduleRepository;
     private final UserAccountRepository userAccountRepository;
     private final ApprovalNotificationService notificationService;
@@ -408,6 +410,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
                     rps.setApprovedBy(actor);
                     rps.setApprovedAt(LocalDateTime.now());
                     retailPlanScheduleRepository.save(rps);
+                    touchPlanTemplate(rps.getPlanTemplate().getPlanTemplateId());
                 });
         }
     }
@@ -430,8 +433,16 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
                 .ifPresent(rps -> {
                     rps.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
                     retailPlanScheduleRepository.save(rps);
+                    touchPlanTemplate(rps.getPlanTemplate().getPlanTemplateId());
                 });
         }
+    }
+
+    private void touchPlanTemplate(Long planTemplateId) {
+        planTemplateRepository.findById(planTemplateId).ifPresent(pt -> {
+            pt.setUpdatedAt(LocalDateTime.now());
+            planTemplateRepository.save(pt);
+        });
     }
 
     private ApprovalRequest findRequest(Long id) {
