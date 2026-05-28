@@ -276,6 +276,11 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         if (req.getPricingRules() != null) {
             int sortOrder = 0;
             for (CreateIndividualPlanConfigRequest.PricingRuleRequest rr : req.getPricingRules()) {
+                int effectiveMin = rr.getMinValue() != null ? rr.getMinValue() : 1;
+                if (rr.getMaxValue() != null && rr.getMaxValue() < effectiveMin) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                            "Giá trị max phải lớn hơn hoặc bằng giá trị min trong bảng cấu hình giá", 400);
+                }
                 PlanPricingRule rule = toPricingRuleEntity(rr, sortOrder++);
                 rule.setPlanTemplate(template);
                 template.getPricingRules().add(rule);

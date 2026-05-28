@@ -5,6 +5,7 @@ import com.rs.subscription.service.*;
 import com.rs.subscription.dto.request.AddGroupPlanRequest;
 import com.rs.subscription.dto.request.CreateGroupPlanAssignmentRequest;
 import com.rs.subscription.dto.request.CreatePlanTemplateRequest;
+import com.rs.subscription.dto.request.PlanPricingRuleRequest;
 import com.rs.subscription.dto.request.CreateUserRequest;
 import com.rs.subscription.dto.request.GrantPartnerAccessRequest;
 import com.rs.subscription.dto.request.PartnerAccountRequest;
@@ -120,6 +121,15 @@ public class GroupProvisioningServiceImpl implements GroupProvisioningService {
     public GroupPlanAssignmentResponse addPlanToGroup(Long groupId, AddGroupPlanRequest req) {
         String actor = SecurityUtil.getCurrentUsername()
             .orElse(req.getRequestedBy() != null ? req.getRequestedBy() : "system");
+
+        if (req.getPricingRules() != null) {
+            for (PlanPricingRuleRequest rr : req.getPricingRules()) {
+                if (rr.getRangeMax() != null && rr.getRangeMax() < rr.getRangeMin()) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                            "Giá trị max phải lớn hơn hoặc bằng giá trị min trong bảng cấu hình giá", 400);
+                }
+            }
+        }
 
         Group group = groupRepository.findById(groupId)
             .orElseThrow(() -> new SmsException(ErrorCodes.GROUP_NOT_FOUND, "Group not found: " + groupId, 404));

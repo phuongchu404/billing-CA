@@ -378,6 +378,10 @@ async function handleSubmit() {
     ElMessage.warning(t('agency.warningTotalPrice'))
     return
   }
+  if (configRows.some((row) => row.maxValue != null && row.maxValue < row.minValue)) {
+    ElMessage.warning('Giá trị max phải lớn hơn hoặc bằng giá trị min')
+    return
+  }
 
   submitting.value = true
   try {
