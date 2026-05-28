@@ -28,13 +28,20 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Auditable(entityType = "INDIVIDUAL_PLAN")
@@ -42,7 +49,22 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigService {
 
+    @PersistenceContext
+    private EntityManager em;
+
     private static final String CUSTOMER_SEGMENT = CommercialEnums.CustomerSegment.INDIVIDUAL.name();
+
+    // Subquery: one row per template (latest active schedule), MySQL 8+ ROW_NUMBER
+    private static final String RPS_SUBQUERY = """
+            LEFT JOIN (
+                SELECT plan_template_id, schedule_status, apply_from, apply_to,
+                       ROW_NUMBER() OVER (PARTITION BY plan_template_id ORDER BY created_at DESC) AS rn
+                FROM retail_plan_schedules
+                WHERE schedule_status IN ('REQUESTED','APPROVED','ACTIVE')
+            ) rps ON rps.plan_template_id = pt.plan_template_id AND rps.rn = 1
+            """;
+    private static final String BASE_FROM = "FROM plan_templates pt " + RPS_SUBQUERY
+            + "WHERE pt.customer_segment = 'INDIVIDUAL'\n";
     private static final List<String> ACTIVE_SCHEDULE_STATUSES = List.of(
         CommercialEnums.ScheduleStatus.REQUESTED.name(),
         CommercialEnums.ScheduleStatus.APPROVED.name(),
@@ -58,25 +80,85 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     private final MinioStorageService minioStorageService;
     private final ApplicationEventPublisher eventPublisher;
 
-    public IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt) {
-        List<PlanTemplate> templates = planTemplateRepository.findByCustomerSegment(CUSTOMER_SEGMENT);
+    public IndividualPlanConfigSummaryResponse getSummary(
+            String status, String applyFrom, String applyUntil, String updatedAt,
+            int page, int size, String sortBy, String sortDir) {
 
+        // Build WHERE conditions and named params dynamically
+        StringBuilder cond = new StringBuilder();
+        Map<String, Object> params = new LinkedHashMap<>();
+
+        if (status != null && !status.isBlank()) {
+            cond.append("""
+                AND (
+                    (:uiStatus = 'UNAVAILABLE' AND pt.status = 'INACTIVE')
+                    OR (:uiStatus = 'APPLYING'  AND rps.schedule_status = 'ACTIVE')
+                    OR (:uiStatus = 'PENDING'   AND rps.schedule_status = 'REQUESTED')
+                    OR (:uiStatus = 'APPROVED'  AND rps.schedule_status = 'APPROVED')
+                    OR (:uiStatus = 'AVAILABLE' AND pt.status = 'AVAILABLE' AND rps.schedule_status IS NULL)
+                )
+                """);
+            params.put("uiStatus", status);
+        }
+        if (applyFrom != null && !applyFrom.isBlank()) {
+            cond.append("AND rps.apply_from = :applyFrom\n");
+            params.put("applyFrom", LocalDate.parse(applyFrom));
+        }
+        if (applyUntil != null && !applyUntil.isBlank()) {
+            cond.append("AND rps.apply_to = :applyUntil\n");
+            params.put("applyUntil", LocalDate.parse(applyUntil));
+        }
+        if (updatedAt != null && !updatedAt.isBlank()) {
+            LocalDate d = LocalDate.parse(updatedAt);
+            cond.append("AND pt.updated_at >= :updatedAtStart AND pt.updated_at < :updatedAtEnd\n");
+            params.put("updatedAtStart", d.atStartOfDay());
+            params.put("updatedAtEnd",   d.plusDays(1).atStartOfDay());
+        }
+
+        String orderBy = buildOrderBy(sortBy, sortDir);
+        String dataSql  = "SELECT pt.* " + BASE_FROM + cond + orderBy;
+        String countSql = "SELECT COUNT(*) " + BASE_FROM + cond;
+
+        // Query 1: paginated data with sort + filter at DB level
+        Query dataQuery = em.createNativeQuery(dataSql, PlanTemplate.class);
+        Query countQuery = em.createNativeQuery(countSql);
+        params.forEach((k, v) -> { dataQuery.setParameter(k, v); countQuery.setParameter(k, v); });
+        dataQuery.setFirstResult(page * size);
+        dataQuery.setMaxResults(size);
+
+        @SuppressWarnings("unchecked")
+        List<PlanTemplate> templates = dataQuery.getResultList();
+        long totalElements = ((Number) countQuery.getSingleResult()).longValue();
+        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
+
+        // Query 2: batch-load active schedules for this page's templates in ONE IN-clause query
+        Map<Long, RetailPlanSchedule> scheduleMap = Map.of();
+        if (!templates.isEmpty()) {
+            List<Long> ids = templates.stream().map(PlanTemplate::getPlanTemplateId).collect(Collectors.toList());
+            scheduleMap = scheduleRepository.findActiveByTemplateIds(ids, ACTIVE_SCHEDULE_STATUSES)
+                    .stream()
+                    .collect(Collectors.toMap(
+                            rps -> rps.getPlanTemplate().getPlanTemplateId(),
+                            Function.identity(),
+                            (a, b) -> a));
+        }
+
+        Map<Long, RetailPlanSchedule> scheduleMapFinal = scheduleMap;
         List<IndividualPlanConfigListItemResponse> items = templates.stream()
-                .sorted(Comparator.comparing(PlanTemplate::getUpdatedAt).reversed())
-                .map(this::toListItem)
-                .filter(item -> matchesFilter(item, status, applyFrom, applyUntil, updatedAt))
+                .map(t -> toListItem(t, Optional.ofNullable(scheduleMapFinal.get(t.getPlanTemplateId()))))
                 .collect(Collectors.toList());
 
-        LocalDateTime lastUpdated = templates.stream()
-                .map(PlanTemplate::getUpdatedAt)
-                .max(Comparator.naturalOrder())
-                .orElse(null);
+        LocalDateTime lastUpdated = planTemplateRepository
+                .findMaxUpdatedAtByCustomerSegment(CUSTOMER_SEGMENT).orElse(null);
 
         IndividualPlanConfigSummaryResponse summary = new IndividualPlanConfigSummaryResponse();
         summary.setList(items);
+        summary.setTotalElements(totalElements);
+        summary.setTotalPages(totalPages);
+        summary.setPage(page);
+        summary.setSize(size);
         summary.setLastUpdated(lastUpdated != null ? lastUpdated.format(DATETIME_FMT) : null);
 
-        // currentPlan = template whose schedule is ACTIVE
         scheduleRepository.findTopByScheduleStatus(CommercialEnums.ScheduleStatus.ACTIVE.name()).ifPresent(s -> {
             IndividualPlanConfigSummaryResponse.CurrentPlanInfo cp = new IndividualPlanConfigSummaryResponse.CurrentPlanInfo();
             cp.setName(s.getPlanTemplate().getPlanName());
@@ -84,7 +166,6 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             summary.setCurrentPlan(cp);
         });
 
-        // nextPlan = template whose schedule is APPROVED (earliest future applyFrom)
         scheduleRepository.findTopByScheduleStatusOrderByApplyFromAsc(CommercialEnums.ScheduleStatus.APPROVED.name()).ifPresent(s -> {
             IndividualPlanConfigSummaryResponse.NextPlanInfo np = new IndividualPlanConfigSummaryResponse.NextPlanInfo();
             np.setName(s.getPlanTemplate().getPlanName());
@@ -93,6 +174,24 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         });
 
         return summary;
+    }
+
+    // NULL-safe: dùng CASE WHEN ... THEN 1 ELSE 0 END để đẩy NULL xuống cuối (MySQL-compatible)
+    private static String buildOrderBy(String sortBy, String sortDir) {
+        String dir = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
+        return switch (sortBy == null ? "" : sortBy) {
+            case "name"       -> "ORDER BY pt.plan_name " + dir + "\n";
+            // Sort theo derived UI status: APPLYING=1, APPROVED=2, PENDING=3, AVAILABLE=4, UNAVAILABLE=5
+            case "status"     -> "ORDER BY CASE rps.schedule_status"
+                    + " WHEN 'ACTIVE'    THEN 1"
+                    + " WHEN 'APPROVED'  THEN 2"
+                    + " WHEN 'REQUESTED' THEN 3"
+                    + " ELSE CASE WHEN pt.status = 'AVAILABLE' THEN 4 ELSE 5 END END " + dir + "\n";
+            case "applyFrom"  -> "ORDER BY CASE WHEN rps.apply_from IS NULL THEN 1 ELSE 0 END ASC, rps.apply_from " + dir + "\n";
+            case "applyUntil" -> "ORDER BY CASE WHEN rps.apply_to   IS NULL THEN 1 ELSE 0 END ASC, rps.apply_to "   + dir + "\n";
+            case "updatedAt"  -> "ORDER BY pt.updated_at " + dir + "\n";
+            default           -> "ORDER BY pt.updated_at DESC\n";
+        };
     }
 
     public IndividualPlanConfigDetailResponse getDetail(Long id) {
@@ -415,9 +514,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         return CommercialEnums.IndividualPlanStatus.AVAILABLE.name();
     }
 
-    private IndividualPlanConfigListItemResponse toListItem(PlanTemplate template) {
-        Optional<RetailPlanSchedule> activeSchedule = findActiveSchedule(template.getPlanTemplateId());
-
+    private IndividualPlanConfigListItemResponse toListItem(PlanTemplate template, Optional<RetailPlanSchedule> activeSchedule) {
         IndividualPlanConfigListItemResponse item = new IndividualPlanConfigListItemResponse();
         item.setId(template.getPlanTemplateId());
         item.setName(template.getPlanName());
@@ -466,30 +563,6 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             return CommercialEnums.IndividualPlanStatus.UNAVAILABLE.name();
         }
         return scheduleStatus;
-    }
-
-    private boolean matchesFilter(IndividualPlanConfigListItemResponse item,
-                                   String status, String applyFrom, String applyUntil, String updatedAt) {
-        if (status != null && !status.isBlank() && !status.equals(item.getStatus())) return false;
-        if (applyFrom != null && !applyFrom.isBlank()) {
-            if (item.getApplyFrom() == null) return false;
-            LocalDate filterDate = LocalDate.parse(applyFrom);
-            LocalDate itemDate = LocalDate.parse(item.getApplyFrom(), DATE_FMT);
-            if (!itemDate.equals(filterDate)) return false;
-        }
-        if (applyUntil != null && !applyUntil.isBlank()) {
-            if (item.getApplyUntil() == null) return false;
-            LocalDate filterDate = LocalDate.parse(applyUntil);
-            LocalDate itemDate = LocalDate.parse(item.getApplyUntil(), DATE_FMT);
-            if (!itemDate.equals(filterDate)) return false;
-        }
-        if (updatedAt != null && !updatedAt.isBlank()) {
-            if (item.getUpdatedAt() == null) return false;
-            LocalDate filterDate = LocalDate.parse(updatedAt);
-            LocalDate itemDate = LocalDateTime.parse(item.getUpdatedAt(), DATETIME_FMT).toLocalDate();
-            if (!itemDate.equals(filterDate)) return false;
-        }
-        return true;
     }
 
     private IndividualPlanConfigDetailResponse.SubjectConfigRow toSubjectConfigRow(PlanSubjectConfig config) {

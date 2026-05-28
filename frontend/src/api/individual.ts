@@ -19,6 +19,10 @@ export interface IndividualPlanConfigFilterParams {
   applyFrom?: string
   applyUntil?: string
   updatedAt?: string
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: string
 }
 
 export const getIndividualPlanConfigSummary = (params?: IndividualPlanConfigFilterParams) =>

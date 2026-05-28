@@ -25,8 +25,12 @@ public class IndividualPlanConfigController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String applyFrom,
             @RequestParam(required = false) String applyUntil,
-            @RequestParam(required = false) String updatedAt) {
-        return ApiResponse.success(service.getSummary(status, applyFrom, applyUntil, updatedAt), "Fetched individual plan configs");
+            @RequestParam(required = false) String updatedAt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir) {
+        return ApiResponse.success(service.getSummary(status, applyFrom, applyUntil, updatedAt, page, size, sortBy, sortDir), "Fetched individual plan configs");
     }
 
     @GetMapping("/{id}")

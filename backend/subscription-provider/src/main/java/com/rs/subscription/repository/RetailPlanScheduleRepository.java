@@ -25,6 +25,16 @@ public interface RetailPlanScheduleRepository extends JpaRepository<RetailPlanSc
     List<RetailPlanSchedule> findByScheduleStatusInOrderByApplyFromAsc(List<String> statuses);
 
     @Query("""
+            SELECT rps FROM RetailPlanSchedule rps
+            WHERE rps.planTemplate.planTemplateId IN :templateIds
+            AND rps.scheduleStatus IN :statuses
+            ORDER BY rps.createdAt DESC
+            """)
+    List<RetailPlanSchedule> findActiveByTemplateIds(
+            @Param("templateIds") List<Long> templateIds,
+            @Param("statuses") List<String> statuses);
+
+    @Query("""
             SELECT DISTINCT s FROM RetailPlanSchedule s
             JOIN FETCH s.planTemplate t
             LEFT JOIN FETCH t.pricingRules

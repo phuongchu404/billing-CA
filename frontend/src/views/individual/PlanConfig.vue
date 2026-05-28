@@ -83,7 +83,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" sortable width="170" align="center">
+        <el-table-column prop="status" sortable="custom" width="170" align="center">
           <template #header>
             <div class="col-label">{{ t("common.status") }}</div>
             <div class="col-filter">
@@ -127,7 +127,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="applyFrom" sortable width="160" align="center">
+        <el-table-column prop="applyFrom" sortable="custom" width="160" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colApplyFrom") }}</div>
             <div class="col-filter">
@@ -144,7 +144,7 @@
           <template #default="{ row }">{{ row.applyFrom ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="applyUntil" sortable width="160" align="center">
+        <el-table-column prop="applyUntil" sortable="custom" width="160" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colApplyTo") }}</div>
             <div class="col-filter">
@@ -161,7 +161,7 @@
           <template #default="{ row }">{{ row.applyUntil ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column prop="updatedAt" sortable width="210" align="center">
+        <el-table-column prop="updatedAt" sortable="custom" width="210" align="center">
           <template #header>
             <div class="col-label">{{ t("agency.colUpdatedAt") }}</div>
             <div class="col-filter">
@@ -237,35 +237,36 @@
             v-model="pageSize"
             size="small"
             style="width: 5rem; margin: 0 0.5rem;"
-            @change="page = 1"
+            @change="onSizeChange"
           >
             <el-option :value="10" label="10" />
             <el-option :value="20" label="20" />
           </el-select>
-          {{ t("individualPlan.totalPlans", { total: filteredList.length }) }}
+          {{ t("individualPlan.totalPlans", { total: total }) }}
         </span>
         <div class="custom-pagination-wrapper">
-          <button 
-            class="custom-nav-btn" 
+          <button
+            class="custom-nav-btn"
             :disabled="page === 1"
-            @click="page = 1"
+            @click="() => { page = 1; load(); }"
           >
             <el-icon><DArrowLeft /></el-icon>
           </button>
 
           <el-pagination
             v-model:current-page="page"
-            :total="filteredList.length"
+            :total="total"
             :page-size="pageSize"
             layout="prev, pager, next"
             :pager-count="5"
             background
+            @current-change="onPageChange"
           />
 
-          <button 
-            class="custom-nav-btn" 
-            :disabled="page === Math.ceil(filteredList.length / pageSize)"
-            @click="page = Math.ceil(filteredList.length / pageSize)"
+          <button
+            class="custom-nav-btn"
+            :disabled="page === Math.ceil(total / pageSize)"
+            @click="() => { page = Math.ceil(total / pageSize); load(); }"
           >
             <el-icon><DArrowRight /></el-icon>
           </button>
@@ -419,6 +420,7 @@ type PlanConfigRow = IndividualPlanConfigListItem;
 const loading = ref(false);
 const page = ref(1);
 const pageSize = ref(10);
+const total = ref(0);
 const filterStatus = ref("");
 const filterApplyFrom = ref<Date | null>(null);
 const filterApplyUntil = ref<Date | null>(null);
@@ -448,28 +450,15 @@ const disabledDate = (time: Date) => {
   return time.getTime() < today.getTime();
 };
 
-const currentSort = ref({ prop: '', order: null as string | null })
-const handleSort = ({ prop, order }: any) => {
-  currentSort.value = { prop, order }
+const currentSort = ref({ prop: 'updatedAt', order: 'descending' as string | null })
+
+function handleSort({ prop, order }: { prop: string; order: string | null }) {
+  currentSort.value = { prop: prop || 'updatedAt', order: order || 'descending' }
+  page.value = 1
+  load()
 }
 
-const pagedList = computed(() => {
-  let result = [...filteredList.value]
-
-  if (currentSort.value.prop === 'name' && currentSort.value.order !== null) {
-    result.sort((a, b) => {
-      const nameA = (a.name || '').toString().trim().toLowerCase()
-      const nameB = (b.name || '').toString().trim().toLowerCase()
-
-      const compare = nameA.localeCompare(nameB, 'vi')
-      return currentSort.value.order === 'ascending' ? compare : -compare
-    })
-  }
-
-  const start = (page.value - 1) * pageSize.value
-  return result.slice(start, start + pageSize.value)
-  //return filteredList.value.slice(start, start + pageSize.value);
-});
+const pagedList = computed(() => list.value);
 
 function statusLabel(status: PlanStatus): string {
   const map: Record<PlanStatus, string> = {
@@ -496,6 +485,15 @@ function statusTagType(
     APPLYING: undefined,
   };
   return map[status] ?? "info";
+}
+
+function onPageChange() {
+  load();
+}
+
+function onSizeChange() {
+  page.value = 1;
+  load();
 }
 
 function resetFilters() {
@@ -616,11 +614,16 @@ async function load() {
     applyFrom: toIsoDate(filterApplyFrom.value),
     applyUntil: toIsoDate(filterApplyUntil.value),
     updatedAt: toIsoDate(filterUpdatedAt.value),
+    page: page.value - 1,
+    size: pageSize.value,
+    sortBy: currentSort.value.prop || undefined,
+    sortDir: currentSort.value.order === 'ascending' ? 'asc' : 'desc',
   };
   try {
     const res = await getIndividualPlanConfigSummary(params);
     if (res.success && res.data) {
       list.value = res.data.list ?? [];
+      total.value = res.data.totalElements ?? 0;
       currentPlan.value = res.data.currentPlan ?? null;
       nextPlan.value = res.data.nextPlan ?? null;
       lastUpdated.value = res.data.lastUpdated ?? null;

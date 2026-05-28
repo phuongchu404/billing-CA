@@ -7,6 +7,10 @@ import java.util.List;
 @Data
 public class IndividualPlanConfigSummaryResponse {
     private List<IndividualPlanConfigListItemResponse> list;
+    private long totalElements;
+    private int totalPages;
+    private int page;
+    private int size;
     private CurrentPlanInfo currentPlan;
     private NextPlanInfo nextPlan;
     private String lastUpdated;
