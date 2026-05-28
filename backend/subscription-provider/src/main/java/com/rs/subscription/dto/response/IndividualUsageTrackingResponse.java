@@ -9,6 +9,10 @@ public class IndividualUsageTrackingResponse {
     private IndividualUsageStatsResponse stats;
     private List<IndividualUsageRowResponse> list;
     private String lastUpdated;
+    private long totalElements;
+    private int totalPages;
+    private int page;
+    private int size;
 
     @Data
     public static class IndividualUsageStatsResponse {

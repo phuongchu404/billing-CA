@@ -21,19 +21,28 @@ import com.rs.subscription.repository.GroupRepository;
 import com.rs.subscription.repository.UserAccountRepository;
 import com.rs.subscription.repository.UsageAggregateRepository;
 import com.rs.subscription.aop.Auditable;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Auditable(entityType = CommercialEnums.ENTITY_GROUP)
 @Service
 @RequiredArgsConstructor
 public class GroupServiceImpl implements GroupService {
+
+    @PersistenceContext
+    private EntityManager em;
 
     private final GroupRepository groupRepository;
     private final GroupContactRepository groupContactRepository;
@@ -42,48 +51,148 @@ public class GroupServiceImpl implements GroupService {
     private final UserAccountRepository userAccountRepository;
     private final DataScopeService dataScopeService;
 
+    // Subquery: one ACTIVE assignment per group (latest by activated_at)
+    private static final String GROUP_BASE_FROM = """
+            FROM `groups` g
+            LEFT JOIN user_accounts u ON u.user_id = g.owner_user_id
+            LEFT JOIN (
+                SELECT group_id, group_plan_assignment_id, plan_template_id, apply_to, activated_at,
+                       ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY COALESCE(activated_at, '1970-01-01 00:00:00') DESC) AS rn
+                FROM group_plan_assignments
+                WHERE assignment_status = 'ACTIVE'
+            ) gpa ON gpa.group_id = g.group_id AND gpa.rn = 1
+            LEFT JOIN plan_templates pt ON pt.plan_template_id = gpa.plan_template_id
+            LEFT JOIN (
+                SELECT plan_template_id,
+                       SUM(CASE WHEN is_active = 1 AND quota_total IS NOT NULL THEN quota_total ELSE 0 END) AS cert_quota,
+                       SUM(CASE WHEN is_active = 1 AND pricing_metric = 'SIGNING_COUNT' AND range_max IS NOT NULL THEN range_max ELSE 0 END) AS sign_quota
+                FROM plan_pricing_rules
+                GROUP BY plan_template_id
+            ) ppr ON ppr.plan_template_id = gpa.plan_template_id
+            """;
+
     // ----------------------------------------------------------------
-    // LIST ALL — lọc theo scope của user hiện tại, sau đó filter theo params
+    // LIST ALL — DB-level filter + sort + paginate (handles 100k+ groups)
     // ----------------------------------------------------------------
-    public GroupListResponse listAll(String status, String applyUntil, String updatedAt) {
+    public GroupListResponse listAll(String status, String applyUntil, String updatedAt,
+                                     int page, int size, String sortBy, String sortDir) {
         List<Long> visibleIds = dataScopeService.resolveVisibleGroupIds();
-        List<Group> groups;
-        if (visibleIds == null) {
-            groups = groupRepository.findAll();
-        } else if (visibleIds.isEmpty()) {
-            return new GroupListResponse(List.of(), 0L);
-        } else {
-            groups = groupRepository.findAllById(visibleIds);
+        if (visibleIds != null && visibleIds.isEmpty()) {
+            return new GroupListResponse(List.of(), 0L, 0L, 0, page, size);
         }
 
-        List<GroupListItemResponse> allItems = groups.stream()
-                .sorted(java.util.Comparator.comparingLong(Group::getGroupId))
-                .map(this::toListItem)
-                .toList();
+        // Scope condition built from system Long IDs — no SQL injection risk
+        String scopeCond = visibleIds == null ? "" :
+                "AND g.group_id IN (" +
+                visibleIds.stream().map(String::valueOf).collect(Collectors.joining(",")) +
+                ")\n";
 
-        long activeCount = allItems.stream()
-                .filter(i -> "ACTIVE".equals(i.getStatus()))
-                .count();
-
-        List<GroupListItemResponse> filtered = allItems.stream()
-                .filter(item -> matchesGroupFilter(item, status, applyUntil, updatedAt))
-                .toList();
-
-        return new GroupListResponse(filtered, activeCount);
-    }
-
-    private boolean matchesGroupFilter(GroupListItemResponse item,
-                                       String status, String applyUntil, String updatedAt) {
-        if (status != null && !status.isBlank() && !status.equals(item.getStatus())) return false;
+        // User-supplied filter params (use named params to prevent injection)
+        StringBuilder filterCond = new StringBuilder();
+        Map<String, Object> params = new LinkedHashMap<>();
+        if (status != null && !status.isBlank()) {
+            filterCond.append("AND g.status = :status\n");
+            params.put("status", status);
+        }
         if (applyUntil != null && !applyUntil.isBlank()) {
-            if (item.getApplyUntil() == null) return false;
-            if (!item.getApplyUntil().equals(LocalDate.parse(applyUntil))) return false;
+            filterCond.append("AND gpa.apply_to = :applyUntil\n");
+            params.put("applyUntil", LocalDate.parse(applyUntil));
         }
         if (updatedAt != null && !updatedAt.isBlank()) {
-            if (item.getUpdatedAt() == null) return false;
-            if (!item.getUpdatedAt().toLocalDate().equals(LocalDate.parse(updatedAt))) return false;
+            LocalDate d = LocalDate.parse(updatedAt);
+            filterCond.append("AND g.updated_at >= :updatedAtStart AND g.updated_at < :updatedAtEnd\n");
+            params.put("updatedAtStart", d.atStartOfDay());
+            params.put("updatedAtEnd", d.plusDays(1).atStartOfDay());
         }
-        return true;
+
+        String whereAll = "WHERE 1=1\n" + scopeCond + filterCond;
+        String orderBy  = buildGroupOrderBy(sortBy, sortDir);
+
+        String dataSql = "SELECT g.group_id, g.group_code, g.group_name, g.status, g.updated_at, "
+                + "u.full_name, u.user_id, pt.plan_name, gpa.apply_to, gpa.group_plan_assignment_id, "
+                + "COALESCE(ppr.cert_quota, 0), COALESCE(ppr.sign_quota, 0) "
+                + GROUP_BASE_FROM + whereAll + orderBy;
+        String countSql       = "SELECT COUNT(*) " + GROUP_BASE_FROM + whereAll;
+        String activeCountSql = "SELECT COUNT(*) FROM `groups` g\nWHERE g.status = 'ACTIVE'\n" + scopeCond;
+
+        jakarta.persistence.Query dataQuery    = em.createNativeQuery(dataSql);
+        jakarta.persistence.Query countQuery   = em.createNativeQuery(countSql);
+        jakarta.persistence.Query activeCountQ = em.createNativeQuery(activeCountSql);
+        params.forEach((k, v) -> { dataQuery.setParameter(k, v); countQuery.setParameter(k, v); });
+        dataQuery.setFirstResult(page * size);
+        dataQuery.setMaxResults(size);
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows    = dataQuery.getResultList();
+        long totalElements     = ((Number) countQuery.getSingleResult()).longValue();
+        long activeCount       = ((Number) activeCountQ.getSingleResult()).longValue();
+        int  totalPages        = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
+
+        // Batch load usage for this page only (≤ size assignment IDs — constant cost)
+        List<Long> assignmentIds = rows.stream()
+                .filter(r -> r[9] != null)
+                .map(r -> ((Number) r[9]).longValue())
+                .distinct().toList();
+        Map<Long, long[]> usageByAssignment = new HashMap<>();
+        if (!assignmentIds.isEmpty()) {
+            usageAggregateRepository.sumUsagePerAssignment(assignmentIds).forEach(row -> {
+                long aId     = ((Number) row[0]).longValue();
+                long cts     = ((Number) row[1]).longValue();
+                long signing = ((Number) row[2]).longValue();
+                usageByAssignment.put(aId, new long[]{cts, signing});
+            });
+        }
+
+        List<GroupListItemResponse> items = rows.stream()
+                .map(r -> fromRow(r, usageByAssignment))
+                .toList();
+
+        return new GroupListResponse(items, activeCount, totalElements, totalPages, page, size);
+    }
+
+    private static String buildGroupOrderBy(String sortBy, String sortDir) {
+        String dir = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
+        return switch (sortBy == null ? "" : sortBy) {
+            case "groupCode"   -> "ORDER BY g.group_code "  + dir + "\n";
+            case "groupName"   -> "ORDER BY g.group_name "  + dir + "\n";
+            case "status"      -> "ORDER BY g.status "      + dir + "\n";
+            case "ownerName"   -> "ORDER BY CASE WHEN u.full_name IS NULL THEN 1 ELSE 0 END ASC, u.full_name " + dir + "\n";
+            case "currentPlan" -> "ORDER BY CASE WHEN pt.plan_name IS NULL THEN 1 ELSE 0 END ASC, pt.plan_name " + dir + "\n";
+            case "applyUntil"  -> "ORDER BY CASE WHEN gpa.apply_to IS NULL THEN 1 ELSE 0 END ASC, gpa.apply_to " + dir + "\n";
+            default            -> "ORDER BY g.updated_at DESC\n";
+        };
+    }
+
+    private GroupListItemResponse fromRow(Object[] r, Map<Long, long[]> usageByAssignment) {
+        GroupListItemResponse res = new GroupListItemResponse();
+        res.setGroupId(toLong(r[0]));
+        res.setGroupCode((String) r[1]);
+        res.setGroupName((String) r[2]);
+        res.setStatus((String) r[3]);
+        if (r[4] != null) {
+            res.setUpdatedAt(r[4] instanceof java.sql.Timestamp ts
+                    ? ts.toLocalDateTime() : (LocalDateTime) r[4]);
+        }
+        res.setOwnerName((String) r[5]);
+        if (r[6] != null) res.setOwnerUserId(toLong(r[6]));
+        res.setCurrentPlan((String) r[7]);
+        if (r[8] != null) {
+            res.setApplyUntil(r[8] instanceof java.sql.Date d
+                    ? d.toLocalDate() : (LocalDate) r[8]);
+        }
+        if (r[9] != null) {
+            long assignmentId = toLong(r[9]);
+            long[] usage  = usageByAssignment.getOrDefault(assignmentId, new long[]{0, 0});
+            int cts     = (int) usage[0];
+            int signing = (int) usage[1];
+            res.setCtsCreated(cts);
+            res.setSigningUsed(signing);
+            long certQuota = toLong(r[10]);
+            long signQuota = toLong(r[11]);
+            res.setCtsCreatedPct(certQuota > 0 ? (cts * 100 / certQuota) + "%" : "—");
+            res.setSigningUsedPct(signQuota > 0 ? (signing * 100 / signQuota) + "%" : "—");
+        }
+        return res;
     }
 
     // ----------------------------------------------------------------
@@ -100,6 +209,8 @@ public class GroupServiceImpl implements GroupService {
     // ----------------------------------------------------------------
     @Transactional
     public GroupDetailResponse create(UpsertGroupRequest request) {
+        assertEmailsNotDuplicate(request.getPicEmails(), request.getContactEmails(), null);
+
         String groupCode = generateGroupCode();
 
         UserAccount owner = null;
@@ -130,6 +241,8 @@ public class GroupServiceImpl implements GroupService {
     @Transactional
     public GroupDetailResponse update(Long id, UpsertGroupRequest request) {
         assertCanAccess(id);
+        assertEmailsNotDuplicate(request.getPicEmails(), request.getContactEmails(), id);
+
         Group group = findEntity(id);
         group.setGroupName(request.getGroupName());
         group.setRefContractNo(request.getRefContractNo());
@@ -145,6 +258,22 @@ public class GroupServiceImpl implements GroupService {
         groupContactRepository.deleteByGroupGroupId(id);
         saveContacts(group, request);
         return toDetail(findEntity(id));
+    }
+
+    private void assertEmailsNotDuplicate(List<String> picEmails, List<String> contactEmails, Long excludeGroupId) {
+        List<String> all = new ArrayList<>();
+        if (picEmails != null)     picEmails.stream().filter(e -> e != null && !e.isBlank()).forEach(all::add);
+        if (contactEmails != null) contactEmails.stream().filter(e -> e != null && !e.isBlank()).forEach(all::add);
+        if (all.isEmpty()) return;
+
+        List<String> duplicates = excludeGroupId != null
+            ? groupContactRepository.findExistingEmailsExcludingGroup(all, excludeGroupId)
+            : groupContactRepository.findExistingEmails(all);
+
+        if (!duplicates.isEmpty()) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                "Email đã được sử dụng bởi đại lý khác: " + String.join(", ", duplicates), 400);
+        }
     }
 
     // ----------------------------------------------------------------
@@ -260,45 +389,6 @@ public class GroupServiceImpl implements GroupService {
         groupContactRepository.saveAll(contacts);
     }
 
-    private GroupListItemResponse toListItem(Group group) {
-        GroupListItemResponse res = new GroupListItemResponse();
-        res.setGroupId(group.getGroupId());
-        res.setGroupCode(group.getGroupCode());
-        res.setGroupName(group.getGroupName());
-        res.setStatus(group.getStatus());
-        res.setUpdatedAt(group.getUpdatedAt());
-        if (group.getOwner() != null) {
-            res.setOwnerUserId(group.getOwner().getUserId());
-            res.setOwnerName(group.getOwner().getFullName());
-        }
-
-        Optional<GroupPlanAssignment> activeOpt = assignmentRepository
-            .findFirstByGroupGroupIdAndAssignmentStatusOrderByActivatedAtDesc(
-                group.getGroupId(), CommercialEnums.AssignmentStatus.ACTIVE.name());
-
-        if (activeOpt.isPresent()) {
-            GroupPlanAssignment active = activeOpt.get();
-            res.setCurrentPlan(active.getPlanTemplate().getPlanName());
-            res.setApplyUntil(active.getApplyTo());
-
-            List<Long> ids = List.of(active.getGroupPlanAssignmentId());
-            Object[] usage = usageAggregateRepository.sumUsageByAssignmentIds(ids);
-            if (usage != null && usage.length >= 2) {
-                int cts = toInt(usage[0]);
-                int signing = toInt(usage[1]);
-                res.setCtsCreated(cts);
-                res.setSigningUsed(signing);
-                Integer certQuota = getCertQuota(active);
-                res.setCtsCreatedPct(certQuota != null && certQuota > 0
-                    ? (cts * 100 / certQuota) + "%" : "Không giới hạn");
-                Integer signQuota = getSigningQuota(active);
-                res.setSigningUsedPct(signQuota != null && signQuota > 0
-                    ? (signing * 100 / signQuota) + "%" : "Không giới hạn");
-            }
-        }
-        return res;
-    }
-
     private GroupDetailResponse toDetail(Group group) {
         GroupDetailResponse res = new GroupDetailResponse();
         res.setGroupId(group.getGroupId());
@@ -346,9 +436,9 @@ public class GroupServiceImpl implements GroupService {
         res.setCtsCreated(cts);
         res.setSigningUsed(signing);
         Integer certQuota = getCertQuota(a);
-        res.setCtsCreatedPct(certQuota != null && certQuota > 0 ? (cts * 100 / certQuota) + "%" : "Không giới hạn");
+        res.setCtsCreatedPct(certQuota != null && certQuota > 0 ? (cts * 100 / certQuota) + "%" : "—");
         Integer signQuota = getSigningQuota(a);
-        res.setSigningUsedPct(signQuota != null && signQuota > 0 ? (signing * 100 / signQuota) + "%" : "Không giới hạn");
+        res.setSigningUsedPct(signQuota != null && signQuota > 0 ? (signing * 100 / signQuota) + "%" : "—");
         return res;
     }
 
@@ -372,6 +462,12 @@ public class GroupServiceImpl implements GroupService {
         if (val == null) return 0;
         if (val instanceof Number) return ((Number) val).intValue();
         return 0;
+    }
+
+    private long toLong(Object val) {
+        if (val == null) return 0L;
+        if (val instanceof Number) return ((Number) val).longValue();
+        return 0L;
     }
 }
 

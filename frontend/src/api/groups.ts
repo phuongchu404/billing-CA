@@ -18,11 +18,19 @@ export interface GroupListFilterParams {
   status?: string
   applyUntil?: string
   updatedAt?: string
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: string
 }
 
 export interface GroupListData {
   list: GroupListItem[]
   activeCount: number
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
 }
 
 export const listGroups = (params?: GroupListFilterParams) =>

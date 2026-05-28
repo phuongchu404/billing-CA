@@ -13,7 +13,7 @@ import java.util.List;
 public class AddGroupPlanRequest {
 
     @NotBlank
-    @Size(max = 200)
+    @Size(max = 150, message = "Tên gói cước không được vượt quá 150 ký tự")
     private String planName;
 
     private LocalDate applyFrom;

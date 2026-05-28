@@ -36,6 +36,7 @@ import com.rs.subscription.dto.PagedResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -398,9 +399,14 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
         if ("GROUP_PLAN_ASSIGNMENT".equals(approval.getEntityType())) {
             groupPlanAssignmentRepository.findById(Long.valueOf(approval.getEntityId()))
                 .ifPresent(gpa -> {
-                    gpa.setAssignmentStatus(CommercialEnums.AssignmentStatus.APPROVED.name());
                     gpa.setApprovedBy(actor);
                     gpa.setApprovedAt(LocalDateTime.now());
+                    if (gpa.getApplyFrom() != null && !gpa.getApplyFrom().isAfter(LocalDate.now())) {
+                        gpa.setAssignmentStatus(CommercialEnums.AssignmentStatus.ACTIVE.name());
+                        gpa.setActivatedAt(LocalDateTime.now());
+                    } else {
+                        gpa.setAssignmentStatus(CommercialEnums.AssignmentStatus.APPROVED.name());
+                    }
                     groupPlanAssignmentRepository.save(gpa);
                 });
         } else if ("RETAIL_PLAN_SCHEDULE".equals(approval.getEntityType())) {

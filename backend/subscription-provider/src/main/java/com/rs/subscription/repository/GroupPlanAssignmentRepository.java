@@ -43,6 +43,12 @@ public interface GroupPlanAssignmentRepository extends JpaRepository<GroupPlanAs
         @Param("groupIds") List<Long> groupIds,
         @Param("status") String status);
 
+    /** Batch: ACTIVE assignments kèm PlanTemplate (JOIN FETCH tránh lazy-load N+1) */
+    @Query("SELECT a FROM GroupPlanAssignment a JOIN FETCH a.planTemplate WHERE a.group.groupId IN :groupIds AND a.assignmentStatus = :status")
+    List<GroupPlanAssignment> findByGroupIdsAndStatusWithPlan(
+        @Param("groupIds") List<Long> groupIds,
+        @Param("status") String status);
+
     /** Đại lý có gói sắp hết hạn trong ngưỡng và chưa có gói tiếp theo */
     @Query("SELECT a FROM GroupPlanAssignment a " +
            "WHERE a.assignmentStatus = 'ACTIVE' " +

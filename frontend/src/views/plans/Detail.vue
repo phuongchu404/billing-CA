@@ -758,7 +758,7 @@ function mapAssignmentStatus(s: string): PlanRow["status"] {
     APPROVED: "approved",
     ACTIVE: "active",
     REJECTED: "unavailable",
-    STOPPED: "unavailable",
+    STOPPED: "available",
     EXPIRED: "unavailable",
   };
   return map[s] ?? "unavailable";
@@ -791,7 +791,7 @@ function mapAssignment(a: GroupPlanAssignment): PlanRow {
     applyTo: formatDate(a.applyTo),
     rawApplyFrom: a.applyFrom,
     rawApplyTo: a.applyTo,
-    updatedAt: "",
+    updatedAt: formatDatetime(a.updatedAt),
   };
 }
 

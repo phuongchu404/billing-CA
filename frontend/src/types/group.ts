@@ -85,6 +85,7 @@ export interface GroupPlanAssignment {
   applyTo: string | null
   activatedAt: string | null
   stoppedAt: string | null
+  updatedAt: string | null
 }
 
 /** Request tạo assignment mới */

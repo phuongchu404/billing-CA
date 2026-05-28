@@ -847,6 +847,7 @@ export default {
     guideFeeText: 'Nhập số tiền (VND) tương ứng với điều kiện (phí trên 1 chứng thư/ lượt ký). Nhập 0 với mức miễn phí hoặc đối soát ngoài).',
     warningAgencyName: 'Vui lòng nhập tên đại lý',
     warningPlanName: 'Vui lòng nhập tên gói cước',
+    warningPlanNameMaxLength: 'Tên gói cước không được vượt quá 150 ký tự',
     errorCreateAgency: 'Không thể tạo đại lý',
     successCreateAgency: 'Tạo đại lý và gán gói cước thành công!',
     successCreateAgencyWithPartner: 'Tạo đại lý và tài khoản đối tác thành công!',
@@ -882,6 +883,7 @@ export default {
     warningPartnerEmail: 'Vui lòng nhập email hợp lệ cho đối tác',
     warningPartnerPassword: 'Vui lòng nhập mật khẩu',
     warningPartnerPasswordMismatch: 'Mật khẩu nhập lại không khớp',
+    warningEmailInvalid: 'Email không hợp lệ: {email}',
     // Detail page
     detailTitle: 'Thông tin đại lý',
     detailSection: 'THÔNG TIN CHI TIẾT',

@@ -143,6 +143,7 @@
       v-model="dialogVisible"
       width="560px"
       :close-on-click-modal="false"
+      destroy-on-close
     >
       <template #header>
         <span class="dlg-title">{{ t('roles.createRoleTitle') }}</span>

@@ -845,6 +845,7 @@ export default {
     guideFeeText: 'Enter the amount (VND) per condition (fee per certificate/signing). Enter 0 for free or external reconciliation.',
     warningAgencyName: 'Please enter agency name',
     warningPlanName: 'Please enter plan name',
+    warningPlanNameMaxLength: 'Plan name must not exceed 150 characters',
     errorCreateAgency: 'Failed to create agency',
     successCreateAgency: 'Agency created and plan assigned successfully!',
     successCreateAgencyWithPartner: 'Agency and partner account created successfully!',
@@ -880,6 +881,7 @@ export default {
     warningPartnerEmail: 'Please enter a valid email for the partner',
     warningPartnerPassword: 'Please enter a password',
     warningPartnerPasswordMismatch: 'Passwords do not match',
+    warningEmailInvalid: 'Invalid email: {email}',
     // Detail page
     detailTitle: 'Agency Information',
     detailSection: 'DETAILED INFORMATION',

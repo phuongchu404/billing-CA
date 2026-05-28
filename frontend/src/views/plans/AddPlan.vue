@@ -38,7 +38,7 @@
       <div class="section-title">{{ $t('agency.planSection') }}</div>
       <el-form :model="form" label-width="280" label-position="left">
         <el-form-item :label="$t('agency.planNameLabel')">
-          <el-input v-model="form.planName" :placeholder="$t('agency.planNamePlaceholder')" />
+          <el-input v-model="form.planName" :placeholder="$t('agency.planNamePlaceholder')" :maxlength="150" show-word-limit />
           <div class="field-hint">{{ $t('agency.planNameHint') }}</div>
         </el-form-item>
         <el-form-item :label="$t('agency.applyDateLabel')">
@@ -334,7 +334,7 @@ async function loadAgency() {
 
 async function loadTemplateOptions() {
   try {
-    const res = await listPlanTemplates()
+    const res = await listPlanTemplates('GROUP')
     if (res.success && res.data) {
       templateOptions.value = res.data
         .filter(t => t.status === 'AVAILABLE' || t.status === 'DRAFT')
@@ -351,7 +351,9 @@ async function confirmTemplate() {
     const res = await getPlanTemplate(selectedTemplate.value)
     if (res.success && res.data) {
       const tmpl: PlanTemplate = res.data
-      // Copy pricing rules into config rows.
+      const suffix = t('individualPlan.copySuffix')
+      const proposed = tmpl.planName + suffix
+      form.planName = proposed.length <= 150 ? proposed : tmpl.planName
       tmpl.pricingRules.forEach((rule, i) => {
         if (i < configRows.length) {
           configRows[i].duration = rule.certificateValidityValue
@@ -372,6 +374,10 @@ async function confirmTemplate() {
 async function handleSubmit() {
   if (!form.planName.trim()) {
     ElMessage.warning(t('agency.warningPlanName'))
+    return
+  }
+  if (form.planName.length > 150) {
+    ElMessage.warning(t('agency.warningPlanNameMaxLength'))
     return
   }
   if (configRows.some((row) => row.totalPrice == null || row.totalPrice < 0)) {

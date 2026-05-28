@@ -27,6 +27,7 @@ public class GroupPlanAssignmentResponse {
     private LocalDateTime activatedAt;
     private LocalDateTime stoppedAt;
     private String stopReason;
+    private LocalDateTime updatedAt;
     private List<AssignmentAuditResponse> audits;
     // ID của ApprovalRequest multi-level được tạo khi submit yêu cầu áp dụng
     private Long approvalRequestId;

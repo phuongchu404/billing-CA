@@ -33,8 +33,14 @@ public class GroupController {
     public ApiResponse<GroupListResponse> listAll(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String applyUntil,
-            @RequestParam(required = false) String updatedAt) {
-        return ApiResponse.success(groupService.listAll(status, applyUntil, updatedAt), "Fetched groups");
+            @RequestParam(required = false) String updatedAt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir) {
+        return ApiResponse.success(
+                groupService.listAll(status, applyUntil, updatedAt, page, size, sortBy, sortDir),
+                "Fetched groups");
     }
 
     /** Chi tiết một đại lý */

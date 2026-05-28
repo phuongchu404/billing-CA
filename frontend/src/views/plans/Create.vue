@@ -466,11 +466,18 @@ function autoCalcTotalPrice(row: ConfigRow) {
   }
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function addEmail(type: "pic" | "contact") {
   const inputRef = type === "pic" ? picEmailInput : contactEmailInput;
   const emails = type === "pic" ? form.picEmails : form.contactEmails;
   const val = inputRef.value.trim();
-  if (val && !emails.includes(val)) emails.push(val);
+  if (!val) return;
+  if (!EMAIL_REGEX.test(val)) {
+    ElMessage.warning(t('agency.warningEmailInvalid', { email: val }));
+    return;
+  }
+  if (!emails.includes(val)) emails.push(val);
   inputRef.value = "";
 }
 
@@ -589,6 +596,14 @@ async function handleSubmit() {
   addEmail("pic");
   addEmail("contact");
 
+  // Validate format tất cả email đã thêm
+  const allEmails = [...form.picEmails, ...form.contactEmails];
+  const invalidEmails = allEmails.filter(e => !EMAIL_REGEX.test(e));
+  if (invalidEmails.length > 0) {
+    ElMessage.warning(t('agency.warningEmailInvalid', { email: invalidEmails[0] }));
+    return;
+  }
+
   submitting.value = true;
   try {
     const pricingRules: PlanPricingRuleRequest[] = configRows.map((row, i) => ({
@@ -642,8 +657,10 @@ async function handleSubmit() {
       : t("agency.successCreateAgency");
     ElMessage.success(msg);
     router.push("/plans/" + res.data.group.groupId);
-  } catch (e) {
-    ElMessage.error(t("agency.errorServer"));
+  } catch (e: any) {
+    if (!e?.response) {
+      ElMessage.error(t("agency.errorServer"));
+    }
   } finally {
     submitting.value = false;
   }

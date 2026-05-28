@@ -21,6 +21,14 @@ public interface UsageAggregateRepository extends JpaRepository<UsageAggregate, 
            "WHERE u.aggregateScope = 'GROUP_ASSIGNMENT' AND u.scopeId IN :assignmentIds")
     Object[] sumUsageByAssignmentIds(@Param("assignmentIds") List<Long> assignmentIds);
 
+    /** Batch: usage per assignment — trả về [scopeId, ctsCreated, signingUsed] cho từng assignment */
+    @Query(value = "SELECT u.scope_id, COALESCE(SUM(u.certificates_created), 0), COALESCE(SUM(u.signing_used), 0) " +
+                   "FROM usage_aggregates u " +
+                   "WHERE u.aggregate_scope = 'GROUP_ASSIGNMENT' AND u.scope_id IN :assignmentIds " +
+                   "GROUP BY u.scope_id",
+           nativeQuery = true)
+    List<Object[]> sumUsagePerAssignment(@Param("assignmentIds") List<Long> assignmentIds);
+
     /** Lấy tất cả usage records cho một assignment cụ thể */
     List<UsageAggregate> findByAggregateScopeAndScopeId(String aggregateScope, Long scopeId);
 
