@@ -43,11 +43,15 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { getMyProfile, changePassword } from '@/api/users'
+import { useAuthStore } from '@/store/auth'
 import type { UserAccount } from '@/types'
 import type { FormInstance } from 'element-plus'
 
 const { t } = useI18n()
+const router = useRouter()
+const authStore = useAuthStore()
 const profile = ref<UserAccount | null>(null)
 const saving = ref(false)
 const pwFormRef = ref<FormInstance>()
@@ -75,8 +79,8 @@ async function handleChangePassword() {
   try {
     await changePassword({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword })
     ElMessage.success(t('profile.passwordChanged'))
-    Object.assign(pwForm, { currentPassword: '', newPassword: '', confirmPassword: '' })
-    pwFormRef.value?.resetFields()
+    await authStore.doLogout()
+    router.push('/login')
   } finally {
     saving.value = false
   }
