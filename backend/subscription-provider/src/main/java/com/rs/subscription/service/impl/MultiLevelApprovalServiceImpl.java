@@ -321,14 +321,16 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     }
 
     private void createSteps(ApprovalRequest approval, int levels) {
+        List<ApprovalRequestStep> steps = new java.util.ArrayList<>(levels);
         for (int i = 1; i <= levels; i++) {
-            stepRepository.save(ApprovalRequestStep.builder()
+            steps.add(ApprovalRequestStep.builder()
                 .approvalRequest(approval)
                 .stepLevel(i)
                 .requiredApprovalLevel(LEVEL_ROLES[i - 1])
                 .status(CommercialEnums.ApprovalStepStatus.PENDING.name())
                 .build());
         }
+        stepRepository.saveAll(steps);
     }
 
     private ApprovalRequestStep findCurrentStep(ApprovalRequest approval) {

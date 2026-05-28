@@ -234,10 +234,14 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .collect(Collectors.toList());
         detail.setPricingRules(rules);
 
-        // statusHistory: từ AssignmentAudit của tất cả schedules của template này
-        List<IndividualPlanConfigDetailResponse.StatusHistoryRow> history = allSchedules.stream()
-                .flatMap(s -> auditRepository.findByRetailPlanScheduleRetailPlanScheduleIdOrderByCreatedAtDesc(
-                        s.getRetailPlanScheduleId()).stream())
+        // statusHistory: batch-fetch toàn bộ audits trong 1 query thay vì N+1
+        List<Long> scheduleIds = allSchedules.stream()
+                .map(RetailPlanSchedule::getRetailPlanScheduleId)
+                .collect(Collectors.toList());
+        List<IndividualPlanConfigDetailResponse.StatusHistoryRow> history = (scheduleIds.isEmpty()
+                ? List.<AssignmentAudit>of()
+                : auditRepository.findByRetailPlanScheduleIdIn(scheduleIds))
+                .stream()
                 .sorted(Comparator.comparing(AssignmentAudit::getCreatedAt).reversed())
                 .map(this::toStatusHistoryRow)
                 .collect(Collectors.toList());
