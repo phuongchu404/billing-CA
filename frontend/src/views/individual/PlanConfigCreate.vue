@@ -32,6 +32,8 @@
             <el-input
               v-model="form.name"
               :placeholder="t('agency.planNamePlaceholder')"
+              :maxlength="150"
+              show-word-limit
             />
             <div class="field-hint">{{ t("agency.planNameHint") }}</div>
           </div>
@@ -510,22 +512,26 @@ function isTabCompleted(tab: TabKey): boolean {
         r.durationMonths != null &&
         r.condition !== "" &&
         r.minValue != null &&
-        r.fee != null &&
+        // r.fee != null &&
         r.totalFee != null,
     )
   );
 }
 
 // Auto-calculate totalFee = fee * (maxValue - minValue) when maxValue is set
-watch(tabData, (data) => {
-  (Object.values(data) as ConfigRow[][]).forEach((rows) => {
-    rows.forEach((row) => {
-      if (row.maxValue != null && row.fee != null) {
-        row.totalFee = row.fee * row.maxValue;
-      }
+watch(
+  tabData,
+  (data) => {
+    (Object.values(data) as ConfigRow[][]).forEach((rows) => {
+      rows.forEach((row) => {
+        if (row.maxValue != null && row.fee != null) {
+          row.totalFee = row.fee * row.maxValue;
+        }
+      });
     });
-  });
-}, { deep: true });
+  },
+  { deep: true },
+);
 
 function addRow() {
   tabData[activeTab.value].push({
@@ -618,9 +624,24 @@ async function handleSubmit() {
     return;
   }
 
-  const allRows = [...tabData.INDIVIDUAL, ...tabData.ORGANIZATION, ...tabData.INDIVIDUAL_OF_ORG];
-  if (allRows.length > 0 && allRows.some((r) => r.totalFee == null || r.totalFee < 0)) {
+  const allRows = [
+    ...tabData.INDIVIDUAL,
+    ...tabData.ORGANIZATION,
+    ...tabData.INDIVIDUAL_OF_ORG,
+  ];
+  if (
+    allRows.length > 0 &&
+    allRows.some((r) => r.totalFee == null || r.totalFee < 0)
+  ) {
     ElMessage.warning(t("agency.warningTotalPrice"));
+    return;
+  }
+  if (allRows.some((r) => r.maxValue != null && r.maxValue < r.minValue)) {
+    ElMessage.warning("Giá trị max phải lớn hơn hoặc bằng giá trị min");
+    return;
+  }
+  if (allRows.some((r) => !r.durationMonths)) {
+    ElMessage.warning("Vui lòng nhập số tháng thời hạn chứng thư cho tất cả các dòng");
     return;
   }
 
@@ -653,7 +674,8 @@ async function handleSubmit() {
       sortOrder: r.sortOrder,
     }));
 
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   const subjectConfigs = (Object.keys(subjectDisplayData) as TabKey[])
     .filter(

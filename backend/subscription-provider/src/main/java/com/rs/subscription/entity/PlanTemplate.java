@@ -4,6 +4,7 @@ import com.rs.subscription.enums.CommercialEnums;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -63,10 +64,12 @@ public class PlanTemplate {
     @Column(nullable = false)
     private Integer versionNo;
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "planTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PlanPricingRule> pricingRules = new ArrayList<>();
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "planTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PlanSubjectConfig> subjectConfigs = new ArrayList<>();

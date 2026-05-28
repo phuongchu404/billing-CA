@@ -234,10 +234,14 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .collect(Collectors.toList());
         detail.setPricingRules(rules);
 
-        // statusHistory: từ AssignmentAudit của tất cả schedules của template này
-        List<IndividualPlanConfigDetailResponse.StatusHistoryRow> history = allSchedules.stream()
-                .flatMap(s -> auditRepository.findByRetailPlanScheduleRetailPlanScheduleIdOrderByCreatedAtDesc(
-                        s.getRetailPlanScheduleId()).stream())
+        // statusHistory: batch-fetch toàn bộ audits trong 1 query thay vì N+1
+        List<Long> scheduleIds = allSchedules.stream()
+                .map(RetailPlanSchedule::getRetailPlanScheduleId)
+                .collect(Collectors.toList());
+        List<IndividualPlanConfigDetailResponse.StatusHistoryRow> history = (scheduleIds.isEmpty()
+                ? List.<AssignmentAudit>of()
+                : auditRepository.findByRetailPlanScheduleIdIn(scheduleIds))
+                .stream()
                 .sorted(Comparator.comparing(AssignmentAudit::getCreatedAt).reversed())
                 .map(this::toStatusHistoryRow)
                 .collect(Collectors.toList());
@@ -272,6 +276,11 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         if (req.getPricingRules() != null) {
             int sortOrder = 0;
             for (CreateIndividualPlanConfigRequest.PricingRuleRequest rr : req.getPricingRules()) {
+                int effectiveMin = rr.getMinValue() != null ? rr.getMinValue() : 1;
+                if (rr.getMaxValue() != null && rr.getMaxValue() < effectiveMin) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                            "Giá trị max phải lớn hơn hoặc bằng giá trị min trong bảng cấu hình giá", 400);
+                }
                 PlanPricingRule rule = toPricingRuleEntity(rr, sortOrder++);
                 rule.setPlanTemplate(template);
                 template.getPricingRules().add(rule);
@@ -314,6 +323,18 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                     "Gói cước đã có yêu cầu áp dụng đang chờ xử lý", 400);
         }
 
+        LocalDate applyFrom = LocalDate.parse(req.getApplyFrom());
+        LocalDate applyUntil = LocalDate.parse(req.getApplyUntil());
+        LocalDate today = LocalDate.now();
+        if (applyFrom.isBefore(today)) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Ngày bắt đầu áp dụng không được nhỏ hơn ngày hiện tại", 400);
+        }
+        if (!applyUntil.isAfter(applyFrom)) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                    "Ngày kết thúc phải sau ngày bắt đầu áp dụng", 400);
+        }
+
         RetailPlanSchedule saved = createSchedule(template, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), CommercialEnums.ScheduleStatus.REQUESTED.name());
 
         // Tính giá trị hợp đồng từ totalPrice tối đa của pricing rules (khách hàng trả trước)
@@ -344,6 +365,8 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             .build();
 
         Long approvalId = multiLevelApprovalService.createAndSubmit(draft);
+
+        touchTemplate(template);
 
         IndividualPlanConfigDetailResponse response = getDetail(id);
         response.setApprovalRequestId(approvalId);
@@ -379,6 +402,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         recordAudit(schedule, CommercialEnums.AuditAction.APPROVE.name(),
             CommercialEnums.ScheduleStatus.REQUESTED.name(), newStatus, req.getApprovedBy(), null);
+        touchTemplate(findTemplate(id));
         eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, newStatus));
         return getDetail(id);
     }
@@ -391,6 +415,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         scheduleRepository.save(schedule);
         recordAudit(schedule, CommercialEnums.AuditAction.REJECT.name(),
             CommercialEnums.ScheduleStatus.REQUESTED.name(), CommercialEnums.ScheduleStatus.INACTIVE.name(), actor, null);
+        touchTemplate(findTemplate(id));
         return getDetail(id);
     }
 
@@ -408,6 +433,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         schedule.setScheduleStatus(CommercialEnums.ScheduleStatus.INACTIVE.name());
         scheduleRepository.save(schedule);
         recordAudit(schedule, CommercialEnums.AuditAction.STOP.name(), oldStatus, CommercialEnums.ScheduleStatus.INACTIVE.name(), actor, null);
+        touchTemplate(findTemplate(id));
         eventPublisher.publishEvent(new PlanUpdatedEvent(this, id, "STOPPED"));
         return getDetail(id);
     }
@@ -463,6 +489,11 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         if (!expectedStatus.equals(template.getStatus())) {
             throw new SmsException(ErrorCodes.INVALID_STATUS_TRANSITION, message, 400);
         }
+    }
+
+    private void touchTemplate(PlanTemplate template) {
+        template.setUpdatedAt(LocalDateTime.now());
+        planTemplateRepository.save(template);
     }
 
     private RetailPlanSchedule createSchedule(PlanTemplate template, String applyFrom, String applyUntil,

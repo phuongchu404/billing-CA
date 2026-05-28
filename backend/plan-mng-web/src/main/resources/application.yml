@@ -27,6 +27,13 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 20
+        queue-capacity: 200
+      thread-name-prefix: async-notification-
   data:
     redis:
       host: ${REDIS_HOST:localhost}

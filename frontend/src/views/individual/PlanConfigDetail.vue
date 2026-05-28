@@ -17,7 +17,7 @@
       >
         {{ t('agency.btnRequestApply') }}
       </el-button>
-      <el-button :icon="Remove" @click="deactivateVisible = true">{{ t('common.deactivate') }}</el-button>
+      <el-button v-if="info.status !== 'UNAVAILABLE'" :icon="Remove" @click="deactivateVisible = true">{{ t('common.deactivate') }}</el-button>
     </div>
 
     <!-- THÔNG TIN GÓI CƯỚC -->
@@ -393,7 +393,7 @@ async function confirmRequestApply() {
     return
   }
   const [from, to] = requestApplyDateRange.value
-  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   requestApplyLoading.value = true
   try {
     const res = await requestApplyPlanConfig(planId, {

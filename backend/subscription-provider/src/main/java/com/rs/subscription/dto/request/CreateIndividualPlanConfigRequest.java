@@ -1,8 +1,10 @@
 package com.rs.subscription.dto.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
@@ -11,6 +13,7 @@ import java.util.List;
 public class CreateIndividualPlanConfigRequest {
 
     @NotBlank(message = "Tên gói cước không được để trống")
+    @Size(max = 150, message = "Tên gói cước không được vượt quá 150 ký tự")
     private String name;
 
     private String applyFrom;
@@ -27,14 +30,27 @@ public class CreateIndividualPlanConfigRequest {
     public static class PricingRuleRequest {
         /** INDIVIDUAL | ORGANIZATION | INDIVIDUAL_OF_ORG */
         private String subject;
+
+        @NotNull(message = "Số tháng thời hạn chứng thư không được để trống")
+        @Min(value = 1, message = "Số tháng thời hạn chứng thư phải lớn hơn 0")
         private Integer durationMonths;
+
         /** SIGNING_COUNT | CERTIFICATE_COUNT */
+        @NotBlank(message = "Điều kiện tính phí không được để trống")
         private String condition;
+
+        @Min(value = 1, message = "Giá trị min phải lớn hơn 0")
         private Integer minValue;
+
         private Integer maxValue;
+
+        @Min(value = 0, message = "Phí/điều kiện không được âm")
         private Long fee;
-        @NotNull
+
+        @NotNull(message = "Tổng tiền không được để trống")
+        @Min(value = 0, message = "Tổng tiền không được âm")
         private Long totalFee;
+
         private Integer sortOrder;
     }
 

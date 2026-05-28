@@ -545,7 +545,7 @@ async function confirmRequestApply() {
     ElMessage.error(t("individualPlan.errorPastDate") || "Ngày áp dụng không được nhỏ hơn ngày hiện tại");
     return;
   }
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   try {
     await requestApplyPlanConfig(activeRow.value.id, {
       applyFrom: fmt(from),
@@ -564,7 +564,7 @@ async function confirmApprove() {
   const payload: { applyFrom?: string; applyUntil?: string } = {};
   if (approveDateRange.value) {
     const [from, to] = approveDateRange.value;
-    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     payload.applyFrom = fmt(from);
     payload.applyUntil = fmt(to);
   }
