@@ -119,7 +119,6 @@
           </template>
           <template #default="{ row }">
             <el-tag
-              style="width: 115px; justify-content: center;"
               disable-transitions
               :class="['custom-tag', `tag-${row.status.toLowerCase()}`]"
             >
@@ -676,44 +675,6 @@ onMounted(load);
   font-style: italic;
 }
 
-.custom-tag {
-  border: none !important;      
-  font-weight: 600;             
-  border-radius: 4px;           
-  padding: 0 10px;
-  height: 28px;      
-  font-size: 13px;           
-}
-
-.tag-applying {
-  background-color: #1B60CB3D !important; 
-  color: var(--el-color-primary) !important;
-}
-
-.tag-approved,
-.tag-pending,
-.tag-active {
-  background-color: #80839014 !important; 
-  color: var(--el-color-primary) !important;
-}
-
-.tag-available {
-  background-color: #80839014 !important; 
-  color: #808390 !important;
-}
-
-.tag-unavailable {
-  background-color: transparent !important; 
-  color: #808390 !important;
-  padding: 0 !important;
-}
-
-.tag-paused {
-  background-color: transparent !important; 
-  color: #FF9F43 !important;
-  padding: 0 !important;
-}
-
 /*pagination*/
 .pagination-row {
   display: flex;
@@ -789,49 +750,6 @@ onMounted(load);
 .col-filter {
   margin-top: 6px;
   min-height: 28px;
-}
-
-/* Action buttons */
-.action-btns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem; 
-}
-
-.action-btns :deep(.el-button) {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  border-color: var(--el-text-color-primary);
-  font-size: 13px;
-  line-height: 18px;
-}
-
-.action-btns :deep(.el-button:hover) {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  background-color: #fff;
-}
-
-.action-btns :deep(.btn-light-blue) {
-  background-color: #1B60CB29 !important; 
-  border-color: transparent !important; 
-  color: var(--el-color-primary) !important; 
-}
-.action-btns :deep(.btn-light-blue:hover) {
-  background-color: #1B60CB3D !important;
-}
-
-.action-btns :deep(.el-button--primary.is-plain) {
-  background-color: #fff !important;
-  border-color: var(--el-color-primary) !important;
-  color: var(--el-color-primary) !important;
-}
-.action-btns :deep(.el-button--primary.is-plain:hover) {
-  background-color: #f0f5ff !important;
-}
-
-.action-btns :deep(.el-button+.el-button) {
-  margin: 0;
 }
 
 :deep(.el-table th.el-table__cell) {

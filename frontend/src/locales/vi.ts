@@ -27,6 +27,8 @@ export default {
     loading: 'Đang tải...',
     noData: 'Không có dữ liệu',
     showing: 'Hiển thị',
+    version: 'Phiên bản: {version}',
+    logout: 'Đăng xuất',
   },
   auth: {
     subscriptionManagement: 'Quản lý đăng ký',
@@ -778,7 +780,7 @@ export default {
     colTotalPrice: 'TỔNG TIỀN',
     totalPricePlaceholder: 'Nhập tổng tiền',
     warningTotalPrice: 'Vui lòng nhập tổng tiền cho tất cả các dòng',
-    colSubject: 'ĐỐI TƯỢNG',
+    colSubject: 'PHÂN LOẠI ĐỐI TƯỢNG',
     statusActive: 'Đang hoạt động',
     statusInactive: 'Tạm dừng',
     btnDetail: 'Chi tiết',
@@ -904,7 +906,7 @@ export default {
     unlimited: 'Không giới hạn',
     // Dialogs
     dialogRequestApply: 'YÊU CẦU ÁP DỤNG BẢNG GÓI CƯỚC',
-    dialogPlanName: 'Gói cước:',
+    dialogPlanName: 'Gói cước',
     dialogAgencyName: 'Tên đại lý:',
     dialogAgencyCode: 'Mã đại lý:',
     dialogApplyPeriod: 'Thời gian áp dụng',

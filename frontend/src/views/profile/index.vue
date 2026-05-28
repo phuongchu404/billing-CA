@@ -19,7 +19,7 @@
 
       <el-col :span="12">
         <el-card shadow="never" :header="t('profile.changePassword')">
-          <el-form ref="pwFormRef" :model="pwForm" :rules="pwRules" label-width="160px">
+          <el-form ref="pwFormRef" :model="pwForm" :rules="pwRules" label-width="170" label-position="left">
             <el-form-item :label="t('profile.currentPassword')" prop="currentPassword">
               <el-input v-model="pwForm.currentPassword" type="password" show-password />
             </el-form-item>

@@ -24,7 +24,7 @@
             >{{ $t('agency.exportReconciliation') }}</el-button
           >
         </el-row>
-        <span class="last-updated">{{ $t('agency.lastUpdated', { time: lastUpdated }) }}</span>
+        <span class="last-updated text-italic">{{ $t('agency.lastUpdated', { time: lastUpdated }) }}</span>
       </div>
 
       <!-- <div class="pagination-row">
@@ -113,7 +113,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="currentPlan" sortable min-width="160">
+        <el-table-column prop="currentPlan" sortable min-width="200">
           <template #header>
             <div class="col-label">{{ $t('agency.colCurrentPlan') }}</div>
             <div class="col-filter"></div>
@@ -193,7 +193,7 @@
           <template #default="{ row }">{{ row.updatedAt ?? "" }}</template>
         </el-table-column>
 
-        <el-table-column fixed="right" width="245">
+        <el-table-column fixed="right" width="350" header-align="center">
           <template #header>
             <div class="col-label">{{ $t('agency.colActions') }}</div>
             <div class="col-filter"></div>
@@ -307,6 +307,7 @@ const { t } = useI18n();
 import type { GroupListItem } from "@/types/group";
 import type { UserAccount } from "@/types";
 
+const route = useRoute();
 const router = useRouter();
 
 // AgencyRow khớp với GroupListItem từ backend
@@ -366,6 +367,16 @@ watch([filterStatus, filterApplyUntil, filterUpdatedAt], () => {
   page.value = 1;
   load();
 });
+
+watch(page, (newPage) => {
+  router.push({
+    query: {
+      ...route.query, 
+      page: newPage
+    }
+  })
+  load();
+})
 
 async function load() {
   loading.value = true;
@@ -461,7 +472,10 @@ async function handleAssignOwner() {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  page.value = Number(route.query.page) || 1
+  load();
+})
 </script>
 
 <style scoped>
@@ -485,8 +499,9 @@ onMounted(load);
 }
 .last-updated {
   margin-left: auto;
-  font-size: 12px;
-  color: #909399;
+  font-size: 15px;
+  color: #2F2B3D99;
+  margin-bottom: 1rem;
 }
 
 .pagination-row {
@@ -536,7 +551,7 @@ onMounted(load);
 
 .status-active {
   color: var(--el-color-primary); 
-  background-color: #80839014; 
+  background-color: var(--color-light-grey); 
 }
 
 .status-inactive {
@@ -546,9 +561,7 @@ onMounted(load);
 }
 
 .action-btns {
-  display: flex;
-  gap: 4px;
-  flex-wrap: nowrap;
+  gap: 0.5rem!important;
 }
 .action-btns :deep(.el-button) {
   margin: 0;

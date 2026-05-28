@@ -27,6 +27,8 @@ export default {
     loading: 'Loading...',
     noData: 'No data',
     showing: 'Show',
+    version: 'Version: {version}',
+    logout: 'Logout',
   },
   auth: {
     subscriptionManagement: 'Subscription Management',

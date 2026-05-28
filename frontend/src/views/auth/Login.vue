@@ -118,6 +118,11 @@ async function handleLogin() {
   overflow-y: auto;
 }
 
+:deep(.el-form) {
+  display: flex;
+  flex-direction: column;
+}
+
 .login-card {
   width: 100%;
   max-width: 380px;

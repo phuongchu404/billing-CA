@@ -277,12 +277,6 @@ function handleDeleteAccount() {
   color: #1b60cb;
 }
 
-.field-hint {
-  font-size: 11px;
-  color: #909399;
-  margin-top: 4px;
-}
-
 .dlg-footer-split {
   display: flex;
   justify-content: space-between;

@@ -58,6 +58,24 @@
       </template>
     </template>
   </nav>
+  <div class="sidebar-footer">
+    <div class="app-version" v-show="!appStore.sidebarCollapsed">
+      {{ t('common.version') }} {{ appVersion }}
+    </div>
+    <el-tooltip
+      v-if="appStore.sidebarCollapsed"
+      :content="t('common.logout')"
+      placement="right"
+    >
+      <el-button type="primary" class="nav-item nav-button logout-btn" @click="handleLogout">
+        <el-icon class="nav-icon"><Right /></el-icon>
+      </el-button>
+    </el-tooltip>
+
+    <el-button v-else type="primary" class="nav-item nav-button logout-btn" @click="handleLogout">
+      <span class="nav-label" style="margin-right: 0.25rem;">{{ t('common.logout') }}</span>
+    </el-button>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -68,11 +86,21 @@ import { ArrowRight } from '@element-plus/icons-vue'
 import { getNavData } from '@/common/nav'
 import type { MenuItem } from '@/common/menutype'
 import { useAppStore, useAuthStore } from '@/store'
+import { ElMessageBox } from 'element-plus'
 
 const route = useRoute()
+const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const { t } = useI18n()
+
+const appVersion = import.meta.env.VITE_APP_VERSION || 'v1.0.0'
+
+const handleLogout = async () => {
+  await ElMessageBox.confirm(t('header.logoutConfirm'), t('common.confirm'), { type: 'warning' })
+  await authStore.doLogout()
+  router.push('/login')
+}
 
 const openGroups = ref<Set<string>>(new Set())
 const activeRoot = computed(() => '/' + route.path.split('/')[1])
@@ -130,7 +158,6 @@ watch(
 
 .nav-item,
 .nav-group-header {
-  width: 100%;
   min-height: 40px;
   display: flex;
   align-items: center;
@@ -139,7 +166,7 @@ watch(
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #2f2b3d;
+  color: var(--el-text-color-primary);
   cursor: pointer;
   font: inherit;
   font-size: 14px;
@@ -159,12 +186,12 @@ watch(
 .nav-item:hover,
 .nav-group-header:hover {
   background: #eef5ff;
-  color: #1b60cb;
+  color: var(--el-color-primary);
 }
 
 .nav-item.active,
 .nav-group.active > .nav-group-header {
-  background: #1b60cb;
+  background: var(--el-color-primary);
   color: #fff;
 }
 
@@ -198,7 +225,7 @@ watch(
 
 .nav-child.active {
   background: #e7f0ff;
-  color: #1b60cb;
+  color: var(--el-color-primary);
   font-weight: 600;
 }
 
@@ -211,5 +238,33 @@ watch(
 
 .nav-group.open .chevron {
   transform: rotate(90deg);
+}
+
+/* Footer styles */
+.sidebar-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--el-border-color-light); 
+  padding: 1rem 0.75rem;
+  margin-top: auto; 
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.logout-btn {
+  width: 100%;
+  background-color: transparent;
+  color: var(--el-text-color-regular);
+}
+
+.logout-btn:hover {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-7);
+}
+
+.app-version {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  text-align: center;
 }
 </style>

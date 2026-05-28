@@ -508,7 +508,7 @@ onMounted(load);
 /* 4. Đã thu hồi (Chữ xám, nền xám nhạt) */
 .status-revoked {
   color: var(--el-text-color-regular); 
-  background-color: #80839014; 
+  background-color: var(--color-light-grey); 
 }
 
 /* 5. Hết hạn (Chữ xám, không nền) */
