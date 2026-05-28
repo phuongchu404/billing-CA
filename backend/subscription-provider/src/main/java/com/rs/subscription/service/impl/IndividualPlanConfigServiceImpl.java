@@ -58,14 +58,22 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     private final MinioStorageService minioStorageService;
     private final ApplicationEventPublisher eventPublisher;
 
-    public IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt) {
+    public IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt, int page, int size) {
         List<PlanTemplate> templates = planTemplateRepository.findByCustomerSegment(CUSTOMER_SEGMENT);
 
-        List<IndividualPlanConfigListItemResponse> items = templates.stream()
+        List<IndividualPlanConfigListItemResponse> allItems = templates.stream()
                 .sorted(Comparator.comparing(PlanTemplate::getUpdatedAt).reversed())
                 .map(this::toListItem)
                 .filter(item -> matchesFilter(item, status, applyFrom, applyUntil, updatedAt))
                 .collect(Collectors.toList());
+
+        long totalElements = allItems.size();
+        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
+        int start = page * size;
+        int end = (int) Math.min((long) start + size, totalElements);
+        List<IndividualPlanConfigListItemResponse> items = (start < totalElements)
+                ? allItems.subList(start, end)
+                : List.of();
 
         LocalDateTime lastUpdated = templates.stream()
                 .map(PlanTemplate::getUpdatedAt)
@@ -74,6 +82,10 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         IndividualPlanConfigSummaryResponse summary = new IndividualPlanConfigSummaryResponse();
         summary.setList(items);
+        summary.setTotalElements(totalElements);
+        summary.setTotalPages(totalPages);
+        summary.setPage(page);
+        summary.setSize(size);
         summary.setLastUpdated(lastUpdated != null ? lastUpdated.format(DATETIME_FMT) : null);
 
         // currentPlan = template whose schedule is ACTIVE

@@ -238,35 +238,36 @@
             v-model="pageSize"
             size="small"
             style="width: 5rem; margin: 0 0.5rem;"
-            @change="page = 1"
+            @change="onSizeChange"
           >
             <el-option :value="10" label="10" />
             <el-option :value="20" label="20" />
           </el-select>
-          {{ t("individualPlan.totalPlans", { total: filteredList.length }) }}
+          {{ t("individualPlan.totalPlans", { total: total }) }}
         </span>
         <div class="custom-pagination-wrapper">
-          <button 
-            class="custom-nav-btn" 
+          <button
+            class="custom-nav-btn"
             :disabled="page === 1"
-            @click="page = 1"
+            @click="() => { page = 1; load(); }"
           >
             <el-icon><DArrowLeft /></el-icon>
           </button>
 
           <el-pagination
             v-model:current-page="page"
-            :total="filteredList.length"
+            :total="total"
             :page-size="pageSize"
             layout="prev, pager, next"
             :pager-count="5"
             background
+            @current-change="onPageChange"
           />
 
-          <button 
-            class="custom-nav-btn" 
-            :disabled="page === Math.ceil(filteredList.length / pageSize)"
-            @click="page = Math.ceil(filteredList.length / pageSize)"
+          <button
+            class="custom-nav-btn"
+            :disabled="page === Math.ceil(total / pageSize)"
+            @click="() => { page = Math.ceil(total / pageSize); load(); }"
           >
             <el-icon><DArrowRight /></el-icon>
           </button>
@@ -420,6 +421,7 @@ type PlanConfigRow = IndividualPlanConfigListItem;
 const loading = ref(false);
 const page = ref(1);
 const pageSize = ref(10);
+const total = ref(0);
 const filterStatus = ref("");
 const filterApplyFrom = ref<Date | null>(null);
 const filterApplyUntil = ref<Date | null>(null);
@@ -455,7 +457,7 @@ const handleSort = ({ prop, order }: any) => {
 }
 
 const pagedList = computed(() => {
-  let result = [...filteredList.value]
+  let result = [...list.value]
 
   if (currentSort.value.prop === 'name' && currentSort.value.order !== null) {
     result.sort((a, b) => {
@@ -467,9 +469,7 @@ const pagedList = computed(() => {
     })
   }
 
-  const start = (page.value - 1) * pageSize.value
-  return result.slice(start, start + pageSize.value)
-  //return filteredList.value.slice(start, start + pageSize.value);
+  return result
 });
 
 function statusLabel(status: PlanStatus): string {
@@ -497,6 +497,15 @@ function statusTagType(
     APPLYING: undefined,
   };
   return map[status] ?? "info";
+}
+
+function onPageChange() {
+  load();
+}
+
+function onSizeChange() {
+  page.value = 1;
+  load();
 }
 
 function resetFilters() {
@@ -617,11 +626,14 @@ async function load() {
     applyFrom: toIsoDate(filterApplyFrom.value),
     applyUntil: toIsoDate(filterApplyUntil.value),
     updatedAt: toIsoDate(filterUpdatedAt.value),
+    page: page.value - 1,
+    size: pageSize.value,
   };
   try {
     const res = await getIndividualPlanConfigSummary(params);
     if (res.success && res.data) {
       list.value = res.data.list ?? [];
+      total.value = res.data.totalElements ?? 0;
       currentPlan.value = res.data.currentPlan ?? null;
       nextPlan.value = res.data.nextPlan ?? null;
       lastUpdated.value = res.data.lastUpdated ?? null;

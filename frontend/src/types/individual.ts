@@ -13,6 +13,10 @@ export interface IndividualPlanConfigListItem {
 
 export interface IndividualPlanConfigSummary {
   list: IndividualPlanConfigListItem[]
+  totalElements: number
+  totalPages: number
+  page: number
+  size: number
   currentPlan: { name: string; applyUntil: string | null } | null
   nextPlan: { name: string; applyFrom: string | null } | null
   lastUpdated: string | null

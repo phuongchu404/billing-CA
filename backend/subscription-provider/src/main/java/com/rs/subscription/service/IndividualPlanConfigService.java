@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 public interface IndividualPlanConfigService {
 
-    IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt);
+    IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt, int page, int size);
 
     IndividualPlanConfigDetailResponse getDetail(Long id);
 
