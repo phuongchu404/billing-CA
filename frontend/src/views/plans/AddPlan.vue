@@ -334,7 +334,7 @@ async function loadAgency() {
 
 async function loadTemplateOptions() {
   try {
-    const res = await listPlanTemplates()
+    const res = await listPlanTemplates('GROUP')
     if (res.success && res.data) {
       templateOptions.value = res.data
         .filter(t => t.status === 'AVAILABLE' || t.status === 'DRAFT')
