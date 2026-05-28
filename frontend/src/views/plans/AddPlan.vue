@@ -38,7 +38,7 @@
       <div class="section-title">{{ $t('agency.planSection') }}</div>
       <el-form :model="form" label-width="280" label-position="left">
         <el-form-item :label="$t('agency.planNameLabel')">
-          <el-input v-model="form.planName" :placeholder="$t('agency.planNamePlaceholder')" />
+          <el-input v-model="form.planName" :placeholder="$t('agency.planNamePlaceholder')" :maxlength="150" show-word-limit />
           <div class="field-hint">{{ $t('agency.planNameHint') }}</div>
         </el-form-item>
         <el-form-item :label="$t('agency.applyDateLabel')">
