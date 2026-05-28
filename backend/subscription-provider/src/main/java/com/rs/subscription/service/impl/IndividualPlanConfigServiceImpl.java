@@ -181,7 +181,12 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         String dir = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
         return switch (sortBy == null ? "" : sortBy) {
             case "name"       -> "ORDER BY pt.plan_name " + dir + "\n";
-            case "status"     -> "ORDER BY pt.status "    + dir + "\n";
+            // Sort theo derived UI status: APPLYING=1, APPROVED=2, PENDING=3, AVAILABLE=4, UNAVAILABLE=5
+            case "status"     -> "ORDER BY CASE rps.schedule_status"
+                    + " WHEN 'ACTIVE'    THEN 1"
+                    + " WHEN 'APPROVED'  THEN 2"
+                    + " WHEN 'REQUESTED' THEN 3"
+                    + " ELSE CASE WHEN pt.status = 'AVAILABLE' THEN 4 ELSE 5 END END " + dir + "\n";
             case "applyFrom"  -> "ORDER BY CASE WHEN rps.apply_from IS NULL THEN 1 ELSE 0 END ASC, rps.apply_from " + dir + "\n";
             case "applyUntil" -> "ORDER BY CASE WHEN rps.apply_to   IS NULL THEN 1 ELSE 0 END ASC, rps.apply_to "   + dir + "\n";
             case "updatedAt"  -> "ORDER BY pt.updated_at " + dir + "\n";
