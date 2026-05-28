@@ -28,13 +28,18 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Auditable(entityType = "INDIVIDUAL_PLAN")
@@ -59,31 +64,54 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     private final ApplicationEventPublisher eventPublisher;
 
     public IndividualPlanConfigSummaryResponse getSummary(String status, String applyFrom, String applyUntil, String updatedAt, int page, int size) {
-        List<PlanTemplate> templates = planTemplateRepository.findByCustomerSegment(CUSTOMER_SEGMENT);
+        LocalDate applyFromDate  = parseDate(applyFrom);
+        LocalDate applyUntilDate = parseDate(applyUntil);
+        LocalDateTime updatedAtStart = null, updatedAtEnd = null;
+        if (updatedAt != null && !updatedAt.isBlank()) {
+            LocalDate d = LocalDate.parse(updatedAt);
+            updatedAtStart = d.atStartOfDay();
+            updatedAtEnd   = d.plusDays(1).atStartOfDay();
+        }
+        String uiStatus = (status != null && !status.isBlank()) ? status : null;
 
-        List<IndividualPlanConfigListItemResponse> allItems = templates.stream()
-                .sorted(Comparator.comparing(PlanTemplate::getUpdatedAt).reversed())
-                .map(this::toListItem)
-                .filter(item -> matchesFilter(item, status, applyFrom, applyUntil, updatedAt))
+        // Query 1: DB-level paginated query with all filters (no N+1 here)
+        Page<PlanTemplate> templatePage = planTemplateRepository.findWithFilters(
+                CUSTOMER_SEGMENT, uiStatus,
+                applyFromDate, applyUntilDate,
+                updatedAtStart, updatedAtEnd,
+                PageRequest.of(page, size));
+
+        List<PlanTemplate> templates = templatePage.getContent();
+
+        // Query 2: batch-load active schedules for this page's templates in ONE query
+        Map<Long, RetailPlanSchedule> scheduleByTemplateId = Map.of();
+        if (!templates.isEmpty()) {
+            List<Long> ids = templates.stream()
+                    .map(PlanTemplate::getPlanTemplateId)
+                    .collect(Collectors.toList());
+            scheduleByTemplateId = scheduleRepository.findActiveByTemplateIds(ids, ACTIVE_SCHEDULE_STATUSES)
+                    .stream()
+                    .collect(Collectors.toMap(
+                            rps -> rps.getPlanTemplate().getPlanTemplateId(),
+                            Function.identity(),
+                            (a, b) -> a  // ORDER BY createdAt DESC → keep latest
+                    ));
+        }
+
+        Map<Long, RetailPlanSchedule> scheduleMap = scheduleByTemplateId;
+        List<IndividualPlanConfigListItemResponse> items = templates.stream()
+                .map(t -> toListItem(t, Optional.ofNullable(scheduleMap.get(t.getPlanTemplateId()))))
                 .collect(Collectors.toList());
 
-        long totalElements = allItems.size();
-        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
-        int start = page * size;
-        int end = (int) Math.min((long) start + size, totalElements);
-        List<IndividualPlanConfigListItemResponse> items = (start < totalElements)
-                ? allItems.subList(start, end)
-                : List.of();
-
-        LocalDateTime lastUpdated = templates.stream()
-                .map(PlanTemplate::getUpdatedAt)
-                .max(Comparator.naturalOrder())
+        // Global lastUpdated: single aggregate query, cheap
+        LocalDateTime lastUpdated = planTemplateRepository
+                .findMaxUpdatedAtByCustomerSegment(CUSTOMER_SEGMENT)
                 .orElse(null);
 
         IndividualPlanConfigSummaryResponse summary = new IndividualPlanConfigSummaryResponse();
         summary.setList(items);
-        summary.setTotalElements(totalElements);
-        summary.setTotalPages(totalPages);
+        summary.setTotalElements(templatePage.getTotalElements());
+        summary.setTotalPages(templatePage.getTotalPages());
         summary.setPage(page);
         summary.setSize(size);
         summary.setLastUpdated(lastUpdated != null ? lastUpdated.format(DATETIME_FMT) : null);
@@ -105,6 +133,10 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         });
 
         return summary;
+    }
+
+    private static LocalDate parseDate(String s) {
+        return (s != null && !s.isBlank()) ? LocalDate.parse(s) : null;
     }
 
     public IndividualPlanConfigDetailResponse getDetail(Long id) {
@@ -427,9 +459,7 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         return CommercialEnums.IndividualPlanStatus.AVAILABLE.name();
     }
 
-    private IndividualPlanConfigListItemResponse toListItem(PlanTemplate template) {
-        Optional<RetailPlanSchedule> activeSchedule = findActiveSchedule(template.getPlanTemplateId());
-
+    private IndividualPlanConfigListItemResponse toListItem(PlanTemplate template, Optional<RetailPlanSchedule> activeSchedule) {
         IndividualPlanConfigListItemResponse item = new IndividualPlanConfigListItemResponse();
         item.setId(template.getPlanTemplateId());
         item.setName(template.getPlanName());
@@ -478,30 +508,6 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             return CommercialEnums.IndividualPlanStatus.UNAVAILABLE.name();
         }
         return scheduleStatus;
-    }
-
-    private boolean matchesFilter(IndividualPlanConfigListItemResponse item,
-                                   String status, String applyFrom, String applyUntil, String updatedAt) {
-        if (status != null && !status.isBlank() && !status.equals(item.getStatus())) return false;
-        if (applyFrom != null && !applyFrom.isBlank()) {
-            if (item.getApplyFrom() == null) return false;
-            LocalDate filterDate = LocalDate.parse(applyFrom);
-            LocalDate itemDate = LocalDate.parse(item.getApplyFrom(), DATE_FMT);
-            if (!itemDate.equals(filterDate)) return false;
-        }
-        if (applyUntil != null && !applyUntil.isBlank()) {
-            if (item.getApplyUntil() == null) return false;
-            LocalDate filterDate = LocalDate.parse(applyUntil);
-            LocalDate itemDate = LocalDate.parse(item.getApplyUntil(), DATE_FMT);
-            if (!itemDate.equals(filterDate)) return false;
-        }
-        if (updatedAt != null && !updatedAt.isBlank()) {
-            if (item.getUpdatedAt() == null) return false;
-            LocalDate filterDate = LocalDate.parse(updatedAt);
-            LocalDate itemDate = LocalDateTime.parse(item.getUpdatedAt(), DATETIME_FMT).toLocalDate();
-            if (!itemDate.equals(filterDate)) return false;
-        }
-        return true;
     }
 
     private IndividualPlanConfigDetailResponse.SubjectConfigRow toSubjectConfigRow(PlanSubjectConfig config) {
