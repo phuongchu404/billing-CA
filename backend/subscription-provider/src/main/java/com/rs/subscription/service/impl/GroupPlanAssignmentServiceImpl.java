@@ -140,13 +140,13 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
             entity.setActivatedAt(LocalDateTime.now());
         } else if (CommercialEnums.ReviewDecision.STOP.name().equals(decision)) {
             String current = entity.getAssignmentStatus();
-            if (CommercialEnums.AssignmentStatus.STOPPED.name().equals(current)
+            if (CommercialEnums.AssignmentStatus.AVAILABLE.name().equals(current)
                 || CommercialEnums.AssignmentStatus.REJECTED.name().equals(current)
                 || CommercialEnums.AssignmentStatus.EXPIRED.name().equals(current)) {
                 throw new SmsException(ErrorCodes.VALIDATION_FAILED,
                     "Cannot stop assignment in status: " + current, 400);
             }
-            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.STOPPED.name());
+            entity.setAssignmentStatus(CommercialEnums.AssignmentStatus.AVAILABLE.name());
             entity.setStoppedAt(LocalDateTime.now());
             entity.setStopReason(request.getNote());
         } else {
