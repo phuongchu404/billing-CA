@@ -28,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Auditable(entityType = CommercialEnums.ENTITY_GROUP)
 @Service
@@ -47,19 +46,49 @@ public class GroupServiceImpl implements GroupService {
     // ----------------------------------------------------------------
     public GroupListResponse listAll(String status, String applyUntil, String updatedAt,
                                      int page, int size, String sortBy, String sortDir) {
+        // Query 1: resolve visible group IDs
         List<Long> visibleIds = dataScopeService.resolveVisibleGroupIds();
         List<Group> groups;
         if (visibleIds == null) {
-            groups = groupRepository.findAll();
+            groups = groupRepository.findAll();                    // Query 2a: admin — all groups
         } else if (visibleIds.isEmpty()) {
             return new GroupListResponse(List.of(), 0L, 0L, 0, page, size);
         } else {
-            groups = groupRepository.findAllById(visibleIds);
+            groups = groupRepository.findAllById(visibleIds);      // Query 2b: scoped groups
+        }
+        if (groups.isEmpty()) return new GroupListResponse(List.of(), 0L, 0L, 0, page, size);
+
+        List<Long> groupIds = groups.stream().map(Group::getGroupId).toList();
+
+        // Query 3: batch load ALL active assignments + PlanTemplate (JOIN FETCH, tránh N+1)
+        List<GroupPlanAssignment> activeAssignments = assignmentRepository
+                .findByGroupIdsAndStatusWithPlan(groupIds, CommercialEnums.AssignmentStatus.ACTIVE.name());
+
+        // Index assignment by groupId (lấy 1 assignment mới nhất mỗi group)
+        java.util.Map<Long, GroupPlanAssignment> assignmentByGroup = new java.util.LinkedHashMap<>();
+        for (GroupPlanAssignment a : activeAssignments) {
+            assignmentByGroup.merge(a.getGroup().getGroupId(), a, (existing, newer) ->
+                    newer.getActivatedAt() != null && (existing.getActivatedAt() == null
+                            || newer.getActivatedAt().isAfter(existing.getActivatedAt())) ? newer : existing);
         }
 
+        // Query 4: batch load usage cho tất cả active assignments cùng lúc
+        List<Long> assignmentIds = activeAssignments.stream()
+                .map(GroupPlanAssignment::getGroupPlanAssignmentId).toList();
+        java.util.Map<Long, long[]> usageByAssignment = new java.util.HashMap<>();
+        if (!assignmentIds.isEmpty()) {
+            usageAggregateRepository.sumUsagePerAssignment(assignmentIds).forEach(row -> {
+                long assignmentId = ((Number) row[0]).longValue();
+                long cts          = ((Number) row[1]).longValue();
+                long signing      = ((Number) row[2]).longValue();
+                usageByAssignment.put(assignmentId, new long[]{cts, signing});
+            });
+        }
+
+        // Map to response items (no additional DB calls)
         List<GroupListItemResponse> allItems = groups.stream()
                 .sorted(java.util.Comparator.comparingLong(Group::getGroupId))
-                .map(this::toListItem)
+                .map(g -> toListItemBatch(g, assignmentByGroup.get(g.getGroupId()), usageByAssignment))
                 .toList();
 
         long activeCount = allItems.stream()
@@ -73,13 +102,42 @@ public class GroupServiceImpl implements GroupService {
 
         long totalElements = filtered.size();
         int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
-        int offset = page * size;
         List<GroupListItemResponse> paged = filtered.stream()
-                .skip(offset)
+                .skip((long) page * size)
                 .limit(size)
                 .toList();
 
         return new GroupListResponse(paged, activeCount, totalElements, totalPages, page, size);
+    }
+
+    private GroupListItemResponse toListItemBatch(Group group, GroupPlanAssignment active,
+                                                   java.util.Map<Long, long[]> usageByAssignment) {
+        GroupListItemResponse res = new GroupListItemResponse();
+        res.setGroupId(group.getGroupId());
+        res.setGroupCode(group.getGroupCode());
+        res.setGroupName(group.getGroupName());
+        res.setStatus(group.getStatus());
+        res.setUpdatedAt(group.getUpdatedAt());
+        if (group.getOwner() != null) {
+            res.setOwnerUserId(group.getOwner().getUserId());
+            res.setOwnerName(group.getOwner().getFullName());
+        }
+        if (active != null) {
+            res.setCurrentPlan(active.getPlanTemplate().getPlanName());
+            res.setApplyUntil(active.getApplyTo());
+            long[] usage = usageByAssignment.getOrDefault(active.getGroupPlanAssignmentId(), new long[]{0, 0});
+            int cts     = (int) usage[0];
+            int signing = (int) usage[1];
+            res.setCtsCreated(cts);
+            res.setSigningUsed(signing);
+            Integer certQuota = getCertQuota(active);
+            res.setCtsCreatedPct(certQuota != null && certQuota > 0
+                    ? (cts * 100 / certQuota) + "%" : "Không giới hạn");
+            Integer signQuota = getSigningQuota(active);
+            res.setSigningUsedPct(signQuota != null && signQuota > 0
+                    ? (signing * 100 / signQuota) + "%" : "Không giới hạn");
+        }
+        return res;
     }
 
     private boolean matchesGroupFilter(GroupListItemResponse item,
@@ -289,45 +347,6 @@ public class GroupServiceImpl implements GroupService {
             }
         }
         groupContactRepository.saveAll(contacts);
-    }
-
-    private GroupListItemResponse toListItem(Group group) {
-        GroupListItemResponse res = new GroupListItemResponse();
-        res.setGroupId(group.getGroupId());
-        res.setGroupCode(group.getGroupCode());
-        res.setGroupName(group.getGroupName());
-        res.setStatus(group.getStatus());
-        res.setUpdatedAt(group.getUpdatedAt());
-        if (group.getOwner() != null) {
-            res.setOwnerUserId(group.getOwner().getUserId());
-            res.setOwnerName(group.getOwner().getFullName());
-        }
-
-        Optional<GroupPlanAssignment> activeOpt = assignmentRepository
-            .findFirstByGroupGroupIdAndAssignmentStatusOrderByActivatedAtDesc(
-                group.getGroupId(), CommercialEnums.AssignmentStatus.ACTIVE.name());
-
-        if (activeOpt.isPresent()) {
-            GroupPlanAssignment active = activeOpt.get();
-            res.setCurrentPlan(active.getPlanTemplate().getPlanName());
-            res.setApplyUntil(active.getApplyTo());
-
-            List<Long> ids = List.of(active.getGroupPlanAssignmentId());
-            Object[] usage = usageAggregateRepository.sumUsageByAssignmentIds(ids);
-            if (usage != null && usage.length >= 2) {
-                int cts = toInt(usage[0]);
-                int signing = toInt(usage[1]);
-                res.setCtsCreated(cts);
-                res.setSigningUsed(signing);
-                Integer certQuota = getCertQuota(active);
-                res.setCtsCreatedPct(certQuota != null && certQuota > 0
-                    ? (cts * 100 / certQuota) + "%" : "Không giới hạn");
-                Integer signQuota = getSigningQuota(active);
-                res.setSigningUsedPct(signQuota != null && signQuota > 0
-                    ? (signing * 100 / signQuota) + "%" : "Không giới hạn");
-            }
-        }
-        return res;
     }
 
     private GroupDetailResponse toDetail(Group group) {
