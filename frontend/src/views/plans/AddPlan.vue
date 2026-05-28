@@ -351,7 +351,9 @@ async function confirmTemplate() {
     const res = await getPlanTemplate(selectedTemplate.value)
     if (res.success && res.data) {
       const tmpl: PlanTemplate = res.data
-      // Copy pricing rules into config rows.
+      const suffix = t('individualPlan.copySuffix')
+      const proposed = tmpl.planName + suffix
+      form.planName = proposed.length <= 150 ? proposed : tmpl.planName
       tmpl.pricingRules.forEach((rule, i) => {
         if (i < configRows.length) {
           configRows[i].duration = rule.certificateValidityValue
