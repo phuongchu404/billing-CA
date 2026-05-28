@@ -653,7 +653,7 @@ async function handleSubmit() {
       sortOrder: r.sortOrder,
     }));
 
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   const subjectConfigs = (Object.keys(subjectDisplayData) as TabKey[])
     .filter(
