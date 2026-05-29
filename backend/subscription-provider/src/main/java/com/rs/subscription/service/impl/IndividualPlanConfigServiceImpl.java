@@ -601,49 +601,68 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
     }
 
     /**
-     * Validate tính liên tục của các dải giá trong cùng nhóm (subject + condition + durationMonths).
-     * Quy tắc:
-     *   1. max >= min
-     *   2. Chỉ dòng cuối cùng trong nhóm được phép có maxValue = null (không giới hạn)
-     *   3. minValue của dòng kế tiếp phải bằng maxValue của dòng trước + 1
+     * Validate các pricing rules trong cùng subject:
+     *   1. Tất cả dòng trong cùng subject phải có cùng condition và durationMonths
+     *   2. max >= min
+     *   3. Chỉ dòng cuối được phép maxValue = null (không giới hạn)
+     *   4. minValue của dòng kế tiếp = maxValue dòng trước + 1 (liên tục, không hở, không chồng)
      */
     private void validatePricingRuleContinuity(
             List<CreateIndividualPlanConfigRequest.PricingRuleRequest> rules) {
 
-        // Nhóm theo (subject, condition, durationMonths), giữ thứ tự nhập vào
+        // Nhóm theo subject only
         Map<String, List<CreateIndividualPlanConfigRequest.PricingRuleRequest>> groups =
             rules.stream().collect(Collectors.groupingBy(
-                r -> r.getSubject() + "|" + r.getCondition() + "|" + r.getDurationMonths(),
+                r -> r.getSubject() != null ? r.getSubject() : "INDIVIDUAL",
                 LinkedHashMap::new,
                 Collectors.toList()
             ));
 
         for (Map.Entry<String, List<CreateIndividualPlanConfigRequest.PricingRuleRequest>> entry : groups.entrySet()) {
+            String subject = entry.getKey();
             List<CreateIndividualPlanConfigRequest.PricingRuleRequest> group =
                 entry.getValue().stream()
                     .sorted(Comparator.comparingInt(r -> (r.getMinValue() != null ? r.getMinValue() : 1)))
                     .collect(Collectors.toList());
 
+            if (group.isEmpty()) continue;
+
+            // Rule 1: tất cả dòng trong cùng subject phải đồng nhất condition và durationMonths
+            String expectedCondition = group.get(0).getCondition();
+            Integer expectedDuration = group.get(0).getDurationMonths();
+            for (CreateIndividualPlanConfigRequest.PricingRuleRequest r : group) {
+                if (!java.util.Objects.equals(r.getCondition(), expectedCondition)) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Tất cả dòng trong phân loại '" + subject + "' phải có cùng Điều kiện tính phí. "
+                        + "Mong đợi: " + expectedCondition + ", nhận được: " + r.getCondition(), 400);
+                }
+                if (!java.util.Objects.equals(r.getDurationMonths(), expectedDuration)) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Tất cả dòng trong phân loại '" + subject + "' phải có cùng Thời hạn chứng thư. "
+                        + "Mong đợi: " + expectedDuration + " tháng, nhận được: " + r.getDurationMonths() + " tháng", 400);
+                }
+            }
+
             for (int i = 0; i < group.size(); i++) {
                 CreateIndividualPlanConfigRequest.PricingRuleRequest cur = group.get(i);
                 int min = cur.getMinValue() != null ? cur.getMinValue() : 1;
 
-                // Rule 1: max >= min
+                // Rule 2: max >= min
                 if (cur.getMaxValue() != null && cur.getMaxValue() < min) {
                     throw new SmsException(ErrorCodes.VALIDATION_FAILED,
-                        "Giá trị max phải lớn hơn hoặc bằng giá trị min (dòng min=" + min + ")", 400);
+                        "Giá trị Max phải lớn hơn hoặc bằng giá trị Min (dòng Min=" + min + ")", 400);
                 }
 
                 boolean isLast = (i == group.size() - 1);
 
-                // Rule 2: chỉ dòng cuối được phép null max
+                // Rule 3: chỉ dòng cuối được phép maxValue = null
                 if (cur.getMaxValue() == null && !isLast) {
                     throw new SmsException(ErrorCodes.VALIDATION_FAILED,
                         "Chỉ dòng cuối cùng được phép để trống giá trị Max (không giới hạn). "
-                        + "Dòng min=" + min + " đang để Max trống nhưng còn dòng phía sau.", 400);
+                        + "Dòng Min=" + min + " đang để Max trống nhưng còn dòng phía sau.", 400);
                 }
 
-                // Rule 3: minValue dòng kế tiếp = maxValue dòng hiện tại + 1
+                // Rule 4: minValue dòng kế tiếp = maxValue dòng hiện tại + 1
                 if (!isLast) {
                     CreateIndividualPlanConfigRequest.PricingRuleRequest next = group.get(i + 1);
                     int expectedNextMin = cur.getMaxValue() + 1;
