@@ -105,8 +105,8 @@ export const resubmitApproval = (id: number, data: SubmitApprovalRequest) =>
   request.post<MultiLevelApprovalResponse>(`/api/v1/approval-requests/${id}/resubmit`, data)
 
 // GET /api/v1/approval-requests/level-configs
-export const listLevelConfigs = () =>
-  request.get<any, ApiResponse<ApprovalLevelConfigResponse[]>>('/api/v1/approval-requests/level-configs')
+export const listLevelConfigs = (params?: { customerSegment?: string; isActive?: boolean; page?: number; size?: number }) =>
+  request.get<any, ApiResponse<PagedResponse<ApprovalLevelConfigResponse>>>('/api/v1/approval-requests/level-configs', { params })
 
 // POST /api/v1/approval-requests/level-configs
 export const createLevelConfig = (data: UpsertApprovalLevelConfigRequest) =>

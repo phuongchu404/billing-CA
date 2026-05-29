@@ -31,12 +31,23 @@
           :content="t(item.labelKey)"
           placement="right"
         >
-          <button class="nav-item nav-button" :class="{ active: isGroupActive(item) }" @click="toggleGroup(item.tag)">
+          <button
+            class="nav-item nav-button"
+            :class="{ active: isGroupActive(item) }"
+            @click="toggleGroup(item.tag)"
+          >
             <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
           </button>
         </el-tooltip>
 
-        <div v-else class="nav-group" :class="{ open: openGroups.has(item.tag), active: isGroupActive(item) }">
+        <div
+          v-else
+          class="nav-group"
+          :class="{
+            open: openGroups.has(item.tag),
+            active: isGroupActive(item),
+          }"
+        >
           <button class="nav-group-header" @click="toggleGroup(item.tag)">
             <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
             <span class="nav-label">{{ t(item.labelKey) }}</span>
@@ -60,89 +71,105 @@
   </nav>
   <div class="sidebar-footer">
     <div class="app-version" v-show="!appStore.sidebarCollapsed">
-      {{ t('common.version') }} {{ appVersion }}
+      {{ t("common.version") }} {{ appVersion }}
     </div>
     <el-tooltip
       v-if="appStore.sidebarCollapsed"
       :content="t('common.logout')"
       placement="right"
     >
-      <el-button type="primary" class="nav-item nav-button logout-btn" @click="handleLogout">
+      <el-button
+        type="primary"
+        class="nav-item nav-button logout-btn"
+        @click="handleLogout"
+      >
         <el-icon class="nav-icon"><Right /></el-icon>
       </el-button>
     </el-tooltip>
 
-    <el-button v-else type="primary" class="nav-item nav-button logout-btn" @click="handleLogout">
-      <span class="nav-label" style="margin-right: 0.25rem;">{{ t('common.logout') }}</span>
+    <el-button
+      v-else
+      type="primary"
+      class="nav-item nav-button logout-btn"
+      @click="handleLogout"
+    >
+      <span class="nav-label" style="margin-right: 0.25rem">{{
+        t("common.logout")
+      }}</span>
     </el-button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { ArrowRight } from '@element-plus/icons-vue'
-import { getNavData } from '@/common/nav'
-import type { MenuItem } from '@/common/menutype'
-import { useAppStore, useAuthStore } from '@/store'
-import { ElMessageBox } from 'element-plus'
+import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { ArrowRight } from "@element-plus/icons-vue";
+import { getNavData } from "@/common/nav";
+import type { MenuItem } from "@/common/menutype";
+import { useAppStore, useAuthStore } from "@/store";
+import { ElMessageBox } from "element-plus";
 
-const route = useRoute()
-const router = useRouter()
-const appStore = useAppStore()
-const authStore = useAuthStore()
-const { t } = useI18n()
+const route = useRoute();
+const router = useRouter();
+const appStore = useAppStore();
+const authStore = useAuthStore();
+const { t } = useI18n();
 
-const appVersion = import.meta.env.VITE_APP_VERSION || 'v1.0.0'
+const appVersion = import.meta.env.VITE_APP_VERSION || "v1.0.0";
 
 const handleLogout = async () => {
-  await ElMessageBox.confirm(t('header.logoutConfirm'), t('common.confirm'), { type: 'warning' })
-  await authStore.doLogout()
-  router.push('/login')
-}
+  await ElMessageBox.confirm(t("header.logoutConfirm"), t("common.confirm"), {
+    type: "warning",
+  });
+  await authStore.doLogout();
+  router.push("/login");
+};
 
-const openGroups = ref<Set<string>>(new Set())
-const activeRoot = computed(() => '/' + route.path.split('/')[1])
+const openGroups = ref<Set<string>>(new Set());
+const activeRoot = computed(() => "/" + route.path.split("/")[1]);
 
-const menuItems = computed(() => filterMenus(getNavData()))
+const menuItems = computed(() => filterMenus(getNavData()));
 
 function filterMenus(items: MenuItem[]): MenuItem[] {
   return items.flatMap((item) => {
-    if (item.hidden) return []
-    if (item.leaf) return item.isWhiteList || authStore.hasPermission(item.permissionKey) ? [item] : []
+    if (item.hidden) return [];
+    if (item.leaf)
+      return item.isWhiteList || authStore.hasPermission(item.permissionKey)
+        ? [item]
+        : [];
 
-    const children = filterMenus(item.children ?? [])
-    if (!children.length) return []
-    return [{ ...item, children }]
-  })
+    const children = filterMenus(item.children ?? []);
+    if (!children.length) return [];
+    return [{ ...item, children }];
+  });
 }
 
 function isActive(path?: string) {
-  return !!path && activeRoot.value === path
+  return !!path && activeRoot.value === path;
 }
 
 function isGroupActive(item: MenuItem) {
-  return !!item.children?.some(child => isActive(child.path))
+  return !!item.children?.some((child) => isActive(child.path));
 }
 
 function toggleGroup(tag: string) {
-  const next = new Set(openGroups.value)
-  next.has(tag) ? next.delete(tag) : next.add(tag)
-  openGroups.value = next
+  const next = new Set(openGroups.value);
+  next.has(tag) ? next.delete(tag) : next.add(tag);
+  openGroups.value = next;
 }
 
 watch(
   [activeRoot, menuItems],
   () => {
-    const next = new Set(openGroups.value)
+    const next = new Set(openGroups.value);
     for (const item of menuItems.value) {
-      if (!item.leaf && isGroupActive(item)) next.add(item.tag)
+      if (!item.leaf && isGroupActive(item)) next.add(item.tag);
     }
-    openGroups.value = next
+    openGroups.value = next;
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 </script>
 
 <style scoped>
@@ -150,19 +177,20 @@ watch(
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 8px;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .nav-item,
 .nav-group-header {
-  min-height: 40px;
+  min-height: 48px;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 12px;
+  padding: 13px 20px;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -175,12 +203,15 @@ watch(
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  box-sizing: border-box;
 }
 
 .nav-button {
   justify-content: center;
-  padding: 9px;
+  padding: 9px 20px;
 }
 
 .nav-item:hover,
@@ -191,7 +222,7 @@ watch(
 
 .nav-item.active,
 .nav-group.active > .nav-group-header {
-  background: var(--el-color-primary);
+  background: linear-gradient(135deg, #1557B9, #68B4EC);
   color: #fff;
 }
 
@@ -218,8 +249,8 @@ watch(
 }
 
 .nav-child {
-  min-height: 36px;
-  padding-left: 36px;
+  min-height: 42px;
+  padding-left: 48px;
   font-size: 13px;
 }
 
@@ -243,9 +274,9 @@ watch(
 /* Footer styles */
 .sidebar-footer {
   flex-shrink: 0;
-  border-top: 1px solid var(--el-border-color-light); 
+  border-top: 1px solid var(--el-border-color-light);
   padding: 1rem 0.75rem;
-  margin-top: auto; 
+  margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

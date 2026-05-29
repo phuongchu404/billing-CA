@@ -39,7 +39,7 @@ public interface MultiLevelApprovalService {
 
     MultiLevelApprovalResponse getById(Long id);
 
-    List<ApprovalLevelConfigResponse> listLevelConfigs();
+    com.rs.subscription.dto.PagedResponse<ApprovalLevelConfigResponse> listLevelConfigsPaged(String customerSegment, Boolean isActive, int page, int size);
 
     ApprovalLevelConfigResponse createLevelConfig(UpsertApprovalLevelConfigRequest request);
 
