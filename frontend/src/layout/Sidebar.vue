@@ -150,21 +150,22 @@ watch(
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 8px;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .nav-item,
 .nav-group-header {
   min-height: 40px;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 12px;
+  padding: 9px 20px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   color: var(--el-text-color-primary);
   cursor: pointer;
@@ -176,11 +177,12 @@ watch(
   white-space: nowrap;
   overflow: hidden;
   transition: background 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
 }
 
 .nav-button {
   justify-content: center;
-  padding: 9px;
+  padding: 9px 20px;
 }
 
 .nav-item:hover,
@@ -219,7 +221,7 @@ watch(
 
 .nav-child {
   min-height: 36px;
-  padding-left: 36px;
+  padding-left: 48px;
   font-size: 13px;
 }
 
