@@ -179,7 +179,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     public Long createAndSubmit(ApprovalRequest draft) {
         ApprovalRequest saved = approvalRequestRepository.save(draft);
 
-        int levels = resolveRequestedLevels(saved.getTotalLevels(), 1);
+        int levels = saved.getTotalLevels() != null ? saved.getTotalLevels() : 1;
         saved.setTotalLevels(levels);
         saved.setCurrentLevel(1);
         saved.setStatus(CommercialEnums.MultiApprovalRequestStatus.IN_APPROVAL.name());
