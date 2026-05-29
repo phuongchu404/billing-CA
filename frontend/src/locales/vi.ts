@@ -1055,6 +1055,7 @@ export default {
     guideTableAction: 'Thao tác với bảng dữ liệu: Nhấn (+ Thêm) để tạo các mốc thời gian hoặc điều kiện tính phí mới. Nhấn vào biểu tượng (X) ở đầu dòng để xóa cấu hình tương ứng.',
     chooseTemplatePlaceholder: 'Chọn gói cước đã có của khách hàng phổ thông',
     warningChooseTemplate: 'Vui lòng chọn gói cước mẫu',
+    warningMaxUnlimited: 'Giá trị Max của dòng cuối đang để trống (không giới hạn), không thể thêm dòng mới.',
     copySuffix: ' (bản sao)',
     applyTemplateSuccess: 'Đã điền thông tin từ gói cước mẫu',
     loadTemplateFailed: 'Không thể tải gói cước mẫu',

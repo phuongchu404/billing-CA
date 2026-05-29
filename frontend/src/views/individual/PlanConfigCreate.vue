@@ -534,13 +534,25 @@ watch(
 );
 
 function addRow() {
-  tabData[activeTab.value].push({
+  const rows = tabData[activeTab.value];
+  let nextMin = 1;
+
+  if (rows.length > 0) {
+    const lastRow = rows[rows.length - 1];
+    if (lastRow.maxValue == null) {
+      ElMessage.warning(t('individualPlan.warningMaxUnlimited'));
+      return;
+    }
+    nextMin = lastRow.maxValue + 1;
+  }
+
+  rows.push({
     id: ++rowIdSeq,
     durationMonths: undefined,
     condition: "",
-    minValue: 1,
+    minValue: nextMin,
     maxValue: undefined,
-    fee: undefined,
+    fee: 0,
     totalFee: undefined,
   });
 }

@@ -1053,6 +1053,7 @@ export default {
     guideTableAction: 'Table actions: click (+ Add) to create time or pricing condition milestones. Click the (X) icon at the start of a row to remove that configuration.',
     chooseTemplatePlaceholder: 'Choose an existing individual customer plan',
     warningChooseTemplate: 'Please choose a plan template',
+    warningMaxUnlimited: 'The last row\'s Max value is empty (unlimited). Cannot add a new row.',
     copySuffix: ' (copy)',
     applyTemplateSuccess: 'Template information filled',
     loadTemplateFailed: 'Failed to load plan template',
