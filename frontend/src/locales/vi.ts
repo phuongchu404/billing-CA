@@ -1179,6 +1179,7 @@ export default {
   },
   approvalConfig: {
     title: 'Cấu hình quy tắc phê duyệt',
+    subtitle: 'Thiết lập ngưỡng giá trị hợp đồng và số cấp phê duyệt theo từng phân khúc khách hàng',
     btnAdd: 'Thêm quy tắc',
     colSegment: 'Phân khúc khách hàng',
     colMinValue: 'Giá trị tối thiểu',
@@ -1205,5 +1206,6 @@ export default {
     errorLoad: 'Không thể tải danh sách quy tắc',
     errorSave: 'Lưu quy tắc thất bại',
     errorDelete: 'Xóa quy tắc thất bại',
+    emptyText: 'Chưa có quy tắc phê duyệt nào được cấu hình',
   },
 }

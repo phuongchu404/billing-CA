@@ -1177,6 +1177,7 @@ export default {
   },
   approvalConfig: {
     title: 'Approval Level Configuration',
+    subtitle: 'Set contract value thresholds and required approval levels per customer segment',
     btnAdd: 'Add Rule',
     colSegment: 'Customer Segment',
     colMinValue: 'Min Value',
@@ -1203,5 +1204,6 @@ export default {
     errorLoad: 'Failed to load approval rules',
     errorSave: 'Failed to save approval rule',
     errorDelete: 'Failed to delete approval rule',
+    emptyText: 'No approval rules configured yet',
   },
 }
