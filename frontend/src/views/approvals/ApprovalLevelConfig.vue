@@ -10,11 +10,45 @@
       </el-button>
     </div>
 
+    <!-- Filter bar -->
+    <el-card shadow="never" class="filter-card">
+      <div class="filter-row">
+        <el-select
+          v-model="filterSegment"
+          :placeholder="$t('approvalConfig.colSegment')"
+          clearable
+          style="width: 200px"
+          @change="onFilterChange"
+        >
+          <el-option :label="$t('approvals.all')" value="" />
+          <el-option :label="$t('approvalConfig.segmentGroup')" value="GROUP" />
+          <el-option :label="$t('approvalConfig.segmentIndividual')" value="INDIVIDUAL" />
+        </el-select>
+
+        <el-select
+          v-model="filterActive"
+          :placeholder="$t('approvalConfig.colStatus')"
+          clearable
+          style="width: 180px"
+          @change="onFilterChange"
+        >
+          <el-option :label="$t('approvals.all')" value="" />
+          <el-option :label="$t('common.active')" :value="true" />
+          <el-option :label="$t('common.inactive')" :value="false" />
+        </el-select>
+
+        <el-button :icon="Refresh" :loading="loading" @click="onReload">
+          {{ $t('common.refresh') }}
+        </el-button>
+      </div>
+    </el-card>
+
+    <!-- Table -->
     <el-card shadow="never">
       <el-table :data="configs" border stripe v-loading="loading" table-layout="auto" style="width: 100%">
         <el-table-column type="index" label="#" width="55" align="center" />
 
-        <el-table-column prop="customerSegment" :label="$t('approvalConfig.colSegment')" width="180">
+        <el-table-column prop="customerSegment" :label="$t('approvalConfig.colSegment')" width="200">
           <template #default="{ row }">
             <el-tag :type="row.customerSegment === 'GROUP' ? 'primary' : 'info'" effect="light">
               {{ row.customerSegment === 'GROUP' ? $t('approvalConfig.segmentGroup') : $t('approvalConfig.segmentIndividual') }}
@@ -61,7 +95,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('common.actions')" width="150" align="center" fixed="right">
+        <el-table-column :label="$t('common.actions')" width="170" align="center" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button size="small" :icon="Edit" @click="openEdit(row)">{{ $t('common.edit') }}</el-button>
@@ -149,7 +183,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
@@ -168,6 +202,8 @@ const saving = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const filterSegment = ref('')
+const filterActive = ref<boolean | ''>('')
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const formRef = ref<FormInstance>()
@@ -189,7 +225,12 @@ const rules: FormRules = {
 async function loadConfigs() {
   loading.value = true
   try {
-    const res = await listLevelConfigs({ page: currentPage.value - 1, size: pageSize.value })
+    const res = await listLevelConfigs({
+      customerSegment: filterSegment.value || undefined,
+      isActive: filterActive.value === '' ? undefined : filterActive.value,
+      page: currentPage.value - 1,
+      size: pageSize.value,
+    })
     configs.value = res.data?.content ?? []
     total.value = res.data?.totalElements ?? 0
   } catch {
@@ -199,7 +240,17 @@ async function loadConfigs() {
   }
 }
 
+function onFilterChange() {
+  currentPage.value = 1
+  loadConfigs()
+}
+
 function onSizeChange() {
+  currentPage.value = 1
+  loadConfigs()
+}
+
+function onReload() {
   currentPage.value = 1
   loadConfigs()
 }
@@ -299,6 +350,17 @@ onMounted(loadConfigs)
   margin: 4px 0 0;
   color: #909399;
   font-size: 13px;
+}
+
+.filter-card {
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .amount-text {

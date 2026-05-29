@@ -152,9 +152,13 @@ public class ApprovalRequestController {
     @GetMapping("/level-configs")
     @PreAuthorize("hasAnyAuthority('subscription:view', 'approval:config')")
     public ApiResponse<PagedResponse<ApprovalLevelConfigResponse>> listLevelConfigs(
+            @RequestParam(required = false) String customerSegment,
+            @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.success(multiLevelApprovalService.listLevelConfigsPaged(page, size), "Fetched level configs");
+        return ApiResponse.success(
+            multiLevelApprovalService.listLevelConfigsPaged(customerSegment, isActive, page, size),
+            "Fetched level configs");
     }
 
     /**

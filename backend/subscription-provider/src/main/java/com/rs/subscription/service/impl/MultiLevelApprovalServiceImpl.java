@@ -101,9 +101,9 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
         return toResponse(findRequest(id));
     }
 
-    public PagedResponse<ApprovalLevelConfigResponse> listLevelConfigsPaged(int page, int size) {
-        Page<ApprovalLevelConfig> result = levelConfigRepository.findAll(
-            PageRequest.of(page, size, Sort.by("id").ascending()));
+    public PagedResponse<ApprovalLevelConfigResponse> listLevelConfigsPaged(String customerSegment, Boolean isActive, int page, int size) {
+        Page<ApprovalLevelConfig> result = levelConfigRepository.findWithFilters(
+            customerSegment, isActive, PageRequest.of(page, size));
         return PagedResponse.<ApprovalLevelConfigResponse>builder()
             .content(result.getContent().stream().map(this::toConfigResponse).toList())
             .totalElements(result.getTotalElements())
