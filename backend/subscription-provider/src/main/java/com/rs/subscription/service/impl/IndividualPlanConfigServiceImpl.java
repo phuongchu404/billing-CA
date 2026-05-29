@@ -274,13 +274,9 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .build();
 
         if (req.getPricingRules() != null) {
+            validatePricingRuleContinuity(req.getPricingRules());
             int sortOrder = 0;
             for (CreateIndividualPlanConfigRequest.PricingRuleRequest rr : req.getPricingRules()) {
-                int effectiveMin = rr.getMinValue() != null ? rr.getMinValue() : 1;
-                if (rr.getMaxValue() != null && rr.getMaxValue() < effectiveMin) {
-                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
-                            "Giá trị max phải lớn hơn hoặc bằng giá trị min trong bảng cấu hình giá", 400);
-                }
                 PlanPricingRule rule = toPricingRuleEntity(rr, sortOrder++);
                 rule.setPlanTemplate(template);
                 template.getPricingRules().add(rule);
@@ -602,6 +598,64 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         row.setIconUrl(minioStorageService.toPublicUrl(config.getIconUrl()));
         row.setFeaturesText(config.getFeaturesText());
         return row;
+    }
+
+    /**
+     * Validate tính liên tục của các dải giá trong cùng nhóm (subject + condition + durationMonths).
+     * Quy tắc:
+     *   1. max >= min
+     *   2. Chỉ dòng cuối cùng trong nhóm được phép có maxValue = null (không giới hạn)
+     *   3. minValue của dòng kế tiếp phải bằng maxValue của dòng trước + 1
+     */
+    private void validatePricingRuleContinuity(
+            List<CreateIndividualPlanConfigRequest.PricingRuleRequest> rules) {
+
+        // Nhóm theo (subject, condition, durationMonths), giữ thứ tự nhập vào
+        Map<String, List<CreateIndividualPlanConfigRequest.PricingRuleRequest>> groups =
+            rules.stream().collect(Collectors.groupingBy(
+                r -> r.getSubject() + "|" + r.getCondition() + "|" + r.getDurationMonths(),
+                LinkedHashMap::new,
+                Collectors.toList()
+            ));
+
+        for (Map.Entry<String, List<CreateIndividualPlanConfigRequest.PricingRuleRequest>> entry : groups.entrySet()) {
+            List<CreateIndividualPlanConfigRequest.PricingRuleRequest> group =
+                entry.getValue().stream()
+                    .sorted(Comparator.comparingInt(r -> (r.getMinValue() != null ? r.getMinValue() : 1)))
+                    .collect(Collectors.toList());
+
+            for (int i = 0; i < group.size(); i++) {
+                CreateIndividualPlanConfigRequest.PricingRuleRequest cur = group.get(i);
+                int min = cur.getMinValue() != null ? cur.getMinValue() : 1;
+
+                // Rule 1: max >= min
+                if (cur.getMaxValue() != null && cur.getMaxValue() < min) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Giá trị max phải lớn hơn hoặc bằng giá trị min (dòng min=" + min + ")", 400);
+                }
+
+                boolean isLast = (i == group.size() - 1);
+
+                // Rule 2: chỉ dòng cuối được phép null max
+                if (cur.getMaxValue() == null && !isLast) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Chỉ dòng cuối cùng được phép để trống giá trị Max (không giới hạn). "
+                        + "Dòng min=" + min + " đang để Max trống nhưng còn dòng phía sau.", 400);
+                }
+
+                // Rule 3: minValue dòng kế tiếp = maxValue dòng hiện tại + 1
+                if (!isLast) {
+                    CreateIndividualPlanConfigRequest.PricingRuleRequest next = group.get(i + 1);
+                    int expectedNextMin = cur.getMaxValue() + 1;
+                    int actualNextMin = next.getMinValue() != null ? next.getMinValue() : 1;
+                    if (actualNextMin != expectedNextMin) {
+                        throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                            "Giá trị Min của dòng tiếp theo phải bằng Max của dòng trước + 1. "
+                            + "Mong đợi Min=" + expectedNextMin + ", nhận được Min=" + actualNextMin, 400);
+                    }
+                }
+            }
+        }
     }
 
     private PlanPricingRule toPricingRuleEntity(CreateIndividualPlanConfigRequest.PricingRuleRequest rr, int sortOrder) {
