@@ -222,7 +222,7 @@ watch(
 
 .nav-item.active,
 .nav-group.active > .nav-group-header {
-  background: linear-gradient(135deg, #68B4EC, #1557B9);
+  background: linear-gradient(135deg, #1557B9, #68B4EC);
   color: #fff;
 }
 
