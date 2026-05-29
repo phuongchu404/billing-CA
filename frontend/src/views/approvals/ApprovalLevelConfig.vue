@@ -11,7 +11,7 @@
     </div>
 
     <el-card shadow="never">
-      <el-table :data="configs" border stripe v-loading="loading" table-layout="auto">
+      <el-table :data="configs" border stripe v-loading="loading" table-layout="auto" style="width: 100%">
         <el-table-column type="index" label="#" width="55" align="center" />
 
         <el-table-column prop="customerSegment" :label="$t('approvalConfig.colSegment')" width="180">
@@ -73,6 +73,19 @@
 
       <div v-if="!loading && configs.length === 0" class="empty-state">
         <el-empty :description="$t('approvalConfig.emptyText')" />
+      </div>
+
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+          @current-change="loadConfigs"
+          @size-change="onSizeChange"
+        />
       </div>
     </el-card>
 
@@ -152,6 +165,9 @@ const { t } = useI18n()
 const configs = ref<ApprovalLevelConfigResponse[]>([])
 const loading = ref(false)
 const saving = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const formRef = ref<FormInstance>()
@@ -173,13 +189,19 @@ const rules: FormRules = {
 async function loadConfigs() {
   loading.value = true
   try {
-    const res = await listLevelConfigs()
-    configs.value = res.data ?? []
+    const res = await listLevelConfigs({ page: currentPage.value - 1, size: pageSize.value })
+    configs.value = res.data?.content ?? []
+    total.value = res.data?.totalElements ?? 0
   } catch {
     ElMessage.error(t('approvalConfig.errorLoad'))
   } finally {
     loading.value = false
   }
+}
+
+function onSizeChange() {
+  currentPage.value = 1
+  loadConfigs()
 }
 
 function openCreate() {
@@ -301,5 +323,11 @@ onMounted(loadConfigs)
 
 .empty-state {
   padding: 32px 0;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 </style>

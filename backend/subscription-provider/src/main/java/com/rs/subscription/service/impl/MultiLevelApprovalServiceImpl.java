@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.rs.subscription.dto.PagedResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -100,8 +101,16 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
         return toResponse(findRequest(id));
     }
 
-    public List<ApprovalLevelConfigResponse> listLevelConfigs() {
-        return levelConfigRepository.findAll().stream().map(this::toConfigResponse).toList();
+    public PagedResponse<ApprovalLevelConfigResponse> listLevelConfigsPaged(int page, int size) {
+        Page<ApprovalLevelConfig> result = levelConfigRepository.findAll(
+            PageRequest.of(page, size, Sort.by("id").ascending()));
+        return PagedResponse.<ApprovalLevelConfigResponse>builder()
+            .content(result.getContent().stream().map(this::toConfigResponse).toList())
+            .totalElements(result.getTotalElements())
+            .totalPages(result.getTotalPages())
+            .page(page)
+            .size(size)
+            .build();
     }
 
     @Transactional
