@@ -36,7 +36,7 @@
     <!-- THÔNG TIN GÓI CƯỚC -->
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t('agency.planSection') }}</div>
-      <el-form :model="form" label-width="280" label-position="left">
+      <el-form :model="form" label-width="280" label-position="left" class="custom-form">
         <el-form-item :label="$t('agency.planNameLabel')">
           <el-input v-model="form.planName" :placeholder="$t('agency.planNamePlaceholder')" :maxlength="150" show-word-limit />
           <div class="field-hint">{{ $t('agency.planNameHint') }}</div>
@@ -219,7 +219,7 @@
         <p class="text-regular">
           {{ $t('agency.chooseTemplateDesc') }}
         </p>
-        <div class="dlg-select-row">
+        <div class="dlg-select-row custom-form">
           <span class="text-primary">{{ $t('agency.dialogPlanName') }}</span>
           <el-select
             v-model="selectedTemplate"
@@ -497,18 +497,18 @@ onMounted(() => {
 }
 
 /* form */
-:deep(.el-input),
-:deep(.el-select),
-:deep(.el-select__wrapper) {
+.custom-form :deep(.el-input),
+.custom-form :deep(.el-select),
+.custom-form :deep(.el-select__wrapper) {
   height: 3rem;
 }
 
-:deep(.el-date-editor.el-input__wrapper) {
+.custom-form :deep(.el-date-editor.el-input__wrapper) {
   height: 1.5rem;
 }
 
-:deep(.el-input__wrapper),
-:deep(.el-select__wrapper) {
+.custom-form :deep(.el-input__wrapper),
+.custom-form :deep(.el-select__wrapper) {
   padding: 0.75rem 1rem;
 }
 

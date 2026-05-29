@@ -1377,17 +1377,5 @@ async function confirmEdit() {
   line-height: 26px;
 }
 
-:deep(.el-input),
-:deep(.el-select) {
-  height: 3rem;
-}
 
-:deep(.el-input__wrapper),
-:deep(.el-select__wrapper) {
-  padding: 0.75rem 1rem;
-}
-
-:deep(.el-select__wrapper) {
-  min-height: 3rem;
-}
 </style>
