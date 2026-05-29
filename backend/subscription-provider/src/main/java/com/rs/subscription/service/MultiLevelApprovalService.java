@@ -58,4 +58,6 @@ public interface MultiLevelApprovalService {
     MultiLevelApprovalResponse requestRevision(Long id, RevisionApprovalRequest request);
 
     MultiLevelApprovalResponse resubmit(Long id, SubmitApprovalRequest request);
+
+    int resolveRequiredLevels(String customerSegment, java.math.BigDecimal contractValue);
 }

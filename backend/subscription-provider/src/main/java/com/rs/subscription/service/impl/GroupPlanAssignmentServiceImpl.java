@@ -198,8 +198,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
         BigDecimal contractValue = entity.getPlanTemplate().getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
             .map(PlanPricingRule::getTotalPrice)
-            .max(BigDecimal::compareTo)
-            .orElse(BigDecimal.ZERO);
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         int levels = levelConfigRepository
             .findMatchingConfig(CommercialEnums.CustomerSegment.GROUP.name(), contractValue)

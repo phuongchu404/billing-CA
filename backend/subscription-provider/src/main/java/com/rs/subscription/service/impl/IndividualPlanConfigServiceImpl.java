@@ -258,6 +258,22 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Tên gói cước đã tồn tại: " + req.getName(), 400);
         }
 
+        boolean hasSchedule = req.getApplyFrom() != null && !req.getApplyFrom().isBlank()
+                && req.getApplyUntil() != null && !req.getApplyUntil().isBlank();
+
+        if (hasSchedule) {
+            LocalDate applyFrom = LocalDate.parse(req.getApplyFrom());
+            LocalDate applyUntil = LocalDate.parse(req.getApplyUntil());
+            if (applyFrom.isBefore(LocalDate.now())) {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Ngày bắt đầu áp dụng không được nhỏ hơn ngày hiện tại", 400);
+            }
+            if (!applyUntil.isAfter(applyFrom)) {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Ngày kết thúc phải sau ngày bắt đầu áp dụng", 400);
+            }
+        }
+
         String createdBy = SecurityUtil.getCurrentUsername().orElse(req.getRequestedBy());
         String planCode = generatePlanCode();
         PlanTemplate template = PlanTemplate.builder()
@@ -304,6 +320,34 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                     .forEach(sc -> minioStorageService.confirmByStoragePath(sc.getIconUrl()));
         }
 
+        if (hasSchedule) {
+            RetailPlanSchedule schedule = createSchedule(saved, req.getApplyFrom(), req.getApplyUntil(),
+                    createdBy, CommercialEnums.ScheduleStatus.REQUESTED.name());
+
+            BigDecimal contractValue = saved.getPricingRules().stream()
+                    .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+                    .map(PlanPricingRule::getTotalPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            ApprovalRequest draft = ApprovalRequest.builder()
+                    .requestType(CommercialEnums.RequestType.REQUEST_RETAIL_PLAN_SCHEDULE.name())
+                    .status(CommercialEnums.MultiApprovalRequestStatus.DRAFT.name())
+                    .customerSegment(CommercialEnums.CustomerSegment.INDIVIDUAL.name())
+                    .requestedBy(createdBy)
+                    .entityType("RETAIL_PLAN_SCHEDULE")
+                    .entityId(String.valueOf(schedule.getRetailPlanScheduleId()))
+                    .requestPayload("{\"planTemplateId\":" + saved.getPlanTemplateId() + "}")
+                    .description("Yêu cầu áp dụng gói cước phổ thông: " + saved.getPlanName()
+                            + " từ " + req.getApplyFrom() + " đến " + req.getApplyUntil())
+                    .contractValue(contractValue)
+                    .totalLevels(multiLevelApprovalService.resolveRequiredLevels(
+                            CommercialEnums.CustomerSegment.INDIVIDUAL.name(), contractValue))
+                    .currentLevel(0)
+                    .build();
+
+            multiLevelApprovalService.createAndSubmit(draft);
+        }
+
         eventPublisher.publishEvent(new PlanUpdatedEvent(this, saved.getPlanTemplateId(), "CREATED"));
         return getDetail(saved.getPlanTemplateId());
     }
@@ -333,16 +377,10 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         RetailPlanSchedule saved = createSchedule(template, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), CommercialEnums.ScheduleStatus.REQUESTED.name());
 
-        // Tính giá trị hợp đồng từ totalPrice tối đa của pricing rules (khách hàng trả trước)
         BigDecimal contractValue = template.getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
             .map(PlanPricingRule::getTotalPrice)
-            .max(BigDecimal::compareTo)
-            .orElseGet(() -> template.getPricingRules().stream()
-                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
-                .map(PlanPricingRule::getUnitPrice)
-                .max(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO));
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Tạo multi-level ApprovalRequest và auto-submit → gửi email approver Level 1
         ApprovalRequest draft = ApprovalRequest.builder()

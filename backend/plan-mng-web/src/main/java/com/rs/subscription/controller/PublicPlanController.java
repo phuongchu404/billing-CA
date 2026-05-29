@@ -1,5 +1,6 @@
 package com.rs.subscription.controller;
 
+import com.rs.subscription.dto.ApiResponse;
 import com.rs.subscription.entity.PlanPricingRule;
 import com.rs.subscription.entity.PlanSubjectConfig;
 import com.rs.subscription.entity.PlanTemplate;
@@ -50,65 +51,77 @@ public class PublicPlanController {
      *   - rangeMax   = last row's rangeMax (null = unlimited)
      */
     @GetMapping("/plans/pricing")
-    public List<PricingRuleItem> getPublicPlanPricing() {
-        List<String> statuses = List.of(
-                CommercialEnums.ScheduleStatus.ACTIVE.name(),
-                CommercialEnums.ScheduleStatus.APPROVED.name());
-        LocalDate today = LocalDate.now();
+    public ApiResponse<List<PricingRuleItem>> getPublicPlanPricing() {
+        try {
+            List<String> statuses = List.of(
+                    CommercialEnums.ScheduleStatus.ACTIVE.name(),
+                    CommercialEnums.ScheduleStatus.APPROVED.name());
+            LocalDate today = LocalDate.now();
 
-        List<RetailPlanSchedule> schedules = scheduleRepo.findCurrentlyApplicableWithPricingRules(statuses, today);
+            List<RetailPlanSchedule> schedules = scheduleRepo.findCurrentlyApplicableWithPricingRules(statuses, today);
 
-        List<PricingRuleItem> result = new ArrayList<>();
+            List<PricingRuleItem> result = new ArrayList<>();
 
-        for (RetailPlanSchedule schedule : schedules) {
-            PlanTemplate template = schedule.getPlanTemplate();
-            String planName = template.getPlanName();
+            for (RetailPlanSchedule schedule : schedules) {
+                PlanTemplate template = schedule.getPlanTemplate();
+                String planName = template.getPlanName();
 
-            // Group by (subjectType + pricingMetric + durationMonths), preserve insertion order
-            Map<String, List<PlanPricingRule>> grouped = template.getPricingRules().stream()
-                    .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
-                    .collect(Collectors.groupingBy(
-                            r -> r.getSubjectType() + "|" + r.getPricingMetric() + "|" + r.getCertificateValidityValue(),
-                            LinkedHashMap::new,
-                            Collectors.toList()
-                    ));
+                Map<String, List<PlanPricingRule>> grouped = template.getPricingRules().stream()
+                        .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+                        .collect(Collectors.groupingBy(
+                                r -> r.getSubjectType() + "|" + r.getPricingMetric() + "|" + r.getCertificateValidityValue(),
+                                LinkedHashMap::new,
+                                Collectors.toList()
+                        ));
 
-            grouped.entrySet().stream()
-                    .sorted(Comparator.comparingInt(e ->
-                            SUBJECT_ORDER.indexOf(e.getValue().get(0).getSubjectType())))
-                    .forEach(entry -> {
-                        List<PlanPricingRule> rows = entry.getValue().stream()
-                                .sorted(Comparator.comparingInt(r -> (r.getRangeMin() != null ? r.getRangeMin() : 1)))
-                                .collect(Collectors.toList());
+                grouped.entrySet().stream()
+                        .sorted(Comparator.comparingInt(e ->
+                                SUBJECT_ORDER.indexOf(e.getValue().get(0).getSubjectType())))
+                        .forEach(entry -> {
+                            List<PlanPricingRule> rows = entry.getValue().stream()
+                                    .sorted(Comparator.comparingInt(r -> (r.getRangeMin() != null ? r.getRangeMin() : 1)))
+                                    .collect(Collectors.toList());
 
-                        PlanPricingRule first = rows.get(0);
-                        PlanPricingRule last  = rows.get(rows.size() - 1);
+                            PlanPricingRule first = rows.get(0);
+                            PlanPricingRule last  = rows.get(rows.size() - 1);
 
-                        BigDecimal sumTotal = rows.stream()
-                                .map(PlanPricingRule::getTotalPrice)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                            BigDecimal sumTotal = rows.stream()
+                                    .map(PlanPricingRule::getTotalPrice)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                        Integer rangeMin = first.getRangeMin() != null ? first.getRangeMin() : 1;
-                        Integer rangeMax = last.getRangeMax();
+                            Integer rangeMin = first.getRangeMin() != null ? first.getRangeMin() : 1;
+                            Integer rangeMax = last.getRangeMax();
 
-                        PricingRuleItem item = new PricingRuleItem();
-                        item.setSubjectType(first.getSubjectType());
-                        item.setSubjectLabel(subjectLabel(first.getSubjectType()));
-                        item.setPlanName(planName);
-                        item.setDurationValue(first.getCertificateValidityValue());
-                        item.setDurationUnit(validityUnitLabel(first.getCertificateValidityUnit()));
-                        item.setPricingMetric(first.getPricingMetric());
-                        item.setPricingMetricLabel(metricLabel(first.getPricingMetric()));
-                        item.setRangeMin(rangeMin);
-                        item.setRangeMax(rangeMax);
-                        item.setRangeLabel(rangeMax == null ? "Không giới hạn" : rangeMin + " – " + rangeMax);
-                        item.setTotalPrice(sumTotal);
-                        item.setTotalPriceFormatted(formatVnd(sumTotal));
-                        result.add(item);
-                    });
+                            PricingRuleItem item = new PricingRuleItem();
+                            item.setSubjectType(first.getSubjectType());
+                            item.setSubjectLabel(subjectLabel(first.getSubjectType()));
+                            item.setPlanName(planName);
+                            item.setDurationValue(first.getCertificateValidityValue());
+                            item.setDurationUnit(validityUnitLabel(first.getCertificateValidityUnit()));
+                            item.setPricingMetric(first.getPricingMetric());
+                            item.setPricingMetricLabel(metricLabel(first.getPricingMetric()));
+                            item.setRangeMin(rangeMin);
+                            item.setRangeMax(rangeMax);
+                            item.setRangeLabel(rangeMax == null ? "Không giới hạn" : rangeMin + " – " + rangeMax);
+                            item.setTotalPrice(sumTotal);
+                            item.setTotalPriceFormatted(formatVnd(sumTotal));
+                            result.add(item);
+                        });
+            }
+
+            return ApiResponse.<List<PricingRuleItem>>builder()
+                    .success(true)
+                    .code("200")
+                    .message("Success")
+                    .data(result)
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.<List<PricingRuleItem>>builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .data(List.of())
+                    .build();
         }
-
-        return result;
     }
 
     private String subjectLabel(String subjectType) {

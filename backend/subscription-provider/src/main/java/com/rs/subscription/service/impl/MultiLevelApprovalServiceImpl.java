@@ -332,7 +332,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
 
     // ─── Internal helpers ────────────────────────────────────────────────────
 
-    private int resolveRequiredLevels(String customerSegment, BigDecimal contractValue) {
+    public int resolveRequiredLevels(String customerSegment, BigDecimal contractValue) {
         return levelConfigRepository
             .findMatchingConfig(customerSegment, contractValue)
             .map(ApprovalLevelConfig::getRequiredLevels)
