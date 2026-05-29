@@ -6,6 +6,7 @@ import com.rs.subscription.dto.request.ApproveStepRequest;
 import com.rs.subscription.dto.request.RejectApprovalRequest;
 import com.rs.subscription.dto.request.RevisionApprovalRequest;
 import com.rs.subscription.dto.request.SubmitApprovalRequest;
+import com.rs.subscription.dto.request.UpsertApprovalLevelConfigRequest;
 import com.rs.subscription.dto.response.ApprovalLevelConfigResponse;
 import com.rs.subscription.dto.response.ApprovalStepResponse;
 import com.rs.subscription.dto.response.MultiLevelApprovalResponse;
@@ -40,6 +41,12 @@ public interface MultiLevelApprovalService {
 
     List<ApprovalLevelConfigResponse> listLevelConfigs();
 
+    ApprovalLevelConfigResponse createLevelConfig(UpsertApprovalLevelConfigRequest request);
+
+    ApprovalLevelConfigResponse updateLevelConfig(Long id, UpsertApprovalLevelConfigRequest request);
+
+    void deleteLevelConfig(Long id);
+
     MultiLevelApprovalResponse submit(Long id, SubmitApprovalRequest request);
 
     Long createAndSubmit(ApprovalRequest draft);
@@ -51,4 +58,6 @@ public interface MultiLevelApprovalService {
     MultiLevelApprovalResponse requestRevision(Long id, RevisionApprovalRequest request);
 
     MultiLevelApprovalResponse resubmit(Long id, SubmitApprovalRequest request);
+
+    int resolveRequiredLevels(String customerSegment, java.math.BigDecimal contractValue);
 }

@@ -8,6 +8,7 @@ import com.rs.subscription.dto.request.ApproveStepRequest;
 import com.rs.subscription.dto.request.RejectApprovalRequest;
 import com.rs.subscription.dto.request.RevisionApprovalRequest;
 import com.rs.subscription.dto.request.SubmitApprovalRequest;
+import com.rs.subscription.dto.request.UpsertApprovalLevelConfigRequest;
 import com.rs.subscription.dto.response.ApprovalLevelConfigResponse;
 import com.rs.subscription.dto.response.ApprovalStepResponse;
 import com.rs.subscription.dto.response.MultiLevelApprovalResponse;
@@ -103,6 +104,40 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
         return levelConfigRepository.findAll().stream().map(this::toConfigResponse).toList();
     }
 
+    @Transactional
+    public ApprovalLevelConfigResponse createLevelConfig(UpsertApprovalLevelConfigRequest request) {
+        ApprovalLevelConfig config = ApprovalLevelConfig.builder()
+            .customerSegment(request.getCustomerSegment().toUpperCase())
+            .minValue(request.getMinValue())
+            .maxValue(request.getMaxValue())
+            .requiredLevels(request.getRequiredLevels())
+            .description(request.getDescription())
+            .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+            .build();
+        return toConfigResponse(levelConfigRepository.save(config));
+    }
+
+    @Transactional
+    public ApprovalLevelConfigResponse updateLevelConfig(Long id, UpsertApprovalLevelConfigRequest request) {
+        ApprovalLevelConfig config = levelConfigRepository.findById(id)
+            .orElseThrow(() -> new SmsException(ErrorCodes.VALIDATION_FAILED, "Approval level config not found: " + id, 404));
+        config.setCustomerSegment(request.getCustomerSegment().toUpperCase());
+        config.setMinValue(request.getMinValue());
+        config.setMaxValue(request.getMaxValue());
+        config.setRequiredLevels(request.getRequiredLevels());
+        config.setDescription(request.getDescription());
+        if (request.getIsActive() != null) config.setIsActive(request.getIsActive());
+        return toConfigResponse(levelConfigRepository.save(config));
+    }
+
+    @Transactional
+    public void deleteLevelConfig(Long id) {
+        if (!levelConfigRepository.existsById(id)) {
+            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Approval level config not found: " + id, 404);
+        }
+        levelConfigRepository.deleteById(id);
+    }
+
     // ─── Submit ──────────────────────────────────────────────────────────────
 
     /**
@@ -123,7 +158,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
             : (approval.getContractValue() != null ? approval.getContractValue() : BigDecimal.ZERO);
 
         approval.setContractValue(contractValue);
-        int levels = resolveRequestedLevels(request.getApprovalLevel(), approval.getTotalLevels());
+        int levels = resolveRequiredLevels(approval.getCustomerSegment(), contractValue);
         approval.setTotalLevels(levels);
         approval.setCurrentLevel(1);
         approval.setStatus(CommercialEnums.MultiApprovalRequestStatus.IN_APPROVAL.name());
@@ -144,7 +179,7 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
     public Long createAndSubmit(ApprovalRequest draft) {
         ApprovalRequest saved = approvalRequestRepository.save(draft);
 
-        int levels = resolveRequestedLevels(saved.getTotalLevels(), 1);
+        int levels = saved.getTotalLevels() != null ? saved.getTotalLevels() : 1;
         saved.setTotalLevels(levels);
         saved.setCurrentLevel(1);
         saved.setStatus(CommercialEnums.MultiApprovalRequestStatus.IN_APPROVAL.name());
@@ -280,7 +315,8 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
 
         if (request.getContractValue() != null) approval.setContractValue(request.getContractValue());
 
-        int levels = resolveRequestedLevels(request.getApprovalLevel(), approval.getTotalLevels());
+        BigDecimal contractValue = approval.getContractValue() != null ? approval.getContractValue() : BigDecimal.ZERO;
+        int levels = resolveRequiredLevels(approval.getCustomerSegment(), contractValue);
         approval.setTotalLevels(levels);
         approval.setCurrentLevel(1);
         approval.setStatus(CommercialEnums.MultiApprovalRequestStatus.IN_APPROVAL.name());
@@ -296,19 +332,11 @@ public class MultiLevelApprovalServiceImpl implements MultiLevelApprovalService 
 
     // ─── Internal helpers ────────────────────────────────────────────────────
 
-    private int resolveRequiredLevels(String customerSegment, BigDecimal contractValue) {
+    public int resolveRequiredLevels(String customerSegment, BigDecimal contractValue) {
         return levelConfigRepository
             .findMatchingConfig(customerSegment, contractValue)
             .map(ApprovalLevelConfig::getRequiredLevels)
             .orElseGet(() -> fallbackLevels(customerSegment, contractValue));
-    }
-
-    private int resolveRequestedLevels(Integer requestedLevel, Integer fallbackLevel) {
-        int levels = requestedLevel != null ? requestedLevel : (fallbackLevel != null ? fallbackLevel : 1);
-        if (levels < 1 || levels > LEVEL_ROLES.length) {
-            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "approvalLevel must be between 1 and 3", 400);
-        }
-        return levels;
     }
 
     private int fallbackLevels(String customerSegment, BigDecimal value) {

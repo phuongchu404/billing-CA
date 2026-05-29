@@ -95,7 +95,6 @@ export interface CreateGroupPlanAssignmentRequest {
   requestedBy: string
   applyFrom?: string | null
   applyTo?: string | null
-  approvalLevel?: 1 | 2 | 3
 }
 
 /** Request review (approve/reject/stop) */

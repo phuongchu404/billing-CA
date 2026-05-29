@@ -181,7 +181,7 @@
             <span>{{ t("individualPlan.durationHeader1") }}</span
             ><br /><span>{{ t("individualPlan.durationHeader2") }}</span>
           </template>
-          <template #default="{ row }">
+          <template #default="{ row, $index }">
             <div class="inline-cell">
               <el-input-number
                 v-model="row.durationMonths"
@@ -191,6 +191,7 @@
                 :placeholder="t('individualPlan.numberPlaceholder')"
                 size="small"
                 style="width: 90px"
+                :disabled="$index > 0"
               />
               <span class="unit-text">{{ t("agency.monthUnit") }}</span>
             </div>
@@ -202,12 +203,13 @@
           width="150"
           align="center"
         >
-          <template #default="{ row }">
+          <template #default="{ row, $index }">
             <el-select
               v-model="row.condition"
               size="small"
               :placeholder="t('individualPlan.conditionPlaceholder')"
               style="width: 100%"
+              :disabled="$index > 0"
             >
               <el-option
                 :label="t('agency.conditionSigning')"
@@ -518,7 +520,7 @@ function isTabCompleted(tab: TabKey): boolean {
   );
 }
 
-// Auto-calculate totalFee = fee * (maxValue - minValue) when maxValue is set
+// Auto-calculate totalFee = fee * maxValue when maxValue is set
 watch(
   tabData,
   (data) => {
@@ -533,14 +535,51 @@ watch(
   { deep: true },
 );
 
+// Sync condition + durationMonths từ dòng đầu xuống toàn bộ dòng còn lại trong tab
+watch(
+  () => (Object.keys(tabData) as (keyof typeof tabData)[]).map(tab => {
+    const rows = tabData[tab];
+    return rows.length > 0 ? { condition: rows[0].condition, duration: rows[0].durationMonths } : null;
+  }),
+  () => {
+    (Object.keys(tabData) as (keyof typeof tabData)[]).forEach(tab => {
+      const rows = tabData[tab];
+      if (rows.length <= 1) return;
+      const first = rows[0];
+      for (let i = 1; i < rows.length; i++) {
+        rows[i].condition = first.condition;
+        rows[i].durationMonths = first.durationMonths;
+      }
+    });
+  },
+  { deep: true },
+);
+
 function addRow() {
-  tabData[activeTab.value].push({
+  const rows = tabData[activeTab.value];
+  let nextMin = 1;
+  let inheritedCondition = "";
+  let inheritedDuration: number | undefined = undefined;
+
+  if (rows.length > 0) {
+    const lastRow = rows[rows.length - 1];
+    if (lastRow.maxValue == null) {
+      ElMessage.warning(t('individualPlan.warningMaxUnlimited'));
+      return;
+    }
+    nextMin = lastRow.maxValue + 1;
+    // Inherit condition + duration từ dòng đầu tiên
+    inheritedCondition = rows[0].condition;
+    inheritedDuration = rows[0].durationMonths;
+  }
+
+  rows.push({
     id: ++rowIdSeq,
-    durationMonths: undefined,
-    condition: "",
-    minValue: 1,
+    durationMonths: inheritedDuration,
+    condition: inheritedCondition,
+    minValue: nextMin,
     maxValue: undefined,
-    fee: undefined,
+    fee: 0,
     totalFee: undefined,
   });
 }

@@ -7,6 +7,8 @@ import com.rs.subscription.dto.request.RejectApprovalRequest;
 import com.rs.subscription.dto.request.ReviewCommercialRequest;
 import com.rs.subscription.dto.request.RevisionApprovalRequest;
 import com.rs.subscription.dto.request.SubmitApprovalRequest;
+import com.rs.subscription.dto.request.UpsertApprovalLevelConfigRequest;
+import jakarta.validation.Valid;
 import com.rs.subscription.dto.response.ApprovalLevelConfigResponse;
 import com.rs.subscription.dto.response.ApprovalRequestResponse;
 import com.rs.subscription.dto.response.MultiLevelApprovalResponse;
@@ -148,8 +150,42 @@ public class ApprovalRequestController {
      * Xem cấu hình số cấp duyệt theo loại khách hàng và ngưỡng giá trị.
      */
     @GetMapping("/level-configs")
-    @PreAuthorize("hasAuthority('subscription:view')")
+    @PreAuthorize("hasAnyAuthority('subscription:view', 'approval:config')")
     public ApiResponse<List<ApprovalLevelConfigResponse>> listLevelConfigs() {
         return ApiResponse.success(multiLevelApprovalService.listLevelConfigs(), "Fetched level configs");
+    }
+
+    /**
+     * POST /api/v1/approval-requests/level-configs
+     * Admin tạo rule cấu hình cấp duyệt mới.
+     */
+    @PostMapping("/level-configs")
+    @PreAuthorize("hasAuthority('approval:config')")
+    public ApiResponse<ApprovalLevelConfigResponse> createLevelConfig(
+            @Valid @RequestBody UpsertApprovalLevelConfigRequest request) {
+        return ApiResponse.success(multiLevelApprovalService.createLevelConfig(request), "Created level config");
+    }
+
+    /**
+     * PUT /api/v1/approval-requests/level-configs/{id}
+     * Admin cập nhật rule cấu hình cấp duyệt.
+     */
+    @PutMapping("/level-configs/{id}")
+    @PreAuthorize("hasAuthority('approval:config')")
+    public ApiResponse<ApprovalLevelConfigResponse> updateLevelConfig(
+            @PathVariable Long id,
+            @Valid @RequestBody UpsertApprovalLevelConfigRequest request) {
+        return ApiResponse.success(multiLevelApprovalService.updateLevelConfig(id, request), "Updated level config");
+    }
+
+    /**
+     * DELETE /api/v1/approval-requests/level-configs/{id}
+     * Admin xóa rule cấu hình cấp duyệt.
+     */
+    @DeleteMapping("/level-configs/{id}")
+    @PreAuthorize("hasAuthority('approval:config')")
+    public ApiResponse<Void> deleteLevelConfig(@PathVariable Long id) {
+        multiLevelApprovalService.deleteLevelConfig(id);
+        return ApiResponse.success(null, "Deleted level config");
     }
 }

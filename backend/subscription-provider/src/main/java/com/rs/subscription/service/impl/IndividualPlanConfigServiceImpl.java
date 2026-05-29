@@ -258,6 +258,22 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Tên gói cước đã tồn tại: " + req.getName(), 400);
         }
 
+        boolean hasSchedule = req.getApplyFrom() != null && !req.getApplyFrom().isBlank()
+                && req.getApplyUntil() != null && !req.getApplyUntil().isBlank();
+
+        if (hasSchedule) {
+            LocalDate applyFrom = LocalDate.parse(req.getApplyFrom());
+            LocalDate applyUntil = LocalDate.parse(req.getApplyUntil());
+            if (applyFrom.isBefore(LocalDate.now())) {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Ngày bắt đầu áp dụng không được nhỏ hơn ngày hiện tại", 400);
+            }
+            if (!applyUntil.isAfter(applyFrom)) {
+                throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Ngày kết thúc phải sau ngày bắt đầu áp dụng", 400);
+            }
+        }
+
         String createdBy = SecurityUtil.getCurrentUsername().orElse(req.getRequestedBy());
         String planCode = generatePlanCode();
         PlanTemplate template = PlanTemplate.builder()
@@ -274,13 +290,9 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
                 .build();
 
         if (req.getPricingRules() != null) {
+            validatePricingRuleContinuity(req.getPricingRules());
             int sortOrder = 0;
             for (CreateIndividualPlanConfigRequest.PricingRuleRequest rr : req.getPricingRules()) {
-                int effectiveMin = rr.getMinValue() != null ? rr.getMinValue() : 1;
-                if (rr.getMaxValue() != null && rr.getMaxValue() < effectiveMin) {
-                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
-                            "Giá trị max phải lớn hơn hoặc bằng giá trị min trong bảng cấu hình giá", 400);
-                }
                 PlanPricingRule rule = toPricingRuleEntity(rr, sortOrder++);
                 rule.setPlanTemplate(template);
                 template.getPricingRules().add(rule);
@@ -306,6 +318,34 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
             req.getSubjectConfigs().stream()
                     .filter(sc -> sc.getIconUrl() != null && !sc.getIconUrl().isBlank())
                     .forEach(sc -> minioStorageService.confirmByStoragePath(sc.getIconUrl()));
+        }
+
+        if (hasSchedule) {
+            RetailPlanSchedule schedule = createSchedule(saved, req.getApplyFrom(), req.getApplyUntil(),
+                    createdBy, CommercialEnums.ScheduleStatus.REQUESTED.name());
+
+            BigDecimal contractValue = saved.getPricingRules().stream()
+                    .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
+                    .map(PlanPricingRule::getTotalPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            ApprovalRequest draft = ApprovalRequest.builder()
+                    .requestType(CommercialEnums.RequestType.REQUEST_RETAIL_PLAN_SCHEDULE.name())
+                    .status(CommercialEnums.MultiApprovalRequestStatus.DRAFT.name())
+                    .customerSegment(CommercialEnums.CustomerSegment.INDIVIDUAL.name())
+                    .requestedBy(createdBy)
+                    .entityType("RETAIL_PLAN_SCHEDULE")
+                    .entityId(String.valueOf(schedule.getRetailPlanScheduleId()))
+                    .requestPayload("{\"planTemplateId\":" + saved.getPlanTemplateId() + "}")
+                    .description("Yêu cầu áp dụng gói cước phổ thông: " + saved.getPlanName()
+                            + " từ " + req.getApplyFrom() + " đến " + req.getApplyUntil())
+                    .contractValue(contractValue)
+                    .totalLevels(multiLevelApprovalService.resolveRequiredLevels(
+                            CommercialEnums.CustomerSegment.INDIVIDUAL.name(), contractValue))
+                    .currentLevel(0)
+                    .build();
+
+            multiLevelApprovalService.createAndSubmit(draft);
         }
 
         eventPublisher.publishEvent(new PlanUpdatedEvent(this, saved.getPlanTemplateId(), "CREATED"));
@@ -337,16 +377,10 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
 
         RetailPlanSchedule saved = createSchedule(template, req.getApplyFrom(), req.getApplyUntil(), req.getRequestedBy(), CommercialEnums.ScheduleStatus.REQUESTED.name());
 
-        // Tính giá trị hợp đồng từ totalPrice tối đa của pricing rules (khách hàng trả trước)
         BigDecimal contractValue = template.getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
             .map(PlanPricingRule::getTotalPrice)
-            .max(BigDecimal::compareTo)
-            .orElseGet(() -> template.getPricingRules().stream()
-                .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getUnitPrice() != null)
-                .map(PlanPricingRule::getUnitPrice)
-                .max(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO));
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Tạo multi-level ApprovalRequest và auto-submit → gửi email approver Level 1
         ApprovalRequest draft = ApprovalRequest.builder()
@@ -602,6 +636,83 @@ public class IndividualPlanConfigServiceImpl implements IndividualPlanConfigServ
         row.setIconUrl(minioStorageService.toPublicUrl(config.getIconUrl()));
         row.setFeaturesText(config.getFeaturesText());
         return row;
+    }
+
+    /**
+     * Validate các pricing rules trong cùng subject:
+     *   1. Tất cả dòng trong cùng subject phải có cùng condition và durationMonths
+     *   2. max >= min
+     *   3. Chỉ dòng cuối được phép maxValue = null (không giới hạn)
+     *   4. minValue của dòng kế tiếp = maxValue dòng trước + 1 (liên tục, không hở, không chồng)
+     */
+    private void validatePricingRuleContinuity(
+            List<CreateIndividualPlanConfigRequest.PricingRuleRequest> rules) {
+
+        // Nhóm theo subject only
+        Map<String, List<CreateIndividualPlanConfigRequest.PricingRuleRequest>> groups =
+            rules.stream().collect(Collectors.groupingBy(
+                r -> r.getSubject() != null ? r.getSubject() : "INDIVIDUAL",
+                LinkedHashMap::new,
+                Collectors.toList()
+            ));
+
+        for (Map.Entry<String, List<CreateIndividualPlanConfigRequest.PricingRuleRequest>> entry : groups.entrySet()) {
+            String subject = entry.getKey();
+            List<CreateIndividualPlanConfigRequest.PricingRuleRequest> group =
+                entry.getValue().stream()
+                    .sorted(Comparator.comparingInt(r -> (r.getMinValue() != null ? r.getMinValue() : 1)))
+                    .collect(Collectors.toList());
+
+            if (group.isEmpty()) continue;
+
+            // Rule 1: tất cả dòng trong cùng subject phải đồng nhất condition và durationMonths
+            String expectedCondition = group.get(0).getCondition();
+            Integer expectedDuration = group.get(0).getDurationMonths();
+            for (CreateIndividualPlanConfigRequest.PricingRuleRequest r : group) {
+                if (!java.util.Objects.equals(r.getCondition(), expectedCondition)) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Tất cả dòng trong phân loại '" + subject + "' phải có cùng Điều kiện tính phí. "
+                        + "Mong đợi: " + expectedCondition + ", nhận được: " + r.getCondition(), 400);
+                }
+                if (!java.util.Objects.equals(r.getDurationMonths(), expectedDuration)) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Tất cả dòng trong phân loại '" + subject + "' phải có cùng Thời hạn chứng thư. "
+                        + "Mong đợi: " + expectedDuration + " tháng, nhận được: " + r.getDurationMonths() + " tháng", 400);
+                }
+            }
+
+            for (int i = 0; i < group.size(); i++) {
+                CreateIndividualPlanConfigRequest.PricingRuleRequest cur = group.get(i);
+                int min = cur.getMinValue() != null ? cur.getMinValue() : 1;
+
+                // Rule 2: max >= min
+                if (cur.getMaxValue() != null && cur.getMaxValue() < min) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Giá trị Max phải lớn hơn hoặc bằng giá trị Min (dòng Min=" + min + ")", 400);
+                }
+
+                boolean isLast = (i == group.size() - 1);
+
+                // Rule 3: chỉ dòng cuối được phép maxValue = null
+                if (cur.getMaxValue() == null && !isLast) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Chỉ dòng cuối cùng được phép để trống giá trị Max (không giới hạn). "
+                        + "Dòng Min=" + min + " đang để Max trống nhưng còn dòng phía sau.", 400);
+                }
+
+                // Rule 4: minValue dòng kế tiếp = maxValue dòng hiện tại + 1
+                if (!isLast) {
+                    CreateIndividualPlanConfigRequest.PricingRuleRequest next = group.get(i + 1);
+                    int expectedNextMin = cur.getMaxValue() + 1;
+                    int actualNextMin = next.getMinValue() != null ? next.getMinValue() : 1;
+                    if (actualNextMin != expectedNextMin) {
+                        throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                            "Giá trị Min của dòng tiếp theo phải bằng Max của dòng trước + 1. "
+                            + "Mong đợi Min=" + expectedNextMin + ", nhận được Min=" + actualNextMin, 400);
+                    }
+                }
+            }
+        }
     }
 
     private PlanPricingRule toPricingRuleEntity(CreateIndividualPlanConfigRequest.PricingRuleRequest rr, int sortOrder) {

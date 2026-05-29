@@ -17,7 +17,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Auditable(entityType = "PLAN_TEMPLATE")
 @Service
@@ -43,6 +48,9 @@ public class PlanTemplateServiceImpl implements PlanTemplateService {
     public PlanTemplateResponse create(CreatePlanTemplateRequest request) {
         if (planTemplateRepository.existsByPlanCode(request.getPlanCode())) {
             throw new SmsException(ErrorCodes.VALIDATION_FAILED, "Plan code already exists", 400);
+        }
+        if (request.getPricingRules() != null && !request.getPricingRules().isEmpty()) {
+            validatePricingRuleContinuity(request.getPricingRules());
         }
         PlanTemplate template = PlanTemplate.builder()
             .planCode(request.getPlanCode())
@@ -87,6 +95,9 @@ public class PlanTemplateServiceImpl implements PlanTemplateService {
         template.setAllowBulkSigning(request.getAllowBulkSigning());
         template.setAllowApiAccess(request.getAllowApiAccess());
         template.setCreatedBy(request.getCreatedBy());
+        if (request.getPricingRules() != null && !request.getPricingRules().isEmpty()) {
+            validatePricingRuleContinuity(request.getPricingRules());
+        }
         template.getPricingRules().clear();
         request.getPricingRules().stream()
             .map(this::toRuleEntity)
@@ -105,6 +116,79 @@ public class PlanTemplateServiceImpl implements PlanTemplateService {
     public PlanTemplate findEntity(Long id) {
         return planTemplateRepository.findById(id)
             .orElseThrow(() -> new SmsException(ErrorCodes.PLAN_NOT_FOUND, "Plan template not found: " + id, 404));
+    }
+
+    /**
+     * Validate các pricing rules trong cùng subjectType:
+     *   1. Tất cả dòng trong cùng subject phải có cùng pricingMetric và certificateValidityValue
+     *   2. max >= min
+     *   3. Chỉ dòng cuối được phép rangeMax = null (không giới hạn)
+     *   4. rangeMin của dòng kế tiếp = rangeMax dòng trước + 1
+     */
+    private void validatePricingRuleContinuity(List<PlanPricingRuleRequest> rules) {
+        Map<String, List<PlanPricingRuleRequest>> groups = rules.stream()
+            .collect(Collectors.groupingBy(
+                r -> r.getSubjectType() != null ? r.getSubjectType() : "UNKNOWN",
+                LinkedHashMap::new,
+                Collectors.toList()
+            ));
+
+        for (Map.Entry<String, List<PlanPricingRuleRequest>> entry : groups.entrySet()) {
+            String subject = entry.getKey();
+            List<PlanPricingRuleRequest> group = entry.getValue().stream()
+                .sorted(Comparator.comparingInt(r -> (r.getRangeMin() != null ? r.getRangeMin() : 1)))
+                .collect(Collectors.toList());
+
+            if (group.isEmpty()) continue;
+
+            // Rule 1: đồng nhất pricingMetric và certificateValidityValue trong cùng subject
+            String expectedMetric = group.get(0).getPricingMetric();
+            Integer expectedDuration = group.get(0).getCertificateValidityValue();
+            for (PlanPricingRuleRequest r : group) {
+                if (!Objects.equals(r.getPricingMetric(), expectedMetric)) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Tất cả dòng trong phân loại '" + subject + "' phải có cùng Điều kiện tính phí. "
+                        + "Mong đợi: " + expectedMetric + ", nhận được: " + r.getPricingMetric(), 400);
+                }
+                if (!Objects.equals(r.getCertificateValidityValue(), expectedDuration)) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Tất cả dòng trong phân loại '" + subject + "' phải có cùng Thời hạn chứng thư. "
+                        + "Mong đợi: " + expectedDuration + " tháng, nhận được: " + r.getCertificateValidityValue() + " tháng", 400);
+                }
+            }
+
+            for (int i = 0; i < group.size(); i++) {
+                PlanPricingRuleRequest cur = group.get(i);
+                int min = cur.getRangeMin() != null ? cur.getRangeMin() : 1;
+
+                // Rule 2: max >= min
+                if (cur.getRangeMax() != null && cur.getRangeMax() < min) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Giá trị Max phải lớn hơn hoặc bằng giá trị Min (dòng Min=" + min + ")", 400);
+                }
+
+                boolean isLast = (i == group.size() - 1);
+
+                // Rule 3: chỉ dòng cuối được phép rangeMax = null
+                if (cur.getRangeMax() == null && !isLast) {
+                    throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                        "Chỉ dòng cuối cùng được phép để trống giá trị Max (không giới hạn). "
+                        + "Dòng Min=" + min + " đang để Max trống nhưng còn dòng phía sau.", 400);
+                }
+
+                // Rule 4: rangeMin dòng kế tiếp = rangeMax dòng hiện tại + 1
+                if (!isLast) {
+                    PlanPricingRuleRequest next = group.get(i + 1);
+                    int expectedNextMin = cur.getRangeMax() + 1;
+                    int actualNextMin = next.getRangeMin() != null ? next.getRangeMin() : 1;
+                    if (actualNextMin != expectedNextMin) {
+                        throw new SmsException(ErrorCodes.VALIDATION_FAILED,
+                            "Giá trị Min của dòng tiếp theo phải bằng Max của dòng trước + 1. "
+                            + "Mong đợi Min=" + expectedNextMin + ", nhận được Min=" + actualNextMin, 400);
+                    }
+                }
+            }
+        }
     }
 
     private PlanPricingRule toRuleEntity(PlanPricingRuleRequest request) {
