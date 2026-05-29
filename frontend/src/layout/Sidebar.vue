@@ -158,12 +158,12 @@ watch(
 
 .nav-item,
 .nav-group-header {
-  min-height: 40px;
+  min-height: 48px;
   width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 20px;
+  padding: 13px 20px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -220,7 +220,7 @@ watch(
 }
 
 .nav-child {
-  min-height: 36px;
+  min-height: 42px;
   padding-left: 48px;
   font-size: 13px;
 }
