@@ -355,4 +355,20 @@ const locale = en
 .text-italic {
   font-style: italic;
 }
+
+#app .el-table .el-table__header th {
+  vertical-align: top !important;
+}
+
+#app .el-table .el-table__header th.is-sortable .cell {
+  display: flex !important;
+  justify-content: space-between !important; 
+  align-items: flex-start !important;
+  height: 100% !important; 
+  padding-top: 8px !important;
+}
+
+#app .el-table .el-table__header th.is-sortable .caret-wrapper {
+  margin-top: 0.25rem !important; 
+}
 </style>
