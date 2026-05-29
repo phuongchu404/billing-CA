@@ -17,7 +17,7 @@
     <!-- THÔNG TIN ĐẠI LÝ -->
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t("agency.infoSection") }}</div>
-      <el-form :model="form" label-width="280px" label-position="left">
+      <el-form :model="form" label-width="280px" label-position="left" class="custom-form">
         <el-form-item :label="$t('agency.agencyNameLabel')">
           <el-input
             v-model="form.groupName"
@@ -85,7 +85,7 @@
     <!-- THÔNG TIN GÓI CƯỚC -->
     <el-card shadow="never" class="section-card">
       <div class="section-title">{{ $t("agency.planSection") }}</div>
-      <el-form :model="form" label-width="280px" label-position="left">
+      <el-form :model="form" label-width="280px" label-position="left" class="custom-form">
         <el-form-item :label="$t('agency.planNameLabel')">
           <el-input
             v-model="form.planName"
@@ -331,7 +331,7 @@
       >
         {{ $t("agency.chooseTemplateDesc") }}
       </p>
-      <el-form label-width="90px" label-position="left">
+      <el-form label-width="90px" label-position="left" class="custom-form">
         <el-form-item :label="$t('agency.chooseTemplatePlanLabel')">
           <div v-loading="templateLoading" style="width: 100%">
             <el-select
@@ -678,17 +678,18 @@ function handleCancel() {
 }
 
 /*form*/
-:deep(.el-input),
-:deep(.tag-input-wrap) {
+.custom-form :deep(.el-input),
+.custom-form :deep(.el-select),
+.custom-form :deep(.el-select__wrapper) {
   height: 3rem;
 }
 
-:deep(.el-date-editor.el-input__wrapper) {
+.custom-form :deep(.el-date-editor.el-input__wrapper) {
   height: 1.5rem;
 }
 
-:deep(.tag-input-wrap),
-:deep(.el-input__wrapper) {
+.custom-form :deep(.el-input__wrapper),
+.custom-form :deep(.el-select__wrapper) {
   padding: 0.75rem 1rem;
 }
 
