@@ -48,6 +48,7 @@ export interface ApprovalLevelConfigResponse {
 export interface SubmitApprovalRequest {
   submittedBy: string
   contractValue?: number
+  approvalLevel?: number
 }
 
 export interface UpsertApprovalLevelConfigRequest {
