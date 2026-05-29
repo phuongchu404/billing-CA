@@ -320,13 +320,14 @@
             style="flex: 1"
           />
         </div>
-        <div class="dlg-date-row">
-          <span class="dlg-date-label">{{ $t('agency.dialogApprovalLevel') }}</span>
-          <el-select v-model="requestApprovalLevel" style="flex: 1">
-            <el-option :label="$t('agency.dialogSalesManager')" :value="1" />
-            <el-option :label="$t('agency.dialogCFO')" :value="2" />
-            <el-option :label="$t('agency.dialogCEO')" :value="3" />
-          </el-select>
+        <div class="dlg-date-row" v-if="resolvedApprovalInfo">
+          <span class="dlg-date-label">{{ $t('agency.dialogApprovalFlow') }}</span>
+          <div class="dlg-approval-info">
+            <span class="dlg-approval-levels">{{ $t('agency.dialogApprovalLevelsCount', { count: resolvedApprovalInfo.totalLevels }) }}</span>
+            <div v-for="(step, idx) in resolvedApprovalInfo.steps" :key="idx" class="dlg-approval-step">
+              {{ $t('agency.dialogApprovalStepLabel', { level: step.level, name: step.name }) }}
+            </div>
+          </div>
         </div>
         <i18n-t keypath="agency.dialogRequestNote" tag="p" class="dlg-note">
           <template #status>
@@ -702,6 +703,7 @@ import {
   triggerBlobDownload,
 } from "@/api/groups";
 import { getPlanTemplate } from "@/api/planTemplates";
+import { listLevelConfigs } from "@/api/approvals";
 import type {
   GroupDetail,
   GroupPlanAssignment,
@@ -850,7 +852,10 @@ const selectedPlan = ref<PlanRow | null>(null);
 
 const requestApplyVisible = ref(false);
 const requestApplyDateRange = ref<[string, string] | null>(null);
-const requestApprovalLevel = ref<1 | 2 | 3>(1);
+
+const LEVEL_NAMES: Record<number, string> = { 1: 'Trưởng phòng kinh doanh', 2: 'Giám đốc tài chính (CFO)', 3: 'Tổng giám đốc (CEO)' };
+interface ApprovalInfo { totalLevels: number; steps: { level: number; name: string }[] }
+const resolvedApprovalInfo = ref<ApprovalInfo | null>(null);
 
 const approveVisible = ref(false);
 const approveDateRange = ref<[string, string] | null>(null);
@@ -944,6 +949,28 @@ function handleActivate() {
   activateVisible.value = true;
 }
 
+async function fetchApprovalInfo(contractValue: number) {
+  try {
+    const res = await listLevelConfigs();
+    const configs: any[] = Array.isArray(res) ? res : (res as any)?.data ?? [];
+    const groupConfigs = configs
+      .filter((c: any) => c.customerSegment === 'GROUP' && c.isActive)
+      .sort((a: any, b: any) => (a.minValue ?? 0) - (b.minValue ?? 0));
+    const matched = groupConfigs.find((c: any) => {
+      const min = c.minValue ?? 0;
+      const max = c.maxValue;
+      return contractValue >= min && (max == null || contractValue < max);
+    });
+    const totalLevels = matched?.requiredLevels ?? (contractValue < 50_000_000 ? 1 : contractValue < 500_000_000 ? 2 : 3);
+    resolvedApprovalInfo.value = {
+      totalLevels,
+      steps: Array.from({ length: totalLevels }, (_, i) => ({ level: i + 1, name: LEVEL_NAMES[i + 1] ?? `Cấp ${i + 1}` })),
+    };
+  } catch {
+    resolvedApprovalInfo.value = null;
+  }
+}
+
 function handleRequestApply(row: PlanRow) {
   if (!can("group:update")) {
     ElMessage.warning(t('agency.noPermissionRequestApply'));
@@ -954,8 +981,9 @@ function handleRequestApply(row: PlanRow) {
     row.rawApplyFrom && row.rawApplyTo
       ? [row.rawApplyFrom, row.rawApplyTo]
       : null;
-  requestApprovalLevel.value = 1;
+  resolvedApprovalInfo.value = null;
   requestApplyVisible.value = true;
+  fetchApprovalInfo(0);
 }
 
 function handleApprove(row: PlanRow) {
@@ -1036,8 +1064,9 @@ function openRequestFromDetail() {
     selectedPlan.value?.rawApplyFrom && selectedPlan.value?.rawApplyTo
       ? [selectedPlan.value.rawApplyFrom, selectedPlan.value.rawApplyTo]
       : null;
-  requestApprovalLevel.value = 1;
+  resolvedApprovalInfo.value = null;
   requestApplyVisible.value = true;
+  fetchApprovalInfo(0);
 }
 
 // ---- Confirm handlers ----
@@ -1057,7 +1086,6 @@ async function confirmRequestApply() {
       applyTo: requestApplyDateRange.value
         ? requestApplyDateRange.value[1]
         : null,
-      approvalLevel: requestApprovalLevel.value,
     });
     if (res.success) {
       ElMessage.success(t('agency.successRequestApply'));
@@ -1370,6 +1398,22 @@ async function confirmEdit() {
 }
 .detail-info-row span {
   flex: 1;
+}
+
+.dlg-approval-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dlg-approval-levels {
+  font-weight: 600;
+  color: #1b60cb;
+}
+.dlg-approval-step {
+  font-size: 12px;
+  color: #606266;
+  padding-left: 8px;
 }
 
 /*form*/

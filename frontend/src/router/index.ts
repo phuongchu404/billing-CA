@@ -114,6 +114,12 @@ const router = createRouter({
           meta: { title: "Chi tiết phê duyệt", permission: "approval:view" },
         },
         {
+          path: "approval-level-config",
+          name: "ApprovalLevelConfig",
+          component: () => import("@/views/approvals/ApprovalLevelConfig.vue"),
+          meta: { title: "Cấu hình quy tắc phê duyệt", permission: "approval:config" },
+        },
+        {
           path: "audit-logs",
           name: "AuditLogs",
           component: () => import("@/views/audit-logs/index.vue"),

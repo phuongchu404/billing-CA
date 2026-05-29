@@ -48,7 +48,15 @@ export interface ApprovalLevelConfigResponse {
 export interface SubmitApprovalRequest {
   submittedBy: string
   contractValue?: number
-  approvalLevel?: 1 | 2 | 3
+}
+
+export interface UpsertApprovalLevelConfigRequest {
+  customerSegment: string
+  minValue?: number | null
+  maxValue?: number | null
+  requiredLevels: 1 | 2 | 3
+  description?: string
+  isActive?: boolean
 }
 
 export interface ApproveStepRequest {
@@ -98,7 +106,19 @@ export const resubmitApproval = (id: number, data: SubmitApprovalRequest) =>
 
 // GET /api/v1/approval-requests/level-configs
 export const listLevelConfigs = () =>
-  request.get<ApprovalLevelConfigResponse[]>('/api/v1/approval-requests/level-configs')
+  request.get<any, ApiResponse<ApprovalLevelConfigResponse[]>>('/api/v1/approval-requests/level-configs')
+
+// POST /api/v1/approval-requests/level-configs
+export const createLevelConfig = (data: UpsertApprovalLevelConfigRequest) =>
+  request.post<any, ApiResponse<ApprovalLevelConfigResponse>>('/api/v1/approval-requests/level-configs', data)
+
+// PUT /api/v1/approval-requests/level-configs/{id}
+export const updateLevelConfig = (id: number, data: UpsertApprovalLevelConfigRequest) =>
+  request.put<any, ApiResponse<ApprovalLevelConfigResponse>>(`/api/v1/approval-requests/level-configs/${id}`, data)
+
+// DELETE /api/v1/approval-requests/level-configs/{id}
+export const deleteLevelConfig = (id: number) =>
+  request.delete<any, ApiResponse<void>>(`/api/v1/approval-requests/level-configs/${id}`)
 
 // GET /api/v1/retail-plan-schedules/{id}
 export const getRetailPlanSchedule = (id: number) =>

@@ -8,7 +8,5 @@ import java.math.BigDecimal;
 public class SubmitApprovalRequest {
     private Long approvalRequestId;
     private String submittedBy;
-    // Override giá trị hợp đồng nếu cần tính lại cấp duyệt
     private BigDecimal contractValue;
-    private Integer approvalLevel;
 }

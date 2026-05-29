@@ -17,6 +17,7 @@ import com.rs.subscription.entity.PlanPricingRule;
 import com.rs.subscription.entity.PlanTemplate;
 import com.rs.subscription.exception.ErrorCodes;
 import com.rs.subscription.exception.SmsException;
+import com.rs.subscription.repository.ApprovalLevelConfigRepository;
 import com.rs.subscription.repository.ApprovalRequestRepository;
 import com.rs.subscription.repository.AssignmentAuditRepository;
 import com.rs.subscription.repository.GroupPlanAssignmentRepository;
@@ -41,6 +42,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
     private final PlanTemplateService planTemplateService;
     private final AssignmentAuditRepository assignmentAuditRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
+    private final ApprovalLevelConfigRepository levelConfigRepository;
     private final MultiLevelApprovalService multiLevelApprovalService;
 
     public List<GroupPlanAssignmentResponse> listAll() {
@@ -88,7 +90,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
                 entity.setApplyTo(request.getApplyTo());
                 entity.setStopReason(request.getStopReason());
                 GroupPlanAssignment saved = assignmentRepository.save(entity);
-                Long approvalId = createMultiLevelApproval(saved, request.getRequestedBy(), request.getApprovalLevel());
+                Long approvalId = createMultiLevelApproval(saved, request.getRequestedBy());
                 GroupPlanAssignmentResponse response = toResponse(saved);
                 response.setApprovalRequestId(approvalId);
                 return response;
@@ -108,7 +110,7 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
         GroupPlanAssignment saved = assignmentRepository.save(entity);
         GroupPlanAssignmentResponse response = toResponse(saved);
         if (CommercialEnums.AssignmentStatus.REQUESTED.name().equals(requestedStatus)) {
-            Long approvalId = createMultiLevelApproval(saved, request.getRequestedBy(), request.getApprovalLevel());
+            Long approvalId = createMultiLevelApproval(saved, request.getRequestedBy());
             response.setApprovalRequestId(approvalId);
         }
         return response;
@@ -190,14 +192,19 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
 
     /**
      * Tạo ApprovalRequest multi-level và tự động submit → gửi email cho Level 1 approver.
-     * Giá trị hợp đồng = totalPrice tối đa trong các pricing rules của plan template.
+     * Số cấp duyệt tự động xác định từ approval_level_configs dựa trên giá trị hợp đồng.
      */
-    private Long createMultiLevelApproval(GroupPlanAssignment entity, String actor, Integer approvalLevel) {
+    private Long createMultiLevelApproval(GroupPlanAssignment entity, String actor) {
         BigDecimal contractValue = entity.getPlanTemplate().getPricingRules().stream()
             .filter(r -> Boolean.TRUE.equals(r.getIsActive()) && r.getTotalPrice() != null)
             .map(PlanPricingRule::getTotalPrice)
             .max(BigDecimal::compareTo)
             .orElse(BigDecimal.ZERO);
+
+        int levels = levelConfigRepository
+            .findMatchingConfig(CommercialEnums.CustomerSegment.GROUP.name(), contractValue)
+            .map(config -> config.getRequiredLevels())
+            .orElseGet(() -> fallbackGroupLevels(contractValue));
 
         ApprovalRequest draft = ApprovalRequest.builder()
             .requestType(CommercialEnums.RequestType.REQUEST_GROUP_PLAN_ASSIGNMENT.name())
@@ -211,19 +218,17 @@ public class GroupPlanAssignmentServiceImpl implements GroupPlanAssignmentServic
             .description("Yêu cầu áp dụng gói cước đại lý: " + entity.getPlanTemplate().getPlanName()
                 + " cho " + entity.getGroup().getGroupName())
             .contractValue(contractValue)
-            .totalLevels(normalizeApprovalLevel(approvalLevel))
+            .totalLevels(levels)
             .currentLevel(0)
             .build();
 
         return multiLevelApprovalService.createAndSubmit(draft);
     }
 
-    private int normalizeApprovalLevel(Integer approvalLevel) {
-        if (approvalLevel == null) return 1;
-        if (approvalLevel < 1 || approvalLevel > 3) {
-            throw new SmsException(ErrorCodes.VALIDATION_FAILED, "approvalLevel must be between 1 and 3", 400);
-        }
-        return approvalLevel;
+    private int fallbackGroupLevels(BigDecimal value) {
+        if (value.compareTo(new BigDecimal("50000000")) < 0) return 1;
+        if (value.compareTo(new BigDecimal("500000000")) < 0) return 2;
+        return 3;
     }
 
     private void updateApproval(GroupPlanAssignment entity, String decision, String actor, String note) {
